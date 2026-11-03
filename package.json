@@ -1,0 +1,14 @@
+{
+  "name": "crypto-desk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Switch workflow where agents and a security lead migrate a codebase off quantum-vulnerable crypto.",
+  "type": "module",
+  "engines": { "node": ">=24.7" },
+  "scripts": {
+    "test": "node --test tools/cbom-scan.test.mjs && npm --prefix demo-payments test",
+    "scan": "node tools/cbom-scan.mjs demo-payments --out cbom.json",
+    "setup": "node scripts/setup-origin.mjs",
+    "reset": "node scripts/setup-origin.mjs --reset"
+  }
+}
