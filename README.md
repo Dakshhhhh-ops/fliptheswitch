@@ -1,10 +1,5 @@
 # Crypto Migration Desk
 
-> This repository holds two Switch workflows. **Crypto Migration Desk** (this
-> page) is the business entry. **[Sibling Shift](sibling-shift/)**, where
-> siblings in three cities share care of their father's medicines, is the
-> personal entry.
-
 **Your encryption has an expiry date.**
 
 Anything encrypted with RSA or elliptic-curve keys today can be recorded now
@@ -60,8 +55,7 @@ flowchart TB
    Switch refuses. When the security lead says it, the shipper merges and
    tells the scout. A finding the team can't fix becomes an **accepted risk**
    with a reason and a review date.
-7. The scout rescans main and the board moves, ending at
-   `Shipped 5/6 · Accepted risk 1`.
+7. The scout rescans main and the board moves.
 
 ## Why it needs Switch
 
@@ -80,9 +74,11 @@ Take Switch away and this stops working. These parts are Switch's:
 ## The demo codebase
 
 [`demo-payments/`](demo-payments/) is a small payments service with six
-planted problems. Its 8 tests pass before and after the migration.
+planted problems, and its 8 tests pass. The scanner is a fixed rule table, so
+it finds exactly these six; that is on purpose, so every run starts from the
+same inventory. The fixes below are what the agents are briefed to make.
 
-| # | Where | Problem | Fix the desk makes |
+| # | Where | Problem | Planned fix |
 |---|---|---|---|
 | F1 | `src/envelope.js` | RSA-OAEP wraps card data keys | Hybrid X25519 + ML-KEM-768 → HKDF → AES-256-GCM |
 | F2 | `src/session.js` | ECDH P-256 settlement keys, files kept 7 years | Hybrid X25519 + ML-KEM-768 |
