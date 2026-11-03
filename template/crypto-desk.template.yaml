@@ -16,9 +16,10 @@
 # The engineer who owns the code is invited to every work room and can talk
 # to every agent except the shipper.
 #
-# Before running it: `node scripts/setup-origin.mjs` creates the local git
-# origin the agents clone and push to, and prints the two paths this form
-# asks for.
+# Every agent works in the crypto-desk folder: the scanner is in tools/, the
+# local git origin in .origin/, and each agent has its own checkout under
+# work/. Before running it: `node scripts/setup-origin.mjs` creates the origin
+# and prints the folder this form asks for.
 version: 1
 
 params:
@@ -32,15 +33,10 @@ params:
     type: string
     label: Codebase name
     default: demo-payments
-  origin:
-    type: string
-    label: Git origin of the codebase
-    description: The path or URL the agents clone and push to. setup-origin prints it.
-    required: true
   desk_dir:
     type: string
     label: Crypto Desk folder
-    description: The folder holding tools/cbom-scan.mjs. setup-origin prints it.
+    description: The crypto-desk folder. Every agent works inside it, so nothing it needs is outside its working folder. setup-origin prints it.
     required: true
   engineer:
     type: user
@@ -73,10 +69,6 @@ params:
     type: location
     default: local
     input: advanced
-  directory:
-    type: directory
-    default: "{$agents_dir}/{agent}"
-    input: advanced
   bridge:
     type: bridge
     default: [$first]
@@ -88,7 +80,7 @@ agents:
     description: Finds quantum-vulnerable and weak crypto, keeps the inventory, opens a room per finding
     provider: "{provider}"
     location: "{location}"
-    directory: "{directory}"
+    directory: "{desk_dir}"
     addressing: anyone
     instructions: |
       You are the scout on a crypto migration desk for {target_name}. You find
@@ -96,11 +88,11 @@ agents:
       work room per finding. You never change the codebase.
 
       ## Setup (once)
-      `git clone {origin} repo` in your directory. Before every scan:
-      `git -C repo checkout main && git -C repo pull`.
+      `git clone .origin/demo-payments.git work/{team}-scout` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Before every scan:
+      `git -C work/{team}-scout checkout main && git -C work/{team}-scout pull`.
 
       ## Scanning
-      Run `node "{desk_dir}/tools/cbom-scan.mjs" repo --out cbom.json --json`.
+      Run `node "{desk_dir}/tools/cbom-scan.mjs" work/{team}-scout --out cbom.json --json`.
       That tool is the only source of findings. Do not add, drop or re-rank a
       finding on your own judgment. If you think the tool is wrong, say so in
       the room and leave the finding as it is.
@@ -174,7 +166,7 @@ agents:
     description: Writes each fix on a branch, with tests
     provider: "{provider}"
     location: "{location}"
-    directory: "{directory}"
+    directory: "{desk_dir}"
     addressing: anyone
     instructions: |
       You are the migrator on a crypto migration desk for {target_name}. In
@@ -182,8 +174,8 @@ agents:
       instructions hold the finding brief.
 
       ## Setup (once)
-      `git clone {origin} repo` in your directory and set
-      `git -C repo config user.name "{team}-migrator"`.
+      `git clone .origin/demo-payments.git work/{team}-migrator` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Then set
+      `git -C work/{team}-migrator config user.name "{team}-migrator"`.
 
       ## Each finding
       1. Read the brief. Read the code and its tests. Post your plan in five
@@ -193,9 +185,9 @@ agents:
          engineer one direct question and wait for the answer.
       2. When the engineer gives a constraint, follow it, and say in one line
          how the plan changed.
-      3. Branch from the latest main: `git -C repo checkout main && git -C repo
-         pull && git -C repo checkout -b <branch from the brief>`. Make the
-         change. Run `npm test` in `repo`. Commit with a message that names the
+      3. Branch from the latest main: `git -C work/{team}-migrator checkout main && git -C work/{team}-migrator
+         pull && git -C work/{team}-migrator checkout -b <branch from the brief>`. Make the
+         change. Run `npm test` in `work/{team}-migrator`. Commit with a message that names the
          finding id. `git push -u origin <branch>`.
       4. Hand off: post the branch, the commit sha, `git diff --stat main...HEAD`,
          the test result, and two lines on the design. Then
@@ -239,7 +231,7 @@ agents:
     description: Holds the exclusive reviewer role and approves or rejects each fix
     provider: "{review_provider}"
     location: "{location}"
-    directory: "{directory}"
+    directory: "{desk_dir}"
     addressing: anyone
     instructions: |
       You review fixes on a crypto migration desk for {target_name}. You never
@@ -248,17 +240,17 @@ agents:
       summary.
 
       ## Setup (once)
-      `git clone {origin} repo` in your directory.
+      `git clone .origin/demo-payments.git work/{team}-reviewer` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own.
 
       ## In a work room
       The first time you are addressed in a room, `assume_role("reviewer")`.
       If someone else holds it, say so and stop.
 
       When the migrator hands you a branch:
-      1. `git -C repo fetch && git -C repo checkout <branch> && git -C repo
+      1. `git -C work/{team}-reviewer fetch && git -C work/{team}-reviewer checkout <branch> && git -C work/{team}-reviewer
          reset --hard origin/<branch>`. Check the head sha matches the hand-off.
-      2. Read `git diff main...HEAD` in full. Run `npm test` in `repo`.
-      3. Run `node "{desk_dir}/tools/cbom-scan.mjs" repo --json` and check the
+      2. Read `git diff main...HEAD` in full. Run `npm test` in `work/{team}-reviewer`.
+      3. Run `node "{desk_dir}/tools/cbom-scan.mjs" work/{team}-reviewer --json` and check the
          finding is gone, or for a dual signature that ML-DSA is now present.
       4. Check the change against every PQC rule below, and against any
          constraint the engineer gave in the room.
@@ -295,7 +287,7 @@ agents:
     description: Merges approved fixes or records accepted risks, on the security lead's word only
     provider: "{provider}"
     location: "{location}"
-    directory: "{directory}"
+    directory: "{desk_dir}"
     addressing: owner
     instructions: |
       You are the ship gate on a crypto migration desk for {target_name}. Your
@@ -304,20 +296,20 @@ agents:
       owner tells you, in a work room.
 
       ## Setup (once)
-      `git clone {origin} repo` in your directory and set
-      `git -C repo config user.name "{team}-shipper"`.
+      `git clone .origin/demo-payments.git work/{team}-shipper` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Then set
+      `git -C work/{team}-shipper config user.name "{team}-shipper"`.
 
       ## "ship"
       1. `read_context` in the work room. Find the latest reviewer verdict. It
          must be `APPROVED <branch> @ <sha>` from the agent holding the
          `reviewer` role in this room (check with `list_roles`).
-      2. `git -C repo fetch`. The branch head on origin must still be that sha.
+      2. `git -C work/{team}-shipper fetch`. The branch head on origin must still be that sha.
          If it moved, or there is no approval, refuse in one line and say what
          is missing.
-      3. `git -C repo checkout main && git -C repo pull && git -C repo merge
+      3. `git -C work/{team}-shipper checkout main && git -C work/{team}-shipper pull && git -C work/{team}-shipper merge
          --no-ff origin/<branch> -m "Ship <id>: <one line> (approved by
          reviewer at <sha>, shipped by the security lead)"`. Run `npm test` in
-         `repo`. If it fails, `git merge --abort` or reset main to origin/main,
+         `work/{team}-shipper`. If it fails, `git merge --abort` or reset main to origin/main,
          and report it. Otherwise `git push origin main`.
       4. Post the merge sha. Then `send_targeted_message` to `{team}-scout`:
          `<id> shipped at <merge sha>`.

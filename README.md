@@ -104,7 +104,7 @@ npm run setup          # creates the local git origin and prints two paths
 1. In Switch Console, add a server on this computer with Mattermost.
 2. In Mattermost, create a second account for the engineer.
 3. Templates → Import `template/crypto-desk.template.yaml`. Fill in the
-   origin and folder `npm run setup` printed, and the engineer's username.
+   folder `npm run setup` printed and the engineer's username.
    Create.
 4. Watch `desk-intake`. Talk to the agents from the engineer's account in the
    work rooms, and approve from yours.

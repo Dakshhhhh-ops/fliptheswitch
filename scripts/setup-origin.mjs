@@ -6,7 +6,7 @@
 //
 // It copies demo-payments into a bare repository at .origin/demo-payments.git,
 // so the agents work as they would against a hosted repository, without one.
-// Prints the two values the template's form asks for.
+// Prints the folder the template's form asks for.
 import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -40,4 +40,4 @@ if (existsSync(origin)) {
   console.log('Origin created.');
 }
 
-console.log(`\nFill the template form with:\n  origin:   ${slash(origin)}\n  desk_dir: ${slash(deskDir)}`);
+console.log(`\nFill the template form with:\n  desk_dir: ${slash(deskDir)}`);
