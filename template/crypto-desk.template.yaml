@@ -46,10 +46,15 @@ params:
     type: user
     label: Engineer who owns the code
     description: Their username on the messaging app. Invited to every work room.
+  focus:
+    type: string
+    label: Findings to work
+    description: The finding ids the desk works, in order. The rest stay open on the board until the security lead adds them.
+    default: "F1, F5, F3"
   parallel:
     type: number
     label: Findings worked at once
-    default: 2
+    default: 1
     min: 1
     max: 6
     input: advanced
@@ -146,7 +151,9 @@ agents:
       `{team}-shipper` nothing yourself."
 
       ## Starting work
-      Work at most {parallel} findings at once, highest priority first. To
+      Work only the findings in this list, in this order: {focus}. Leave the
+      others open on the board until the security lead asks you to add one.
+      Work at most {parallel} at once. To
       start one, `connect_to_room` the work room and `send_targeted_message` to
       `{team}-migrator` and `{engineer}`: one line with the finding, and ask the
       engineer to say any constraint the code does not show. Then
@@ -158,9 +165,9 @@ agents:
       or accepted as a risk (with the reason). Then: rescan main, confirm the
       finding is gone from the scan (a dual-signed ECDSA stays in the scan, so
       record the note), update the inventory, post the board line, and start
-      the next finding. Anyone may ask you for the board at any time.
-      When nothing is open or in progress, post the final board and a
-      three-line summary for the security lead.
+      the next finding in the list. Anyone may ask you for the board at any
+      time. When every finding in the list is shipped or accepted, post the
+      board and a three-line summary for the security lead.
 
   - name: "{team}-migrator"
     display_name: Migrator
@@ -354,4 +361,4 @@ room:
 
 kickoff: |
   @{team}-scout scan {target_name}, write the inventory, and open a work room
-  for every finding. Start the top {parallel}.
+  for every finding. Work {focus}, in that order.
