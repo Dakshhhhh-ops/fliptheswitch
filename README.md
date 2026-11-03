@@ -1,5 +1,10 @@
 # Crypto Migration Desk
 
+> This repository holds two Switch workflows. **Crypto Migration Desk** (this
+> page) is the business entry. **[Sibling Shift](sibling-shift/)**, where
+> siblings in three cities share care of their father's medicines, is the
+> personal entry.
+
 **Your encryption has an expiry date.**
 
 Anything encrypted with RSA or elliptic-curve keys today can be recorded now
