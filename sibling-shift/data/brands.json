@@ -1,0 +1,20 @@
+{
+  "_about": "Brand-to-ingredient lookup for the demo. A small, hand-checked table of common Indian brands. It is not a drug database and not medical advice: anything not in it is reported as unknown, never guessed.",
+  "brands": {
+    "Telma 40":      { "maker": "Glenmark",     "ingredients": [{ "name": "telmisartan", "mg": 40 }], "classes": ["ARB (blood pressure)"] },
+    "Telsartan 40":  { "maker": "Dr. Reddy's",  "ingredients": [{ "name": "telmisartan", "mg": 40 }], "classes": ["ARB (blood pressure)"] },
+    "Telma-AM":      { "maker": "Glenmark",     "ingredients": [{ "name": "telmisartan", "mg": 40 }, { "name": "amlodipine", "mg": 5 }], "classes": ["ARB (blood pressure)", "calcium channel blocker (blood pressure)"] },
+    "Telma-H":       { "maker": "Glenmark",     "ingredients": [{ "name": "telmisartan", "mg": 40 }, { "name": "hydrochlorothiazide", "mg": 12.5 }], "classes": ["ARB (blood pressure)", "thiazide diuretic (blood pressure)"] },
+    "Amlong 5":      { "maker": "Micro Labs",   "ingredients": [{ "name": "amlodipine", "mg": 5 }], "classes": ["calcium channel blocker (blood pressure)"] },
+    "Stamlo 5":      { "maker": "Dr. Reddy's",  "ingredients": [{ "name": "amlodipine", "mg": 5 }], "classes": ["calcium channel blocker (blood pressure)"] },
+    "Storvas 10":    { "maker": "Sun Pharma",   "ingredients": [{ "name": "atorvastatin", "mg": 10 }], "classes": ["statin (cholesterol)"] },
+    "Atorva 10":     { "maker": "Zydus",        "ingredients": [{ "name": "atorvastatin", "mg": 10 }], "classes": ["statin (cholesterol)"] },
+    "Rozavel 10":    { "maker": "Sun Pharma",   "ingredients": [{ "name": "rosuvastatin", "mg": 10 }], "classes": ["statin (cholesterol)"] },
+    "Glycomet 500":  { "maker": "USV",          "ingredients": [{ "name": "metformin", "mg": 500 }], "classes": ["biguanide (sugar)"] },
+    "Ecosprin 75":   { "maker": "USV",          "ingredients": [{ "name": "aspirin", "mg": 75 }], "classes": ["aspirin (blood thinner)"] },
+    "Clopilet 75":   { "maker": "Sun Pharma",   "ingredients": [{ "name": "clopidogrel", "mg": 75 }], "classes": ["P2Y12 inhibitor (blood thinner)"] },
+    "Thyronorm 50":  { "maker": "Abbott",       "ingredients": [{ "name": "levothyroxine", "mg": 0.05 }], "classes": ["thyroid hormone"] },
+    "Pan 40":        { "maker": "Alkem",        "ingredients": [{ "name": "pantoprazole", "mg": 40 }], "classes": ["proton pump inhibitor (acidity)"] },
+    "Dolo 650":      { "maker": "Micro Labs",   "ingredients": [{ "name": "paracetamol", "mg": 650 }], "classes": ["paracetamol (pain, fever)"] }
+  }
+}
