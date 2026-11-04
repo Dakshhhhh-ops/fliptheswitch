@@ -1,6 +1,13 @@
-import { Ago, isStatic } from './motion.jsx';
+import { useEffect, useRef } from 'react';
+import { Ago } from './motion.jsx';
+import { isStatic, magnetic } from '../lib/motion.js';
 
 export default function Nav({ desk, live }) {
+  const links = useRef(null);
+  useEffect(() => {
+    const offs = [...links.current.querySelectorAll('a')].map((a) => magnetic(a, 0.35));
+    return () => offs.forEach((off) => off());
+  }, []);
   const snapshot = isStatic();
   return (
     <header className="nav">
@@ -10,14 +17,14 @@ export default function Nav({ desk, live }) {
         </span>
         <span className="brand-name">Crypto Migration Desk</span>
       </a>
-      <nav className="nav-links" aria-label="Sections">
+      <nav className="nav-links" ref={links} aria-label="Sections">
         <a href="#findings">Findings</a>
         <a href="#inventory">Inventory</a>
         <a href="#timeline">Timeline</a>
       </nav>
       <div className={`live ${live ? 'on' : ''}`} role="status">
         <span className="live-dot" aria-hidden="true" />
-        {snapshot ? 'Snapshot' : live ? 'Live' : 'Reconnecting'}
+        {snapshot ? 'Snapshot' : live ? 'Live' : 'Connecting'}
         {desk && (
           <span className="live-meta">
             main@<code>{desk.head}</code> · <Ago iso={desk.readAt} />

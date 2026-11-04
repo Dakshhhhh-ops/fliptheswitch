@@ -1,81 +1,95 @@
-import { useState } from 'react';
-import { Reveal } from './motion.jsx';
-import { STATES, slug } from '../useDesk.js';
+import { useLayoutEffect, useRef } from 'react';
+import { calm, gsap, ScrollTrigger } from '../lib/motion.js';
+import { slug } from '../useDesk.js';
 
 function Evidence({ row }) {
-  if (row.ship) {
+  if (row.ship)
     return (
-      <p>
-        Merged <code>{row.ship.sha}</code> on {row.ship.date}: {row.ship.subject}
-        {row.stillFlagged && <span className="note"> Still in the scan on purpose: the classical algorithm is kept beside the new one.</span>}
-      </p>
+      <>
+        Merged <code>{row.ship.sha}</code> on {row.ship.date}.
+        {row.stillFlagged && ' Still in the scan on purpose: the classical algorithm stays beside the new one.'}
+      </>
     );
-  }
-  if (row.risk) return <p>{row.risk}</p>;
-  if (row.branch) return <p>Fix under review on <code>{row.branch}</code>.</p>;
-  return <p>Not started. The scout opened its room; nothing is on the origin yet.</p>;
+  if (row.risk) return <>{row.risk}</>;
+  if (row.branch) return <>Fix under review on <code>{row.branch}</code>.</>;
+  return <>Room open. Nothing on the origin yet.</>;
 }
 
+// Pinned on wide screens: scrolling down moves the cards sideways.
 export default function Findings({ rows }) {
-  const [filter, setFilter] = useState('all');
-  const [open, setOpen] = useState(null);
-  const shown = filter === 'all' ? rows : rows.filter((r) => r.state === filter);
+  const root = useRef(null);
+  const track = useRef(null);
+
+  useLayoutEffect(() => {
+    if (calm()) return undefined;
+    const mm = gsap.matchMedia();
+    mm.add('(min-width: 961px)', () => {
+      const distance = () => track.current.scrollWidth - window.innerWidth + 80;
+      const tween = gsap.to(track.current, {
+        x: () => -distance(),
+        ease: 'none',
+        scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${distance()}`, pin: true, scrub: 0.8, invalidateOnRefresh: true, anticipatePin: 1 },
+      });
+      gsap.to('.fc-progress i', { scaleX: 1, ease: 'none', scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${distance()}`, scrub: true } });
+      return () => tween.kill();
+    });
+    mm.add('(max-width: 960px)', () => {
+      gsap.utils.toArray('.fcard').forEach((card) =>
+        gsap.from(card, { y: 70, autoAlpha: 0, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: card, start: 'top 88%' } }),
+      );
+    });
+    return () => mm.revert();
+  }, [rows.length]);
+
+  useLayoutEffect(() => {
+    ScrollTrigger.refresh();
+  }, [rows]);
 
   return (
-    <section className="section" id="findings">
-      <Reveal className="section-head">
-        <span className="section-index">01</span>
-        <h2>Findings</h2>
-        <p>Every finding from the scan of the first commit, and where it stands now.</p>
-      </Reveal>
-
-      <div className="filters" role="tablist" aria-label="Filter findings">
-        {['all', ...STATES].map((s) => {
-          const n = s === 'all' ? rows.length : rows.filter((r) => r.state === s).length;
-          return (
-            <button key={s} role="tab" aria-selected={filter === s} className={filter === s ? 'active' : ''} onClick={() => setFilter(s)}>
-              {s} <span>{n}</span>
-            </button>
-          );
-        })}
+    <section className="findings" id="findings" ref={root}>
+      <div className="findings-head">
+        <span className="section-index">01 — Findings</span>
+        <h2 className="section-title">
+          Six problems,
+          <br />
+          <em>one room each.</em>
+        </h2>
+        <p className="section-sub">From the scan of the first commit. Each one is worked in its own Switch room with the engineer who owns the code.</p>
+        <span className="fc-progress" aria-hidden="true"><i /></span>
       </div>
-
-      <ol className="findings">
-        {shown.map((r, i) => {
-          const isOpen = open === r.id;
-          return (
-            <Reveal as="li" key={r.id} delay={i * 50} className={`finding ${isOpen ? 'expanded' : ''}`}>
-              <button className="finding-row" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.id)}>
-                <span className="f-id">{r.id}</span>
-                <span className="f-main">
-                  <span className="f-algo">{r.algorithm}</span>
-                  <code className="f-where">
-                    {r.file}:{r.line}
-                  </code>
-                </span>
-                <span className={`pri pri-${r.priority.toLowerCase()}`}>{r.priority}</span>
-                <span className={`pill s-${slug(r.state)}`}>{r.state}</span>
-                <span className="chev" aria-hidden="true">+</span>
-              </button>
-              <div className="finding-body" hidden={!isOpen}>
-                <div>
-                  <h3>Why it matters</h3>
-                  <p>{r.why}</p>
-                  <p className="tag">{r.status}</p>
-                </div>
-                <div>
-                  <h3>Planned fix</h3>
-                  <p>{r.fix}</p>
-                </div>
-                <div>
-                  <h3>Evidence</h3>
-                  <Evidence row={r} />
-                </div>
+      <div className="findings-track" ref={track}>
+        {rows.map((r) => (
+          <article className={`fcard st-${slug(r.state)}`} key={r.id} data-cursor={r.state}>
+            <header className="fcard-top">
+              <span className="fcard-id">{r.id}</span>
+              <span className={`pill s-${slug(r.state)}`}>{r.state}</span>
+            </header>
+            <h3 className="fcard-algo">{r.algorithm}</h3>
+            <code className="fcard-where">
+              {r.file}:{r.line} · {r.priority} · {r.status}
+            </code>
+            <dl className="fcard-body">
+              <div>
+                <dt>Why</dt>
+                <dd>{r.why}</dd>
               </div>
-            </Reveal>
-          );
-        })}
-      </ol>
+              <div>
+                <dt>Fix</dt>
+                <dd>{r.fix}</dd>
+              </div>
+              <div>
+                <dt>Evidence</dt>
+                <dd>
+                  <Evidence row={r} />
+                </dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+        <div className="fcard fcard-end" aria-hidden="true">
+          <span>Every state here is read from git, not typed in.</span>
+        </div>
+      </div>
     </section>
   );
 }

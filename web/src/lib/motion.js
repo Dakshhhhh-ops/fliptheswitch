@@ -1,0 +1,59 @@
+import { useEffect } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Lenis from 'lenis';
+
+gsap.registerPlugin(ScrollTrigger);
+export { gsap, ScrollTrigger };
+
+// `?static` renders a still page with everything visible: for screenshots.
+export const isStatic = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('static');
+
+// No motion for people who asked for less, and none in static snapshots.
+export const calm = () =>
+  typeof window !== 'undefined' && (isStatic() || window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+export const finePointer = () => typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
+
+// Smooth scrolling that ScrollTrigger reads, so pinned sections stay in step.
+export function useSmoothScroll(enabled) {
+  useEffect(() => {
+    if (!enabled || calm()) return undefined;
+    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
+    lenis.on('scroll', ScrollTrigger.update);
+    const tick = (time) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
+    const onClick = (e) => {
+      const a = e.target.closest('a[href^="#"]');
+      if (!a) return;
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        lenis.scrollTo(target, { offset: -60 });
+      }
+    };
+    document.addEventListener('click', onClick);
+    return () => {
+      document.removeEventListener('click', onClick);
+      gsap.ticker.remove(tick);
+      lenis.destroy();
+    };
+  }, [enabled]);
+}
+
+// Pulls an element toward the pointer while it hovers.
+export function magnetic(el, strength = 0.3) {
+  if (!el || calm() || !finePointer()) return () => {};
+  const move = (e) => {
+    const r = el.getBoundingClientRect();
+    gsap.to(el, { x: (e.clientX - r.left - r.width / 2) * strength, y: (e.clientY - r.top - r.height / 2) * strength, duration: 0.5, ease: 'power3.out' });
+  };
+  const leave = () => gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.4)' });
+  el.addEventListener('mousemove', move);
+  el.addEventListener('mouseleave', leave);
+  return () => {
+    el.removeEventListener('mousemove', move);
+    el.removeEventListener('mouseleave', leave);
+  };
+}

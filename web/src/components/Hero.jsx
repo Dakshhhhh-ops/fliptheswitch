@@ -1,57 +1,67 @@
-import { Counter, Reveal } from './motion.jsx';
+import { useLayoutEffect, useRef } from 'react';
+import Lattice from './Lattice.jsx';
+import { Counter, Lines } from './motion.jsx';
+import { calm, gsap } from '../lib/motion.js';
 import { STATES, slug } from '../useDesk.js';
 
-function Ring({ done, total }) {
-  const r = 54;
-  const c = 2 * Math.PI * r;
-  const p = total ? done / total : 0;
-  return (
-    <svg className="ring" viewBox="0 0 128 128" aria-hidden="true">
-      <circle cx="64" cy="64" r={r} className="ring-track" />
-      <circle cx="64" cy="64" r={r} className="ring-fill" strokeDasharray={c} strokeDashoffset={c * (1 - p)} />
-    </svg>
-  );
-}
+export default function Hero({ counts, total, started }) {
+  const root = useRef(null);
 
-export default function Hero({ counts, total }) {
-  return (
-    <section className="hero" id="top">
-      <div className="hero-copy">
-        <Reveal as="p" className="eyebrow">Post-quantum migration · run in Switch</Reveal>
-        <Reveal as="h1" delay={80} className="display">
-          Your encryption
-          <br />
-          has an <em>expiry date.</em>
-        </Reveal>
-        <Reveal as="p" delay={180} className="lede">
-          Agents find every quantum-vulnerable use of crypto, open a room for each one with the engineer who owns the code,
-          and fix it with them. Only the security lead can ship.
-        </Reveal>
-      </div>
+  useLayoutEffect(() => {
+    if (calm()) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.set('.hero .mask-in', { yPercent: 110 });
+      gsap.set(['.hero-eyebrow', '.hero-foot > *', '.lattice'], { autoAlpha: 0 });
+    }, root);
+    return () => ctx.revert();
+  }, []);
 
-      <Reveal className="hero-score" delay={240}>
-        <div className="score-ring">
-          <Ring done={counts.shipped} total={total} />
-          <div className="score-num">
-            <span className="big">
-              <Counter value={counts.shipped} />
+  useLayoutEffect(() => {
+    if (!started || calm()) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.timeline({ delay: 0.15 })
+        .to('.lattice', { autoAlpha: 1, duration: 2.2, ease: 'power2.out' }, 0)
+        .to('.hero-eyebrow', { autoAlpha: 1, duration: 0.8 }, 0.1)
+        .to('.hero .mask-in', { yPercent: 0, duration: 1.3, ease: 'expo.out', stagger: 0.09 }, 0.15)
+        .to('.hero-foot > *', { autoAlpha: 1, y: 0, duration: 1, ease: 'power3.out', stagger: 0.08 }, 0.7);
+      gsap.to('.hero-title', {
+        yPercent: -18,
+        ease: 'none',
+        scrollTrigger: { trigger: root.current, start: 'top top', end: 'bottom top', scrub: true },
+      });
+    }, root);
+    return () => ctx.revert();
+  }, [started]);
+
+  return (
+    <section className="hero" id="top" ref={root}>
+      <Lattice progress={total ? counts.shipped / total : 0} />
+      <div className="hero-inner">
+        <p className="hero-eyebrow">Post-quantum migration · run by people and agents in Switch</p>
+        <h1 className="hero-title">
+          <Lines lines={['Your', 'encryption', <>has an <em>expiry</em></>, <em key="d">date.</em>]} />
+        </h1>
+        <div className="hero-foot">
+          <p className="hero-lede">
+            Agents find every quantum-vulnerable use of crypto, open a room for each with the engineer who owns the code, and fix
+            it with them. Only the security lead can ship.
+          </p>
+          <div className="hero-score">
+            <span className="hero-score-num">
+              <Counter value={counts.shipped} pad={2} />
+              <span>/{String(total).padStart(2, '0')}</span>
             </span>
-            <span className="of">/{total}</span>
+            <span className="hero-score-label">findings shipped</span>
+            <div className="ribbon" role="img" aria-label={STATES.map((s) => `${counts[s]} ${s}`).join(', ')}>
+              {STATES.map((s) => (counts[s] ? <span key={s} className={`seg s-${slug(s)}`} style={{ flexGrow: counts[s] }} /> : null))}
+            </div>
           </div>
+          <a className="scroll-cue" href="#manifesto" data-cursor="Scroll">
+            <span>Scroll</span>
+            <i aria-hidden="true" />
+          </a>
         </div>
-        <p className="score-label">findings shipped</p>
-        <div className="ribbon" role="img" aria-label={STATES.map((s) => `${counts[s]} ${s}`).join(', ')}>
-          {STATES.map((s) => (counts[s] ? <span key={s} className={`seg s-${slug(s)}`} style={{ flexGrow: counts[s] }} /> : null))}
-        </div>
-        <ul className="legend">
-          {STATES.map((s) => (
-            <li key={s}>
-              <span className={`dot s-${slug(s)}`} aria-hidden="true" />
-              {s} <b>{counts[s]}</b>
-            </li>
-          ))}
-        </ul>
-      </Reveal>
+      </div>
     </section>
   );
 }
