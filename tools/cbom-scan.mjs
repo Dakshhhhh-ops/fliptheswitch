@@ -48,10 +48,10 @@ const ALGORITHMS = {
   'x25519':      { name: 'X25519', primitive: 'key-agree', status: 'vulnerable', priority: 'P1', oid: '1.3.101.110', nistQ: 0,
                    why: 'X25519 on its own is broken by Shor\'s algorithm.',
                    fix: 'Pair it with ML-KEM-768 (hybrid).' },
-  'tls-classical': { name: 'TLS key exchange (classical)', primitive: 'key-agree', status: 'vulnerable', priority: 'P1', nistQ: 0,
+  'tls-classical': { name: 'TLS classical key exchange', primitive: 'key-agree', status: 'vulnerable', priority: 'P1', nistQ: 0,
                    why: 'The TLS handshake uses only classical elliptic-curve key exchange, so recorded sessions can be decrypted later.',
                    fix: 'Offer the hybrid group X25519MLKEM768 first (OpenSSL 3.5+), keeping X25519 as fallback.' },
-  'tls-hybrid':  { name: 'TLS key exchange (X25519MLKEM768)', primitive: 'key-agree', status: 'ok', nistQ: 3 },
+  'tls-hybrid':  { name: 'TLS hybrid key exchange', primitive: 'key-agree', status: 'ok', nistQ: 3 },
 };
 
 const CURVE_NAMES = { prime256v1: 'P-256', 'P-256': 'P-256', secp384r1: 'P-384', 'P-384': 'P-384', secp521r1: 'P-521' };
@@ -253,4 +253,4 @@ function main(argv) {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) main(process.argv);
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main(process.argv);
