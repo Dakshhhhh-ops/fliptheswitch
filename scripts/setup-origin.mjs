@@ -7,7 +7,7 @@
 // It copies demo-payments into a bare repository at .origin/demo-payments.git,
 // so the agents work as they would against a hosted repository, without one.
 // Prints the folder the template's form asks for.
-import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -25,6 +25,13 @@ function git(args, cwd) {
   });
 }
 
+function installGate(bareRepo) {
+  const script = slash(join(deskDir, 'scripts', 'pre-receive.mjs'));
+  const hook = join(bareRepo, 'hooks', 'pre-receive');
+  writeFileSync(hook, `#!/bin/sh\nexec node "${script}"\n`);
+  chmodSync(hook, 0o755);
+}
+
 if (process.argv.includes('--reset')) rmSync(origin, { recursive: true, force: true });
 
 if (existsSync(origin)) {
@@ -39,5 +46,10 @@ if (existsSync(origin)) {
   rmSync(work, { recursive: true, force: true });
   console.log('Origin created.');
 }
+
+// The gate: main only takes reviewed ships and accepted risks (see
+// scripts/pre-receive.mjs). Installed on every run, so an older origin gets it too.
+installGate(origin);
+console.log('Gate installed: main only takes approved "Ship F<n>:" merges and "Accept risk F<n>:" commits.');
 
 console.log(`\nFill the template form with:\n  desk_dir: ${slash(deskDir)}`);
