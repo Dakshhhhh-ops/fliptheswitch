@@ -60,12 +60,17 @@ flowchart TB
 
 ## The board
 
-`npm run board` writes `board.html`: every finding and its state, read from
-git rather than from chat, so it can't drift from what actually happened.
-A finding is **shipped** when a `Ship F<n>:` merge is on main, an **accepted
-risk** when `ACCEPTED-RISKS.md` on main names it, and **in review** when a
-`pqc/f<n>-…` branch exists. It also shows how many crypto assets in the CBOM
-meet policy before and after.
+The board the team works from lives in Switch: the scout's **Crypto
+inventory** document in `desk-intake`, which only the scout can edit, and the
+board line it posts after every change
+(`Shipped 0/6 · Accepted risk 0 · In progress 1 · Open 5`).
+
+`npm run board` is the cross-check. It writes `board.html` with the same
+numbers read straight from git, so anyone can confirm the chat matches the
+code: a finding is **shipped** when a `Ship F<n>:` merge is on main, an
+**accepted risk** when `ACCEPTED-RISKS.md` on main names it, and **in review**
+when a `pqc/f<n>-…` branch exists. It also shows how many crypto assets in the
+CBOM meet policy before and after.
 
 ## Why it needs Switch
 
@@ -84,9 +89,9 @@ Take Switch away and this stops working. These parts are Switch's:
 ## The demo codebase
 
 [`demo-payments/`](demo-payments/) is a small payments service with six
-planted problems, and its 8 tests pass. The scanner is a fixed rule table, so
-it finds exactly these six; that is on purpose, so every run starts from the
-same inventory. The fixes below are what the agents are briefed to make.
+planted problems, and its 8 tests pass. The scanner uses fixed rules, so every
+run starts from the same six-finding inventory. The fixes below are what the
+agents are briefed to make.
 
 | # | Where | Problem | Planned fix |
 |---|---|---|---|
@@ -99,11 +104,25 @@ same inventory. The fixes below are what the agents are briefed to make.
 
 Every fix uses only `node:crypto`. Node 24.7+ ships ML-KEM and ML-DSA (FIPS 203 and 204).
 
+## On real code
+
+The same scanner, run on two widely used Node libraries
+([full tables](docs/REAL-SCANS.md)):
+
+| Library | Findings | What stands out |
+|---|---|---|
+| [mscdex/ssh2](https://github.com/mscdex/ssh2) | 24 in 9 files | Every key exchange it offers is classical (ECDH, Curve25519, finite-field DH). No hybrid post-quantum exchange like OpenSSH's `mlkem768x25519-sha256` |
+| [panva/jose](https://github.com/panva/jose) | 25 in 7 files | Signatures already offer ML-DSA. Encryption (JWE) is still RSA-OAEP or ECDH-ES only |
+
+The first run on these found 3 and 0 findings: real code names algorithms in
+ways the demo didn't. The rules that run added are each covered by a test.
+
 ## Run it yourself
 
-You need: [Switch Console](https://github.com/sandbox-quantum/switch/releases/latest),
-Docker (for the bundled Mattermost), Node 24.7+, git, and Claude Code and
-Codex signed in.
+You need [Switch Console](https://github.com/sandbox-quantum/switch/releases/latest),
+Node 24.7+, git, and Claude Code and Codex signed in. The Switch server runs
+without Docker (Switch Console brings its own PostgreSQL). **Docker is needed
+for the bundled Mattermost**, which is the chat app this demo uses.
 
 ```sh
 npm test               # scanner, board and demo-payments tests
@@ -133,6 +152,7 @@ test/                                tests for the scanner and the board
 demo-payments/                       the codebase being migrated, with its own tests
 scripts/setup-origin.mjs             local git origin the agents clone and push to
 docs/DEMO.md                         run-sheet for the demo video
+docs/REAL-SCANS.md                   the scanner on ssh2 and jose, reproducible
 ```
 
 Generated locally and not committed: `.origin/` (the agents' git origin),
@@ -140,8 +160,9 @@ Generated locally and not committed: `.origin/` (the agents' git origin),
 
 ## Limits
 
-- The scanner reads JavaScript using `node:crypto` with a fixed rule table. It
-  is deliberately predictable, not complete.
+- The scanner reads JavaScript and TypeScript with fixed rules. It is
+  deliberately predictable, not complete: an algorithm picked at run time
+  from a variable is only found where its name appears as a string.
 - On Windows, Switch Console can't grant a GitHub connection, so the agents
   push to a local git origin instead of opening pull requests.
 - Switch has no scheduled messages yet, so accepted-risk review dates are
