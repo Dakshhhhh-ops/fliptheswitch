@@ -95,3 +95,55 @@ test('commented-out code is ignored', () => {
   const dir = repoWith({ 'c.js': `// createHash('sha1')` });
   assert.deepEqual(scan(dir), []);
 });
+
+const algorithmsOf = (dir) => findings(scan(dir)).map((f) => f.algorithm.replace(/ \(.*/, '')).sort();
+
+test('Web Crypto and JOSE algorithm names are found in TypeScript', () => {
+  const dir = repoWith({
+    'keys.ts': `
+      const wrap = { name: 'RSA-OAEP', hash: 'SHA-256' };
+      const sig = { name: 'ECDSA', namedCurve: 'P-256' };
+      export const algs = ['RS256', 'EdDSA', 'ECDH-ES'];
+    `,
+    'types.d.ts': `export type A = 'RSA-OAEP';`,
+  });
+  assert.deepEqual(algorithmsOf(dir), ['ECDH', 'ECDSA', 'EdDSA', 'RSA signature', 'RSA-OAEP']);
+  assert.ok(scan(dir).every((h) => h.file === 'src/keys.ts'), 'type declarations are skipped');
+});
+
+test('SSH key exchange and host key names are found, and hybrid PQ names are not flagged', () => {
+  const dir = repoWith({
+    'kex.js': `
+      const KEX = ['mlkem768x25519-sha256', 'ecdh-sha2-nistp256', 'diffie-hellman-group14-sha256'];
+      const HOST = ['ssh-ed25519', 'rsa-sha2-256'];
+    `,
+  });
+  assert.deepEqual(algorithmsOf(dir), ['ECDH', 'EdDSA', 'Finite-field Diffie-Hellman', 'RSA signature']);
+});
+
+test('post-quantum algorithms named in Web Crypto style count as meeting policy', () => {
+  const dir = repoWith({ 'pq.ts': `export const algs = ['ML-DSA-65', 'ML-KEM-768'];` });
+  assert.deepEqual(findings(scan(dir)), []);
+  const cbom = toCbom(scan(dir));
+  assert.deepEqual(cbom.components.map((c) => c.name).sort(), ['ML-DSA-65', 'ML-KEM-768']);
+});
+
+test('ciphers beyond AES-GCM are classified', () => {
+  const dir = repoWith({
+    'c.js': `
+      createCipheriv('chacha20-poly1305', k, iv);
+      createCipheriv('aes-128-ctr', k, iv);
+      createCipheriv('des-ede3-cbc', k, iv);
+    `,
+  });
+  assert.deepEqual(algorithmsOf(dir), ['AES-128', 'Legacy cipher']);
+});
+
+test('test, example and build folders are not scanned', () => {
+  const dir = repoWith({ 'ok.js': '' });
+  for (const skip of ['tap', 'cookbook', 'dist']) {
+    mkdirSync(join(dir, skip));
+    writeFileSync(join(dir, skip, 'x.js'), `createHash('md5');`);
+  }
+  assert.deepEqual(scan(dir), []);
+});

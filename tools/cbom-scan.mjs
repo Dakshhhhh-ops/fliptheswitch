@@ -40,8 +40,10 @@ const ALGORITHMS = {
   'sha384':      { name: 'SHA-384', primitive: 'hash', status: 'ok', oid: '2.16.840.1.101.3.4.2.2', nistQ: 4 },
   'sha512':      { name: 'SHA-512', primitive: 'hash', status: 'ok', oid: '2.16.840.1.101.3.4.2.3', nistQ: 4 },
   'sha3-256':    { name: 'SHA3-256', primitive: 'hash', status: 'ok', oid: '2.16.840.1.101.3.4.2.8', nistQ: 2 },
+  'ml-kem-512':  { name: 'ML-KEM-512', primitive: 'kem', status: 'ok', oid: '2.16.840.1.101.3.4.4.1', nistQ: 1 },
   'ml-kem-768':  { name: 'ML-KEM-768', primitive: 'kem', status: 'ok', oid: '2.16.840.1.101.3.4.4.2', nistQ: 3 },
   'ml-kem-1024': { name: 'ML-KEM-1024', primitive: 'kem', status: 'ok', oid: '2.16.840.1.101.3.4.4.3', nistQ: 5 },
+  'ml-dsa-44':   { name: 'ML-DSA-44', primitive: 'signature', status: 'ok', oid: '2.16.840.1.101.3.4.3.17', nistQ: 2 },
   'ml-dsa-65':   { name: 'ML-DSA-65', primitive: 'signature', status: 'ok', oid: '2.16.840.1.101.3.4.3.18', nistQ: 3 },
   'ml-dsa-87':   { name: 'ML-DSA-87', primitive: 'signature', status: 'ok', oid: '2.16.840.1.101.3.4.3.19', nistQ: 5 },
   'x25519-hybrid': { name: 'X25519 (hybrid with ML-KEM)', primitive: 'key-agree', status: 'ok', oid: '1.3.101.110', nistQ: 0 },
@@ -52,7 +54,56 @@ const ALGORITHMS = {
                    why: 'The TLS handshake uses only classical elliptic-curve key exchange, so recorded sessions can be decrypted later.',
                    fix: 'Offer the hybrid group X25519MLKEM768 first (OpenSSL 3.5+), keeping X25519 as fallback.' },
   'tls-hybrid':  { name: 'TLS hybrid key exchange', primitive: 'key-agree', status: 'ok', nistQ: 3 },
+  'rsa-sig':     { name: 'RSA signature', primitive: 'signature', status: 'vulnerable', priority: 'P2', oid: '1.2.840.113549.1.1.11', nistQ: 0,
+                   why: 'RSA signatures can be forged once a large quantum computer exists. Lower urgency than key exchange, because past signatures stay valid.',
+                   fix: 'ML-DSA-65 (FIPS 204), dual-signed beside RSA while verifiers still need it.' },
+  'eddsa':       { name: 'EdDSA', primitive: 'signature', status: 'vulnerable', priority: 'P2', oid: '1.3.101.112', nistQ: 0,
+                   why: 'Ed25519 and Ed448 are elliptic-curve signatures, broken by Shor\'s algorithm. Lower urgency than key exchange.',
+                   fix: 'ML-DSA-65 (FIPS 204), dual-signed beside EdDSA while verifiers still need it.' },
+  'ffdh':        { name: 'Finite-field Diffie-Hellman', primitive: 'key-agree', status: 'vulnerable', priority: 'P1', nistQ: 0,
+                   why: 'Classic Diffie-Hellman is broken by Shor\'s algorithm. Recorded sessions can be decrypted later.',
+                   fix: 'A hybrid key exchange with ML-KEM-768 (for SSH, mlkem768x25519-sha256).' },
+  'pq-hybrid-kex': { name: 'Hybrid post-quantum key exchange', primitive: 'key-agree', status: 'ok', nistQ: 3 },
+  'chacha20-poly1305': { name: 'ChaCha20-Poly1305', primitive: 'ae', status: 'ok', nistQ: 5 },
+  'aes-256':     { name: 'AES-256', primitive: 'block-cipher', status: 'ok', nistQ: 5 },
+  'aes-128':     { name: 'AES-128', primitive: 'block-cipher', status: 'policy', priority: 'P3', nistQ: 1,
+                   why: 'Not broken. Grover\'s algorithm halves its effective strength, and CNSA 2.0 requires AES-256 for long-lived data.',
+                   fix: 'AES-256.' },
+  'legacy-cipher': { name: 'Legacy cipher (DES, 3DES, RC4 or Blowfish)', primitive: 'block-cipher', status: 'broken', priority: 'P2', nistQ: 0,
+                   why: 'These ciphers are weak against ordinary computers today. This is not a quantum issue.',
+                   fix: 'AES-256-GCM or ChaCha20-Poly1305.' },
 };
+
+// Algorithm names that appear as string literals: Web Crypto and JOSE
+// identifiers, and SSH protocol names. Exact, case-insensitive matches only.
+const NAMED = {
+  'rsa-oaep': 'rsa-oaep', 'rsa-oaep-256': 'rsa-oaep', 'rsa-oaep-384': 'rsa-oaep', 'rsa-oaep-512': 'rsa-oaep', 'rsa1_5': 'rsa-oaep',
+  'rsassa-pkcs1-v1_5': 'rsa-sig', 'rsa-pss': 'rsa-sig', rs256: 'rsa-sig', rs384: 'rsa-sig', rs512: 'rsa-sig',
+  ps256: 'rsa-sig', ps384: 'rsa-sig', ps512: 'rsa-sig', 'ssh-rsa': 'rsa-sig', 'rsa-sha2-256': 'rsa-sig', 'rsa-sha2-512': 'rsa-sig',
+  ecdsa: 'ecdsa', es256: 'ecdsa', es384: 'ecdsa', es512: 'ecdsa', es256k: 'ecdsa',
+  'ecdsa-sha2-nistp256': 'ecdsa', 'ecdsa-sha2-nistp384': 'ecdsa', 'ecdsa-sha2-nistp521': 'ecdsa',
+  ecdh: 'ecdh', 'ecdh-es': 'ecdh', 'ecdh-es+a128kw': 'ecdh', 'ecdh-es+a192kw': 'ecdh', 'ecdh-es+a256kw': 'ecdh',
+  'ecdh-sha2-nistp256': 'ecdh', 'ecdh-sha2-nistp384': 'ecdh', 'ecdh-sha2-nistp521': 'ecdh',
+  ed25519: 'eddsa', ed448: 'eddsa', eddsa: 'eddsa', 'ssh-ed25519': 'eddsa',
+  x25519: 'x25519', x448: 'x25519', 'curve25519-sha256': 'x25519', 'curve25519-sha256@libssh.org': 'x25519',
+  'diffie-hellman-group1-sha1': 'ffdh', 'diffie-hellman-group14-sha1': 'ffdh', 'diffie-hellman-group14-sha256': 'ffdh',
+  'diffie-hellman-group15-sha512': 'ffdh', 'diffie-hellman-group16-sha512': 'ffdh', 'diffie-hellman-group17-sha512': 'ffdh',
+  'diffie-hellman-group18-sha512': 'ffdh', 'diffie-hellman-group-exchange-sha1': 'ffdh', 'diffie-hellman-group-exchange-sha256': 'ffdh',
+  'mlkem768x25519-sha256': 'pq-hybrid-kex', 'sntrup761x25519-sha512': 'pq-hybrid-kex', 'sntrup761x25519-sha512@openssh.com': 'pq-hybrid-kex',
+  x25519mlkem768: 'tls-hybrid',
+  'ml-kem-512': 'ml-kem-512', 'ml-kem-768': 'ml-kem-768', 'ml-kem-1024': 'ml-kem-1024',
+  'ml-dsa-44': 'ml-dsa-44', 'ml-dsa-65': 'ml-dsa-65', 'ml-dsa-87': 'ml-dsa-87',
+};
+
+function cipherKey(name) {
+  const n = name.toLowerCase();
+  if (n === 'aes-128-gcm' || n === 'aes-256-gcm') return n;
+  if (/^aes-?128/.test(n) || /^aes128/.test(n)) return 'aes-128';
+  if (/^aes-?(192|256)/.test(n) || /^aes(192|256)/.test(n)) return 'aes-256';
+  if (/^chacha20/.test(n)) return 'chacha20-poly1305';
+  if (/^(des|3des|des-ede|rc4|arcfour|bf|blowfish)/.test(n)) return 'legacy-cipher';
+  return null;
+}
 
 const CURVE_NAMES = { prime256v1: 'P-256', 'P-256': 'P-256', secp384r1: 'P-384', 'P-384': 'P-384', secp521r1: 'P-521' };
 
@@ -83,10 +134,29 @@ const RULES = [
       const k = m[1].toLowerCase();
       return ALGORITHMS[k] ? { key: k, func: 'tag' } : null;
     } },
-  { re: /createCipheriv\(\s*['"](aes-(?:128|256)-gcm)['"]/,
-    hit: (m) => ({ key: m[1], func: 'encrypt' }) },
-  { re: /createDecipheriv\(\s*['"](aes-(?:128|256)-gcm)['"]/,
-    hit: (m) => ({ key: m[1], func: 'decrypt' }) },
+  { re: /createCipheriv\(\s*['"]([\w-]+)['"]/,
+    hit: (m) => (cipherKey(m[1]) ? { key: cipherKey(m[1]), func: 'encrypt' } : null) },
+  { re: /createDecipheriv\(\s*['"]([\w-]+)['"]/,
+    hit: (m) => (cipherKey(m[1]) ? { key: cipherKey(m[1]), func: 'decrypt' } : null) },
+  { re: /\b(createDiffieHellman|getDiffieHellman|createDiffieHellmanGroup)\s*\(/,
+    hit: () => ({ key: 'ffdh', func: 'keygen' }) },
+  { re: /generateKeyPair(?:Sync)?\(\s*['"](ed25519|ed448)['"]/,
+    hit: () => ({ key: 'eddsa', func: 'keygen' }) },
+  { re: /generateKeyPair\(\s*['"]rsa['"]/,
+    hit: (m, ctx) => ({ key: ctx.hasSign ? 'rsa-sig' : 'rsa-oaep', param: ctx.rsaBits, func: 'keygen' }) },
+  { re: /generateKeyPair\(\s*['"]ec['"]/,
+    hit: (m, ctx) => ({ key: ctx.hasSign ? 'ecdsa' : 'ecdh', curve: ctx.ecCurve, func: 'keygen' }) },
+  { re: /createECDH\(\s*[^'")\s]/,
+    hit: () => ({ key: 'ecdh', func: 'keygen' }) },
+  // Algorithm names written as strings (Web Crypto, JOSE, SSH). One hit per
+  // name per line; the line's other rules still run.
+  { re: /['"]([A-Za-z0-9@._+-]{4,40})['"]/g, all: true,
+    hit: (m, ctx) => {
+      const key = NAMED[m[1].toLowerCase()];
+      if (!key) return null;
+      if (key === 'x25519' && ctx.mlKem) return { key: 'x25519-hybrid', func: 'other', named: m[1] };
+      return { key, func: 'other', named: m[1] };
+    } },
   { re: /generateKeyPairSync\(\s*['"](ml-kem-\d+|ml-dsa-\d+)['"]/,
     hit: (m) => ({ key: m[1], func: 'keygen' }) },
   { re: /\b(encapsulate|decapsulate)\s*\(/,
@@ -112,14 +182,17 @@ function fileFacts(src) {
   };
 }
 
+// Tests, build output and examples are not the code that ships.
+const SKIP_DIRS = new Set(['test', 'tests', '__tests__', 'tap', 'spec', 'e2e', 'fixtures', 'bench', 'benchmarks', 'dist', 'build', 'examples', 'cookbook', 'docs']);
+
 function listSourceFiles(dir) {
   const out = [];
   for (const name of readdirSync(dir)) {
     if (name === 'node_modules' || name.startsWith('.')) continue;
     const full = join(dir, name);
     if (statSync(full).isDirectory()) {
-      if (name !== 'test') out.push(...listSourceFiles(full));
-    } else if (/\.(m|c)?js$/.test(name)) {
+      if (!SKIP_DIRS.has(name)) out.push(...listSourceFiles(full));
+    } else if (/\.(m|c)?(js|ts)$/.test(name) && !/\.d\.(m|c)?ts$/.test(name)) {
       out.push(full);
     }
   }
@@ -133,11 +206,16 @@ export function scan(repoDir) {
     const ctx = fileFacts(src);
     const rel = relative(repoDir, file).split(sep).join('/');
     src.split(/\r?\n/).forEach((text, i) => {
-      if (/^\s*\/\//.test(text)) return;
+      if (/^\s*(\/\/|\/?\*)/.test(text)) return;
+      const seen = new Set();
       for (const rule of RULES) {
-        const m = text.match(rule.re);
-        const hit = m && rule.hit(m, ctx);
-        if (hit) hits.push({ ...hit, file: rel, line: i + 1, code: text.trim() });
+        const matches = rule.all ? [...text.matchAll(rule.re)] : [text.match(rule.re)].filter(Boolean);
+        for (const m of matches) {
+          const hit = rule.hit(m, ctx);
+          if (!hit || seen.has(hit.key)) continue;
+          seen.add(hit.key);
+          hits.push({ ...hit, file: rel, line: i + 1, code: text.trim().slice(0, 200) });
+        }
       }
     });
   }
