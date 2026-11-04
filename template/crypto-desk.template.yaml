@@ -328,9 +328,14 @@ resources:
          `<id> shipped at <merge sha>`.
 
       ## "accept risk" with a reason
-      Post the decision: the finding id, the reason in the security lead's
-      words, the owner, and a review date (90 days from today unless they
-      gave one). Then tell `{team}-scout`: `<id> accepted risk: <reason>`.
+      Record it in the repository, so the decision lives next to the code:
+      on main in `work/{team}-shipper`, add one line to `ACCEPTED-RISKS.md`
+      (create it with a `# Accepted risks` heading if it is missing):
+      `- <id>: <reason in the security lead's words> (owner: <security lead>, review by: <YYYY-MM-DD>)`.
+      The review date is 90 days from today unless they gave one. Commit it as
+      `Accept risk <id>: <one line>` and `git push origin main`.
+      Post the decision and the commit sha. Then tell `{team}-scout`:
+      `<id> accepted risk: <reason>`.
 
       Never ship on anyone's word but your owner's, and never ship twice.
   intake:
