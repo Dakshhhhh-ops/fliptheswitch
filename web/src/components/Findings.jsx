@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Code from './Code.jsx';
-import { calm, finePointer, gsap } from '../lib/motion.js';
+import { calm, finePointer, gsap, revealOnView } from '../lib/motion.js';
 import { slug } from '../useDesk.js';
 
 // Drag the divider to compare the file before the migration with main now.
@@ -99,11 +99,13 @@ export default function Findings({ rows }) {
     const x = gsap.quickTo(preview.current, 'x', { duration: 0.5, ease: 'power3' });
     const y = gsap.quickTo(preview.current, 'y', { duration: 0.5, ease: 'power3' });
     pos.current = { x, y };
-    const ctx = gsap.context(() => {
-      gsap.from('.fx-row', { yPercent: 60, autoAlpha: 0, duration: 1, ease: 'expo.out', stagger: 0.06, scrollTrigger: { trigger: '.fx-list', start: 'top 80%' } });
-    }, root);
-    return () => ctx.revert();
+    return undefined;
   }, []);
+
+  useLayoutEffect(() => {
+    const list = root.current.querySelector('.fx-list');
+    return revealOnView(list, list.querySelectorAll('.fx-row'), { yPercent: 60, autoAlpha: 0 });
+  }, [rows.length]);
 
   const current = rows.find((r) => r.id === hover);
   const openRow = rows.find((r) => r.id === open);
@@ -123,7 +125,16 @@ export default function Findings({ rows }) {
       <ol className="fx-list" onMouseMove={(e) => pos.current && (pos.current.x(e.clientX + 24), pos.current.y(e.clientY - 120))} onMouseLeave={() => setHover(null)}>
         {rows.map((r) => (
           <li key={r.id} className={`fx-row st-${slug(r.state)} ${hover && hover !== r.id ? 'dim' : ''}`}>
-            <button onMouseEnter={() => setHover(r.id)} onFocus={() => setHover(r.id)} onClick={() => setOpen(r.id)} data-cursor="Open">
+            <button
+              onMouseEnter={(e) => {
+                // Start beside the cursor, even if the row scrolled under a still mouse.
+                if (preview.current) gsap.set(preview.current, { x: e.clientX + 24, y: e.clientY - 120 });
+                setHover(r.id);
+              }}
+              onFocus={() => setHover(r.id)}
+              onClick={() => setOpen(r.id)}
+              data-cursor="Open"
+            >
               <span className="fx-id">{r.id}</span>
               <span className="fx-algo">{r.algorithm}</span>
               <code className="fx-where">{r.file}:{r.line}</code>

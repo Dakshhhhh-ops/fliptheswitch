@@ -42,6 +42,31 @@ export function useSmoothScroll(enabled) {
   }, [enabled]);
 }
 
+// Plays an entrance when elements actually come on screen. It uses the
+// browser's own visibility check, so it can't be thrown off by sections above
+// that pin or change height after this was set up. Returns a cleanup.
+// `container` is watched; when any of it shows, all `items` play in, staggered.
+export function revealOnView(container, items, from, to = {}) {
+  const els = [...items];
+  if (calm() || !container || els.length === 0) return () => {};
+  gsap.set(els, from);
+  let tween;
+  const io = new IntersectionObserver(
+    ([entry]) => {
+      if (!entry.isIntersecting) return;
+      io.disconnect();
+      tween = gsap.to(els, { y: 0, yPercent: 0, x: 0, autoAlpha: 1, duration: 1, ease: 'expo.out', stagger: 0.07, ...to });
+    },
+    { threshold: 0.05 },
+  );
+  io.observe(container);
+  return () => {
+    io.disconnect();
+    tween?.kill();
+    gsap.set(els, { clearProps: 'transform,opacity,visibility' });
+  };
+}
+
 // Pulls an element toward the pointer while it hovers.
 export function magnetic(el, strength = 0.3) {
   if (!el || calm() || !finePointer()) return () => {};

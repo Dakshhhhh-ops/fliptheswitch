@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { calm, gsap } from '../lib/motion.js';
+import { calm, gsap, ScrollTrigger } from '../lib/motion.js';
 
 const HEX = '0123456789abcdef';
 const clamp = (v) => Math.max(0, Math.min(1, v));
@@ -62,7 +62,7 @@ export default function QDay() {
     const mm = gsap.matchMedia();
     mm.add('(min-width: 961px)', () => {
       const st = gsap.timeline({
-        scrollTrigger: { trigger: root.current, start: 'top top', end: '+=160%', pin: true, scrub: 0.6, onUpdate: (s) => update(s.progress) },
+        scrollTrigger: { trigger: root.current, start: 'top top', end: '+=160%', pin: true, scrub: 0.6, refreshPriority: 1, onUpdate: (s) => update(s.progress) },
       });
       return () => st.kill();
     });
@@ -73,6 +73,8 @@ export default function QDay() {
       return () => st.kill();
     });
     update(0);
+    // Pinning adds scroll length above everything below; recompute their positions.
+    ScrollTrigger.refresh();
     return () => mm.revert();
   }, [spec]);
 
