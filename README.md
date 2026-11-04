@@ -53,9 +53,19 @@ flowchart TB
 6. Only the security lead can make **`@desk-shipper`** act, because its
    Switch addressing policy is `owner`. When the engineer says "ship it",
    Switch refuses. When the security lead says it, the shipper merges and
-   tells the scout. A finding the team can't fix becomes an **accepted risk**
-   with a reason and a review date.
+   tells the scout. A finding the team can't fix becomes an **accepted risk**:
+   the shipper commits it to `ACCEPTED-RISKS.md` on main with a reason, an
+   owner and a review date.
 7. The scout rescans main and the board moves.
+
+## The board
+
+`npm run board` writes `board.html`: every finding and its state, read from
+git rather than from chat, so it can't drift from what actually happened.
+A finding is **shipped** when a `Ship F<n>:` merge is on main, an **accepted
+risk** when `ACCEPTED-RISKS.md` on main names it, and **in review** when a
+`pqc/f<n>-…` branch exists. It also shows how many crypto assets in the CBOM
+meet policy before and after.
 
 ## Why it needs Switch
 
@@ -96,9 +106,10 @@ Docker (for the bundled Mattermost), Node 24.7+, git, and Claude Code and
 Codex signed in.
 
 ```sh
-npm test               # the scanner's tests and demo-payments' tests
+npm test               # scanner, board and demo-payments tests
 npm run scan           # the six findings, and cbom.json
-npm run setup          # creates the local git origin and prints two paths
+npm run setup          # creates the local git origin and prints the folder
+npm run board          # board.html, the desk's status read from git
 ```
 
 1. In Switch Console, add a server on this computer with Mattermost.
@@ -118,6 +129,8 @@ to a local git origin, so nothing leaves your machine.
 template/crypto-desk.template.yaml   the Switch template: agents, intake room, kickoff
 tools/cbom-scan.mjs                  rule-based crypto scanner and CycloneDX 1.6 CBOM writer
 tools/cbom-scan.test.mjs             its tests
+tools/board.mjs                      the status board, read from git
+tools/board.test.mjs                 its tests
 demo-payments/                       the codebase being migrated
 scripts/setup-origin.mjs             local git origin for the agents
 ```
