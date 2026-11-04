@@ -56,7 +56,7 @@ export default function Hero({ counts, total, started }) {
               {STATES.map((s) => (counts[s] ? <span key={s} className={`seg s-${slug(s)}`} style={{ flexGrow: counts[s] }} /> : null))}
             </div>
           </div>
-          <a className="scroll-cue" href="#manifesto" data-cursor="Scroll">
+          <a className="scroll-cue" href="#qday" data-cursor="Scroll">
             <span>Scroll</span>
             <i aria-hidden="true" />
           </a>

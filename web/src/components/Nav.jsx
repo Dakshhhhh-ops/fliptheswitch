@@ -18,9 +18,10 @@ export default function Nav({ desk, live }) {
         <span className="brand-name">Crypto Migration Desk</span>
       </a>
       <nav className="nav-links" ref={links} aria-label="Sections">
+        <a href="#qday">Q-Day</a>
         <a href="#findings">Findings</a>
-        <a href="#inventory">Inventory</a>
-        <a href="#timeline">Timeline</a>
+        <a href="#spectrum">Inventory</a>
+        <a href="#receipt">Receipt</a>
       </nav>
       <div className={`live ${live ? 'on' : ''}`} role="status">
         <span className="live-dot" aria-hidden="true" />

@@ -9,7 +9,9 @@ import { execFileSync } from 'node:child_process';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { readDesk } from '../../tools/board.mjs';
+import { specimen } from './specimen.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DESK = resolve(here, '..', '..');
@@ -33,10 +35,18 @@ let cached = { print: undefined, body: null };
 function state() {
   const print = fingerprint();
   if (print === cached.print && cached.body) return cached.body;
-  const body = print === null
-    ? JSON.stringify({ error: 'no-origin', message: 'No git origin yet. Run `npm run setup` in the repository root.' })
-    : JSON.stringify({ ...readDesk(ORIGIN), origin: ORIGIN, readAt: new Date().toISOString() });
-  cached = { print, body };
+  let body;
+  let cbom = null;
+  if (print === null) {
+    body = JSON.stringify({ error: 'no-origin', message: 'No git origin yet. Run `npm run setup` in the repository root.' });
+  } else {
+    const desk = readDesk(ORIGIN);
+    cbom = JSON.stringify(desk.cbom, null, 2);
+    const cbomSha256 = createHash('sha256').update(cbom).digest('hex');
+    const { cbom: _omit, ...rest } = desk;
+    body = JSON.stringify({ ...rest, cbomSha256, cbomSerial: desk.cbom.serialNumber, readAt: new Date().toISOString() });
+  }
+  cached = { print, body, cbom };
   return body;
 }
 
@@ -72,6 +82,16 @@ const server = createServer((req, res) => {
       res.writeHead(500, { 'content-type': 'application/json' });
       return res.end(JSON.stringify({ error: 'read-failed', message: err.message }));
     }
+  }
+  if (req.url === '/api/specimen') {
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    return res.end(JSON.stringify(specimen()));
+  }
+  if (req.url === '/api/cbom') {
+    state();
+    if (!cached.cbom) return res.writeHead(404).end();
+    res.writeHead(200, { 'content-type': 'application/vnd.cyclonedx+json', 'content-disposition': 'attachment; filename="demo-payments.cbom.json"' });
+    return res.end(cached.cbom);
   }
   if (req.url === '/api/stream') {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
