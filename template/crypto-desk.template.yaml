@@ -100,6 +100,8 @@ resources:
       ## Setup (once)
       `git clone .origin/demo-payments.git work/{team}-scout` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Before every scan:
       `git -C work/{team}-scout checkout main && git -C work/{team}-scout pull`.
+      Then check with `list_participants` that `{engineer}` is in the intake
+      room, and if not, `add_users_to_room` with that username.
 
       ## Scanning
       Run `node "{desk_dir}/tools/cbom-scan.mjs" work/{team}-scout --out cbom.json --json`.
