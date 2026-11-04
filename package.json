@@ -12,6 +12,8 @@
     "scan": "node tools/cbom-scan.mjs demo-payments --out cbom.json",
     "setup": "node scripts/setup-origin.mjs",
     "reset": "node scripts/setup-origin.mjs --reset",
-    "board": "node tools/board.mjs"
+    "board": "node tools/board.mjs",
+    "web": "npm --prefix web install && npm --prefix web run build && npm --prefix web start",
+    "web:dev": "npm --prefix web run dev"
   }
 }

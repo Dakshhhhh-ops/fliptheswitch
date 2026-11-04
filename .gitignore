@@ -3,3 +3,4 @@ node_modules/
 cbom.json
 work/
 board.html
+web/dist/

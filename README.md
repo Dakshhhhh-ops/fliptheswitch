@@ -65,12 +65,22 @@ inventory** document in `desk-intake`, which only the scout can edit, and the
 board line it posts after every change
 (`Shipped 0/6 · Accepted risk 0 · In progress 1 · Open 5`).
 
-`npm run board` is the cross-check. It writes `board.html` with the same
-numbers read straight from git, so anyone can confirm the chat matches the
-code: a finding is **shipped** when a `Ship F<n>:` merge is on main, an
+The **desk app** is the cross-check, with the same numbers read straight from
+git, so anyone can confirm the chat matches the code:
+
+```sh
+npm run web        # installs, builds and serves it on http://127.0.0.1:4317
+npm run web:dev    # the same, with hot reload on http://localhost:5173
+```
+
+It's a React front end on a small Node API (`web/server/index.mjs`) that
+reads the agents' git origin, and it updates live when the agents push or
+merge. A finding is **shipped** when a `Ship F<n>:` merge is on main, an
 **accepted risk** when `ACCEPTED-RISKS.md` on main names it, and **in review**
-when a `pqc/f<n>-…` branch exists. It also shows how many crypto assets in the
-CBOM meet policy before and after.
+when a `pqc/f<n>-…` branch exists. It also has the CBOM inventory before and
+after, with each asset's NIST quantum security level, and the timeline of
+everything merged to main. `npm run board` writes the same status as a single
+`board.html`.
 
 ## Why it needs Switch
 
@@ -147,7 +157,8 @@ to a local git origin, so nothing leaves your machine.
 ```
 template/crypto-desk.template.yaml   the Switch template: four agents, intake room, kickoff
 tools/cbom-scan.mjs                  rule-based crypto scanner and CycloneDX 1.6 CBOM writer
-tools/board.mjs                      the status board, read from git
+tools/board.mjs                      the desk's status, read from git
+web/                                 the desk app: React UI and the Node API behind it
 test/                                tests for the scanner and the board
 demo-payments/                       the codebase being migrated, with its own tests
 scripts/setup-origin.mjs             local git origin the agents clone and push to
@@ -156,7 +167,7 @@ docs/REAL-SCANS.md                   the scanner on ssh2 and jose, reproducible
 ```
 
 Generated locally and not committed: `.origin/` (the agents' git origin),
-`work/` (each agent's checkout), `cbom.json` and `board.html`.
+`work/` (each agent's checkout), `cbom.json`, `board.html` and `web/dist/`.
 
 ## Limits
 
