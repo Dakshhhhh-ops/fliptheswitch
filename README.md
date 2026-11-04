@@ -82,6 +82,46 @@ after, with each asset's NIST quantum security level, and the timeline of
 everything merged to main. `npm run board` writes the same status as a single
 `board.html`.
 
+To host it without the Node server, `npm run export` writes a static
+snapshot (the page, `api/desk.json`, a freshly sealed specimen and
+`cbom.json`) to `web/dist-static/`, with relative paths so it works on any
+static host or under a GitHub Pages subpath. The page says it's a snapshot and
+when it was taken.
+
+```sh
+npm run export
+npx vercel deploy web/dist-static --prod          # or
+npx gh-pages -d web/dist-static --dotfiles        # then Settings → Pages → gh-pages
+```
+
+## Keep it from coming back
+
+Migrating once isn't enough if the next pull request adds RSA again. The
+scanner doubles as a CI gate:
+
+```sh
+node tools/cbom-scan.mjs . --baseline crypto-baseline.json              # once: record today's findings, commit the file
+node tools/cbom-scan.mjs . --baseline crypto-baseline.json --fail-on p1 # in CI: fail only on new P1 findings
+node tools/cbom-scan.mjs . --sarif cbom-scan.sarif                      # findings for GitHub code scanning
+```
+
+With a baseline, only findings that are new since it was written count, so a
+team can turn the gate on before it has fixed everything. `--fail-on` takes
+`p1`, `p2`, `p3`, `any` or `none`. SARIF puts each finding on its line in
+GitHub's code scanning, with a fingerprint that follows it across commits:
+
+| Finding | SARIF level | security-severity |
+|---|---|---|
+| Quantum-vulnerable key exchange or encryption (P1) | error | 9.0 |
+| Broken today: SHA-1, MD5, DES/3DES/RC4 (P2) | error | 7.0 |
+| Quantum-vulnerable signature (P2) | warning | 7.0 |
+| Algorithm picked at runtime, needs review (P3) | warning | 4.0 |
+| Below policy: AES-128 (P3) | note | 4.0 |
+
+This repository's [CI](.github/workflows/ci.yml) runs the tests and uploads
+the demo's findings to code scanning. It doesn't fail on them: they're
+planted.
+
 ## Why it needs Switch
 
 Take Switch away and this stops working. These parts are Switch's:
@@ -182,17 +222,18 @@ to a local git origin, so nothing leaves your machine.
 template/crypto-desk.template.yaml   the Switch template: four agents, intake room, kickoff
 tools/cbom-scan.mjs                  rule-based crypto scanner and CycloneDX 1.6 CBOM writer
 tools/board.mjs                      the desk's status, read from git
-web/                                 the desk app: React UI and the Node API behind it
+web/                                 the desk app: React UI, the Node API behind it, and the static export
 test/                                tests for the scanner, the board and the git gate
 demo-payments/                       the codebase being migrated, with its own tests
 scripts/setup-origin.mjs             local git origin the agents clone and push to
 scripts/pre-receive.mjs              the origin's gate: what main may take
 docs/DEMO.md                         run-sheet for the demo video
 docs/REAL-SCANS.md                   the scanner on ssh2 and jose, reproducible
+.github/workflows/ci.yml             tests, plus the demo's findings uploaded to code scanning
 ```
 
 Generated locally and not committed: `.origin/` (the agents' git origin),
-`work/` (each agent's checkout), `cbom.json`, `board.html` and `web/dist/`.
+`work/` (each agent's checkout), `cbom.json`, `cbom-scan.sarif`, `board.html`, `web/dist/` and `web/dist-static/`.
 
 ## Limits
 

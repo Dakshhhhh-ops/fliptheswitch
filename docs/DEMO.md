@@ -27,6 +27,7 @@ npm run reset          # planted code back in the local origin
 | 1:15 | Reviewer verdict | Codex checks out the branch, runs tests and the scanner, approves the exact commit | "A different model reviews it, from the code, not the summary." |
 | 1:30 | Arjun: "@desk-shipper ship it" | **Switch refuses: the shipper only takes orders from Priya** | "Arjun can't ship. Switch enforces that, not a prompt." |
 | 1:40 | Priya: "@desk-shipper ship" | Shipper merges, tells the scout, board moves | |
+| 1:50 | Terminal (optional, 10 s) | `git push origin HEAD:main` of an unreviewed commit from a work checkout: **"crypto-desk gate: push refused"** | "And if an agent skips the review, git refuses the push." |
 | 1:55 | desk-f5-webhooks | Arjun: "merchants still verify ECDSA." Migrator switches to dual signatures | "Real migrations have constraints. They negotiate it in the room." |
 | 2:20 | desk-f3-tls | Scout marked it external owner. Priya: "@desk-shipper accept risk: TLS is on the acquirer's gateway, change request sent" | "Some things aren't ours to fix. It's recorded in the repo with an owner and a review date." |
 | 2:40 | Board | Shipped 2/6 · Accepted risk 1 · and the CBOM count going up | "Every number here is read from git. People decide, agents do the work around the decision." |
