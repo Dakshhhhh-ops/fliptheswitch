@@ -15,11 +15,22 @@ export const calm = () =>
 
 export const finePointer = () => typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
 
+// The running Lenis instance, if any, so a modal can pause page scrolling.
+let smooth = null;
+
+// Stops the page behind a modal from scrolling, with or without Lenis.
+export function lockScroll(on) {
+  document.documentElement.style.overflow = on ? 'hidden' : '';
+  if (on) smooth?.stop();
+  else smooth?.start();
+}
+
 // Smooth scrolling that ScrollTrigger reads, so pinned sections stay in step.
 export function useSmoothScroll(enabled) {
   useEffect(() => {
     if (!enabled || calm()) return undefined;
     const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
+    smooth = lenis;
     lenis.on('scroll', ScrollTrigger.update);
     const tick = (time) => lenis.raf(time * 1000);
     gsap.ticker.add(tick);
@@ -38,6 +49,7 @@ export function useSmoothScroll(enabled) {
       document.removeEventListener('click', onClick);
       gsap.ticker.remove(tick);
       lenis.destroy();
+      smooth = null;
     };
   }, [enabled]);
 }

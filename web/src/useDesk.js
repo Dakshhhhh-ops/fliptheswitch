@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API, SNAPSHOT } from './lib/snapshot.js';
 
 // The desk's state, kept live by the server's event stream. Falls back to a
 // plain fetch every few seconds if the stream can't be opened.
@@ -20,18 +21,25 @@ export function useDesk() {
       }
     };
     const fetchOnce = () =>
-      fetch('/api/desk')
+      fetch(API.desk)
         .then((r) => r.text())
         .then(accept)
-        .catch(() => setError({ error: 'offline', message: 'The desk API is not running. Start it with `npm run dev` in web/.' }));
+        .catch(() =>
+          setError(
+            SNAPSHOT
+              ? { error: 'offline', message: 'This snapshot is missing its data file (api/desk.json). Run `npm run export` in web/ again.' }
+              : { error: 'offline', message: 'The desk API is not running. Start it with `npm run dev` in web/.' },
+          ),
+        );
 
-    // `?static` loads once with no live stream: for screenshots and printing.
-    if (new URLSearchParams(location.search).has('static')) {
+    // A snapshot has no stream to open. `?static` loads once with no live
+    // stream too: for screenshots and printing.
+    if (SNAPSHOT || new URLSearchParams(location.search).has('static')) {
       fetchOnce();
       return undefined;
     }
 
-    const source = new EventSource('/api/stream');
+    const source = new EventSource(API.stream);
     source.addEventListener('desk', (e) => {
       setLive(true);
       accept(e.data);

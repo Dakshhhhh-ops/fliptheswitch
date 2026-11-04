@@ -9,7 +9,8 @@
     "dev:api": "node server/index.mjs",
     "dev:ui": "vite",
     "build": "vite build",
-    "start": "node server/index.mjs"
+    "start": "node server/index.mjs",
+    "export": "node scripts/export.mjs"
   },
   "dependencies": {
     "gsap": "3.15.0",

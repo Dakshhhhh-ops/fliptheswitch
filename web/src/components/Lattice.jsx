@@ -23,7 +23,13 @@ export default function Lattice({ progress = 0 }) {
     const el = host.current;
     // With no animation loop, keep the one frame we draw instead of letting it clear.
     const still = calm();
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: still });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: still });
+    } catch {
+      // No WebGL: the still dot grid in the hero stays.
+      return undefined;
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     el.appendChild(renderer.domElement);
 
@@ -128,6 +134,7 @@ export default function Lattice({ progress = 0 }) {
     else loop();
 
     api.current = { paint, render: still ? render : null };
+    el.parentElement?.classList.add('gl');
     return () => {
       cancelAnimationFrame(frame);
       ro.disconnect();
@@ -139,6 +146,7 @@ export default function Lattice({ progress = 0 }) {
       lines.material.dispose();
       renderer.dispose();
       renderer.domElement.remove();
+      el.parentElement?.classList.remove('gl');
     };
   }, []);
 
@@ -147,5 +155,5 @@ export default function Lattice({ progress = 0 }) {
     api.current?.render?.();
   }, [progress]);
 
-  return <div className="lattice" ref={host} aria-hidden="true" />;
+  return <div className="lattice-gl" ref={host} />;
 }

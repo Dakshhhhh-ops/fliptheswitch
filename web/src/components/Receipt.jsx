@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import { calm, gsap } from '../lib/motion.js';
 import { STATES } from '../useDesk.js';
+import { API, SNAPSHOT, when } from '../lib/snapshot.js';
 
 // A barcode drawn from the CBOM's SHA-256: change one byte and it changes.
 function Barcode({ hex }) {
@@ -47,9 +48,14 @@ export default function Receipt({ desk, counts }) {
           <em>The repo keeps the receipt.</em>
         </h2>
         <p className="section-sub">Everything on this page was read from the agents' git origin, not typed in. The work happens in Switch rooms; this is the record of it.</p>
-        <a className="receipt-dl" href="/api/cbom" download data-cursor="Save">
+        <a className="receipt-dl" href={API.cbom} download="demo-payments.cbom.json" data-cursor="Save">
           Download the CBOM <span>CycloneDX 1.6 · JSON</span>
         </a>
+        {SNAPSHOT && (
+          <p className="snapshot-note">
+            Snapshot taken {when(desk.readAt)} · run locally for live updates
+          </p>
+        )}
       </div>
 
       <div className="receipt-slot">

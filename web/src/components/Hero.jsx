@@ -1,5 +1,8 @@
-import { useLayoutEffect, useRef } from 'react';
-import Lattice from './Lattice.jsx';
+import { Suspense, lazy, useLayoutEffect, useRef } from 'react';
+
+// three.js is the biggest dependency by far; load it after the first paint.
+// Until it arrives (or if WebGL is unavailable) a still dot grid stands in.
+const Lattice = lazy(() => import('./Lattice.jsx'));
 import { Counter, Lines } from './motion.jsx';
 import { calm, gsap } from '../lib/motion.js';
 import { STATES, slug } from '../useDesk.js';
@@ -35,7 +38,12 @@ export default function Hero({ counts, total, started }) {
 
   return (
     <section className="hero" id="top" ref={root}>
-      <Lattice progress={total ? counts.shipped / total : 0} />
+      <div className="lattice" aria-hidden="true">
+        <span className="lattice-still" />
+        <Suspense fallback={null}>
+          <Lattice progress={total ? counts.shipped / total : 0} />
+        </Suspense>
+      </div>
       <div className="hero-inner">
         <p className="hero-eyebrow">Post-quantum migration · run by people and agents in Switch</p>
         <h1 className="hero-title">

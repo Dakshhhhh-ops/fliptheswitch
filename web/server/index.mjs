@@ -2,50 +2,30 @@
 // origin, plus a live stream that fires when the agents push or merge.
 //
 //   GET /api/desk     the full state (findings, inventory, timeline)
+//   GET /api/specimen a test card number sealed with RSA-OAEP and X25519+ML-KEM-768, now
+//   GET /api/cbom     the CycloneDX CBOM, as a download
 //   GET /api/stream   server-sent events: `desk` whenever the origin changes
 //   GET /*            the built UI (web/dist), in production
+//
+// `npm run export` (scripts/export.mjs) writes the same data as static files.
 import { createServer } from 'node:http';
-import { execFileSync } from 'node:child_process';
 import { createReadStream, existsSync, statSync } from 'node:fs';
-import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
+import { dirname, extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
-import { readDesk } from '../../tools/board.mjs';
+import { ORIGIN, fingerprint, readState } from './desk.mjs';
 import { specimen } from './specimen.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const DESK = resolve(here, '..', '..');
-const ORIGIN = resolve(process.env.DESK_ORIGIN ?? join(DESK, '.origin', 'demo-payments.git'));
 const DIST = join(here, '..', 'dist');
 const PORT = Number(process.env.PORT ?? 4317);
 const POLL_MS = 3000;
-
-// A fingerprint of every ref on the origin: it changes on any push or merge.
-function fingerprint() {
-  if (!existsSync(ORIGIN)) return null;
-  try {
-    return execFileSync('git', ['--git-dir', ORIGIN, 'for-each-ref', '--format=%(refname) %(objectname)'], { encoding: 'utf8' });
-  } catch {
-    return null;
-  }
-}
 
 let cached = { print: undefined, body: null };
 
 function state() {
   const print = fingerprint();
   if (print === cached.print && cached.body) return cached.body;
-  let body;
-  let cbom = null;
-  if (print === null) {
-    body = JSON.stringify({ error: 'no-origin', message: 'No git origin yet. Run `npm run setup` in the repository root.' });
-  } else {
-    const desk = readDesk(ORIGIN);
-    cbom = JSON.stringify(desk.cbom, null, 2);
-    const cbomSha256 = createHash('sha256').update(cbom).digest('hex');
-    const { cbom: _omit, ...rest } = desk;
-    body = JSON.stringify({ ...rest, cbomSha256, cbomSerial: desk.cbom.serialNumber, readAt: new Date().toISOString() });
-  }
+  const { body, cbom } = readState(ORIGIN, print !== null);
   cached = { print, body, cbom };
   return body;
 }

@@ -1,6 +1,8 @@
 node_modules/
 .origin/
 cbom.json
+cbom-scan.sarif
 work/
 board.html
 web/dist/
+web/dist-static/

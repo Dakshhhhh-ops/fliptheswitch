@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Code from './Code.jsx';
-import { calm, finePointer, gsap, revealOnView } from '../lib/motion.js';
+import { calm, finePointer, gsap, lockScroll, revealOnView } from '../lib/motion.js';
 import { slug } from '../useDesk.js';
 
 // Drag the divider to compare the file before the migration with main now.
@@ -14,7 +14,7 @@ function Compare({ row }) {
   };
   if (!changed) {
     return (
-      <div className="compare single">
+      <div className="compare single" tabIndex={0} role="region" aria-label={`Code in ${row.file}`}>
         <Code source={row.code.before} marks={row.lines} />
         <span className="compare-note">{row.state === 'accepted risk' ? 'Accepted as a risk: this code stays.' : 'No fix on main yet. This is the code as it is.'}</span>
       </div>
@@ -39,8 +39,15 @@ function Compare({ row }) {
         <span className="compare-label">Main now</span>
         <Code source={row.code.now} />
       </div>
-      <span className="compare-bar" style={{ left: `${split}%` }} role="slider" aria-label="Before and after" aria-valuenow={Math.round(split)} tabIndex={0}
-        onKeyDown={(e) => setSplit((s) => Math.max(4, Math.min(96, s + (e.key === 'ArrowLeft' ? -5 : e.key === 'ArrowRight' ? 5 : 0))))} />
+      <span className="compare-bar" style={{ left: `${split}%` }} role="slider" tabIndex={0}
+        aria-label="Divider between the code before and main now" aria-valuemin={4} aria-valuemax={96} aria-valuenow={Math.round(split)}
+        aria-valuetext={`${Math.round(split)}% before, ${100 - Math.round(split)}% main now`}
+        onKeyDown={(e) => {
+          const step = { ArrowLeft: -5, ArrowDown: -5, ArrowRight: 5, ArrowUp: 5, Home: -100, End: 100 }[e.key];
+          if (step === undefined) return;
+          e.preventDefault();
+          setSplit((s) => Math.max(4, Math.min(96, s + step)));
+        }} />
     </div>
   );
 }
@@ -52,26 +59,53 @@ function Evidence({ row }) {
   return <>Room open in Switch. Nothing on the origin yet.</>;
 }
 
+const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 function Drawer({ row, onClose }) {
   const panel = useRef(null);
+  const close = useRef(null);
   useEffect(() => {
-    const esc = (e) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', esc);
-    panel.current?.focus();
+    const keys = (e) => {
+      if (e.key === 'Escape') return onClose();
+      if (e.key !== 'Tab' || !panel.current) return undefined;
+      // Keep Tab inside the dialog while it is open.
+      const els = [...panel.current.querySelectorAll(FOCUSABLE)];
+      if (els.length === 0) return undefined;
+      const first = els[0];
+      const last = els[els.length - 1];
+      const inside = panel.current.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === first || !inside)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || !inside)) {
+        e.preventDefault();
+        first.focus();
+      }
+      return undefined;
+    };
+    window.addEventListener('keydown', keys);
+    close.current?.focus({ preventScroll: true });
     if (!calm()) gsap.fromTo(panel.current, { xPercent: 100 }, { xPercent: 0, duration: 0.8, ease: 'expo.out' });
-    return () => window.removeEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', keys);
   }, [row.id]);
+  useEffect(() => {
+    lockScroll(true);
+    return () => lockScroll(false);
+  }, []);
   return (
-    <div className="drawer-wrap" onClick={onClose}>
-      <aside className="drawer" ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`${row.id} ${row.algorithm}`} onClick={(e) => e.stopPropagation()}>
+    <div className="drawer-wrap" onClick={onClose} data-lenis-prevent>
+      <aside className="drawer" ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="drawer-title" onClick={(e) => e.stopPropagation()}>
         <header className="drawer-head">
           <span className="drawer-id">{row.id}</span>
           <div>
-            <h3>{row.algorithm}</h3>
+            <h3 id="drawer-title">
+              <span className="sr-only">{row.id}: </span>
+              {row.algorithm}
+            </h3>
             <code>{row.file}:{row.line} · {row.priority} · {row.status}</code>
           </div>
           <span className={`pill s-${slug(row.state)}`}>{row.state}</span>
-          <button className="drawer-close" onClick={onClose} aria-label="Close">×</button>
+          <button className="drawer-close" ref={close} onClick={onClose} aria-label="Close">×</button>
         </header>
         <Compare row={row} />
         <dl className="drawer-body">
@@ -88,11 +122,15 @@ function Drawer({ row, onClose }) {
 // opening one shows before and after.
 export default function Findings({ rows }) {
   const [hover, setHover] = useState(null);
+  // The code preview follows the mouse, so it only shows for mouse hover, not keyboard focus.
+  const [byMouse, setByMouse] = useState(false);
   // `?open=F1` opens a finding directly, so a link can point at one.
   const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get('open'));
   const preview = useRef(null);
   const root = useRef(null);
   const pos = useRef(null);
+  // The row that opened the drawer, to give focus back to when it closes.
+  const opener = useRef(null);
 
   useLayoutEffect(() => {
     if (!finePointer() || calm()) return undefined;
@@ -106,6 +144,14 @@ export default function Findings({ rows }) {
     const list = root.current.querySelector('.fx-list');
     return revealOnView(list, list.querySelectorAll('.fx-row'), { yPercent: 60, autoAlpha: 0 });
   }, [rows.length]);
+
+  const closeDrawer = () => {
+    setOpen(null);
+    // Give focus back to the row that opened it (or the row itself, for ?open=).
+    const back = opener.current ?? root.current?.querySelector(`[data-row="${open}"]`);
+    opener.current = null;
+    requestAnimationFrame(() => back?.focus({ preventScroll: true }));
+  };
 
   const current = rows.find((r) => r.id === hover);
   const openRow = rows.find((r) => r.id === open);
@@ -122,17 +168,27 @@ export default function Findings({ rows }) {
         <p className="section-sub">Each finding is worked in its own Switch room with the engineer who owns the code. Hover for the line itself; open one to compare it with main.</p>
       </div>
 
-      <ol className="fx-list" onMouseMove={(e) => pos.current && (pos.current.x(e.clientX + 24), pos.current.y(e.clientY - 120))} onMouseLeave={() => setHover(null)}>
+      <ol className="fx-list" onMouseMove={(e) => pos.current && (pos.current.x(e.clientX + 24), pos.current.y(e.clientY - 120))} onMouseLeave={() => setHover(null)}
+        onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setHover(null)}>
         {rows.map((r) => (
           <li key={r.id} className={`fx-row st-${slug(r.state)} ${hover && hover !== r.id ? 'dim' : ''}`}>
             <button
               onMouseEnter={(e) => {
                 // Start beside the cursor, even if the row scrolled under a still mouse.
                 if (preview.current) gsap.set(preview.current, { x: e.clientX + 24, y: e.clientY - 120 });
+                setByMouse(true);
                 setHover(r.id);
               }}
-              onFocus={() => setHover(r.id)}
-              onClick={() => setOpen(r.id)}
+              onFocus={() => {
+                setByMouse(false);
+                setHover(r.id);
+              }}
+              onClick={(e) => {
+                opener.current = e.currentTarget;
+                setOpen(r.id);
+              }}
+              data-row={r.id}
+              aria-haspopup="dialog"
               data-cursor="Open"
             >
               <span className="fx-id">{r.id}</span>
@@ -144,7 +200,7 @@ export default function Findings({ rows }) {
         ))}
       </ol>
 
-      <div className={`fx-preview ${current && finePointer() && !calm() ? 'on' : ''}`} ref={preview} aria-hidden="true">
+      <div className={`fx-preview ${current && byMouse && finePointer() && !calm() ? 'on' : ''}`} ref={preview} aria-hidden="true">
         {current && (
           <>
             <span className="fx-preview-head">{current.file}</span>
@@ -153,7 +209,7 @@ export default function Findings({ rows }) {
         )}
       </div>
 
-      {openRow && <Drawer row={openRow} onClose={() => setOpen(null)} />}
+      {openRow && <Drawer row={openRow} onClose={closeDrawer} />}
     </section>
   );
 }

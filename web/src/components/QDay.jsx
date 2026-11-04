@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { calm, gsap, ScrollTrigger } from '../lib/motion.js';
+import { API, SNAPSHOT, when } from '../lib/snapshot.js';
 
 const HEX = '0123456789abcdef';
 const clamp = (v) => Math.max(0, Math.min(1, v));
@@ -38,7 +39,7 @@ export default function QDay() {
   const classicHex = useRef(null);
   const stamp = useRef(null);
 
-  const load = () => fetch('/api/specimen').then((r) => r.json()).then(setSpec).catch(() => {});
+  const load = () => fetch(API.specimen).then((r) => r.json()).then(setSpec).catch(() => {});
   useEffect(() => {
     load();
   }, []);
@@ -88,7 +89,17 @@ export default function QDay() {
           <em>Opened on Q-Day.</em>
         </h2>
         <p className="section-sub">
-          The server just sealed a test card number twice with <code>node:crypto</code>. The bytes below are that real ciphertext.
+          {SNAPSHOT ? (
+            <>
+              A test card number was sealed twice with <code>node:crypto</code> when this snapshot was exported
+              {spec && <> ({when(spec.madeAt)})</>}. The bytes below are that real ciphertext.{' '}
+            </>
+          ) : (
+            <>
+              The server just sealed a test card number twice with <code>node:crypto</code>. The bytes below are that real
+              ciphertext.{' '}
+            </>
+          )}
           Scroll to move the dial to Q-Day: the day a large quantum computer exists. Nobody knows when. NIST plans to deprecate
           RSA and elliptic curves in 2030 and disallow them in 2035.
         </p>
@@ -110,7 +121,8 @@ export default function QDay() {
               <h3>{spec.classical.scheme}</h3>
             </header>
             <Bytes parts={spec.classical.parts} dimRef={classicHex} />
-            <div className="qd-plain" aria-live="polite">
+            <p className="sr-only">After Q-Day, a large quantum computer could recover the plaintext from this copy: {spec.plaintext}.</p>
+            <div className="qd-plain" aria-hidden="true">
               <span className="qd-plain-label">After Q-Day, recovered by Shor's algorithm</span>
               <span className="qd-plain-text" ref={plain} />
             </div>
@@ -122,21 +134,29 @@ export default function QDay() {
               <h3>{spec.hybrid.scheme}</h3>
             </header>
             <Bytes parts={spec.hybrid.parts} />
-            <div className="qd-stamp" ref={stamp}>
+            <p className="sr-only">This copy stays sealed after Q-Day.</p>
+            <div className="qd-stamp" ref={stamp} aria-hidden="true">
               <span>Still sealed</span>
             </div>
             <footer>{spec.hybrid.ms} ms to seal, including key generation</footer>
           </article>
         </div>
       ) : (
-        <p className="qd-wait">Sealing a specimen…</p>
+        <p className="qd-wait">{SNAPSHOT ? 'Loading the specimen…' : 'Sealing a specimen…'}</p>
       )}
 
       <div className="qd-foot">
-        <span>Illustration: the ciphertext is real and new on every visit; the RSA copy "opening" is what a large quantum computer would allow, not something done here.</span>
-        <button type="button" onClick={load} data-cursor="Reseal">
-          Seal a new specimen
-        </button>
+        <span>
+          Illustration: the ciphertext is real and {SNAPSHOT ? 'was sealed at export time' : 'new on every visit'}; the RSA copy
+          "opening" is what a large quantum computer would allow, not something done here.
+        </span>
+        {SNAPSHOT ? (
+          <span className="qd-snap">Snapshot · run locally to seal a new one</span>
+        ) : (
+          <button type="button" onClick={load} data-cursor="Reseal">
+            Seal a new specimen
+          </button>
+        )}
       </div>
     </section>
   );

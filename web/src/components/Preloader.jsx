@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { calm, gsap } from '../lib/motion.js';
+import { SNAPSHOT } from '../lib/snapshot.js';
 
 // A count to 100 while the desk is read from git, then a curtain lifts.
 export default function Preloader({ ready, onDone }) {
@@ -31,7 +32,7 @@ export default function Preloader({ ready, onDone }) {
   return (
     <div className="preloader" ref={root} aria-hidden="true">
       <div className="pre-inner">
-        <span className="pre-label">Reading the desk from git</span>
+        <span className="pre-label">{SNAPSHOT ? 'Reading a snapshot of the desk' : 'Reading the desk from git'}</span>
         <span className="pre-num" ref={num}>000</span>
         <span className="pre-track"><span className="pre-line" /></span>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Ago } from './motion.jsx';
 import { isStatic, magnetic } from '../lib/motion.js';
+import { SNAPSHOT } from '../lib/snapshot.js';
 
 export default function Nav({ desk, live }) {
   const links = useRef(null);
@@ -8,7 +9,7 @@ export default function Nav({ desk, live }) {
     const offs = [...links.current.querySelectorAll('a')].map((a) => magnetic(a, 0.35));
     return () => offs.forEach((off) => off());
   }, []);
-  const snapshot = isStatic();
+  const snapshot = SNAPSHOT || isStatic();
   return (
     <header className="nav">
       <a className="brand" href="#top" aria-label="Crypto Migration Desk, top">

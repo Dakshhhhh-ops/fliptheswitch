@@ -55,9 +55,9 @@ export default function Spectrum({ inventory }) {
       </div>
 
       <div className="sp-bar">
-        <div className="toggle" role="tablist" aria-label="Which commit">
+        <div className="toggle" role="group" aria-label="Which commit">
           {[['before', 'First commit'], ['now', 'Main now']].map(([k, label]) => (
-            <button key={k} role="tab" aria-selected={view === k} className={view === k ? 'active' : ''} onClick={() => change(k)} data-cursor="Switch">
+            <button key={k} type="button" aria-pressed={view === k} className={view === k ? 'active' : ''} onClick={() => change(k)} data-cursor="Switch">
               {label}
             </button>
           ))}
