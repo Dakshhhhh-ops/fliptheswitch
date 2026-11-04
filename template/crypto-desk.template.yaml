@@ -38,9 +38,10 @@ params:
     description: The crypto-desk folder. Every agent works inside it, so nothing it needs is outside its working folder. setup-origin prints it.
     required: true
   engineer:
-    type: user
+    type: string
     label: Engineer who owns the code
-    description: Their username on the messaging app. Invited to every work room.
+    description: Their username on the messaging app (not a Switch account). Invited to every work room.
+    default: arjun
   focus:
     type: string
     label: Findings to work
