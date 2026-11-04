@@ -20,15 +20,14 @@
 # local git origin in .origin/, and each agent has its own checkout under
 # work/. Before running it: `node scripts/setup-origin.mjs` creates the origin
 # and prints the folder this form asks for.
-version: 1
-
+version: 2
 params:
   team:
     type: string
     label: Team prefix
     description: Prefix for the agents' and rooms' names
     default: desk
-    pattern: "[a-z][a-z0-9-]*"
+    pattern: '[a-z][a-z0-9-]*'
   target_name:
     type: string
     label: Codebase name
@@ -46,7 +45,7 @@ params:
     type: string
     label: Findings to work
     description: The finding ids the desk works, in order. The rest stay open on the board until the security lead adds them.
-    default: "F1, F5, F3"
+    default: F1, F5, F3
   parallel:
     type: number
     label: Findings worked at once
@@ -57,30 +56,40 @@ params:
   provider:
     type: provider
     label: Provider for scout, migrator and shipper
-    default: [claude, codex, opencode]
+    default:
+    - claude
+    - codex
+    - opencode
     input: advanced
   review_provider:
     type: provider
     label: Provider for the reviewer
     description: Pick a different one from the migrator's for an independent review.
-    default: [codex, opencode, claude]
+    default:
+    - codex
+    - opencode
+    - claude
     input: advanced
-  location:
-    type: location
-    default: local
+  machine:
+    type: machine
+    description: The machine the agents run on. The first online one that can run them, unless you pick.
+    default:
+    - $first
     input: advanced
   bridge:
     type: bridge
-    default: [$first]
+    default:
+    - $first
     input: advanced
-
-agents:
-  - name: "{team}-scout"
+resources:
+  scout:
+    type: agent
+    name: '{team}-scout'
     display_name: Scout
     description: Finds quantum-vulnerable and weak crypto, keeps the inventory, opens a room per finding
-    provider: "{provider}"
-    location: "{location}"
-    directory: "{desk_dir}"
+    provider: '{provider}'
+    machine: '{machine}'
+    directory: '{desk_dir}'
     addressing: anyone
     instructions: |
       You are the scout on a crypto migration desk for {target_name}. You find
@@ -160,13 +169,14 @@ agents:
       the next finding in the list. Anyone may ask you for the board at any
       time. When every finding in the list is shipped or accepted, post the
       board and a three-line summary for the security lead.
-
-  - name: "{team}-migrator"
+  migrator:
+    type: agent
+    name: '{team}-migrator'
     display_name: Migrator
     description: Writes each fix on a branch, with tests
-    provider: "{provider}"
-    location: "{location}"
-    directory: "{desk_dir}"
+    provider: '{provider}'
+    machine: '{machine}'
+    directory: '{desk_dir}'
     addressing: anyone
     instructions: |
       You are the migrator on a crypto migration desk for {target_name}. In
@@ -225,13 +235,14 @@ agents:
       7. Every change keeps the existing tests passing and adds tests for the
          new behaviour and for reading old data or headers.
       8. Make no security claim you have not checked. Say when you are unsure.
-
-  - name: "{team}-reviewer"
+  reviewer:
+    type: agent
+    name: '{team}-reviewer'
     display_name: Reviewer
     description: Holds the exclusive reviewer role and approves or rejects each fix
-    provider: "{review_provider}"
-    location: "{location}"
-    directory: "{desk_dir}"
+    provider: '{review_provider}'
+    machine: '{machine}'
+    directory: '{desk_dir}'
     addressing: anyone
     instructions: |
       You review fixes on a crypto migration desk for {target_name}. You never
@@ -281,13 +292,14 @@ agents:
          control the endpoint.
       6. Only `node:crypto`. No new dependencies.
       7. Existing tests pass, and new tests cover the new behaviour and old data.
-
-  - name: "{team}-shipper"
+  shipper:
+    type: agent
+    name: '{team}-shipper'
     display_name: Shipper
     description: Merges approved fixes or records accepted risks, on the security lead's word only
-    provider: "{provider}"
-    location: "{location}"
-    directory: "{desk_dir}"
+    provider: '{provider}'
+    machine: '{machine}'
+    directory: '{desk_dir}'
     addressing: owner
     instructions: |
       You are the ship gate on a crypto migration desk for {target_name}. Your
@@ -320,22 +332,28 @@ agents:
       gave one). Then tell `{team}-scout`: `<id> accepted risk: <reason>`.
 
       Never ship on anyone's word but your owner's, and never ship twice.
-
-room:
-  name: "{team}-intake"
-  description: "Crypto inventory and status board for {target_name}"
-  bridge: "{bridge}"
-  channel_type: channel_private
-  agents: ["{team}-scout", "{team}-migrator", "{team}-reviewer", "{team}-shipper"]
-  users: ["{$creator}", "{engineer}"]
-  instructions: |
-    This room runs the migration of {target_name} off quantum-vulnerable and
-    weak cryptography. {team}-scout keeps the "Crypto inventory" document here
-    and posts the board. Each finding is worked in its own private room, linked
-    from here. The security lead ({$creator}) is the only person who decides
-    what ships, through {team}-shipper. Keep messages in this room short: the
-    board line and what changed.
-  docs:
+  intake:
+    type: room
+    name: '{team}-intake'
+    description: Crypto inventory and status board for {target_name}
+    bridge: '{bridge}'
+    channel_type: channel_private
+    agents:
+    - scout
+    - migrator
+    - reviewer
+    - shipper
+    users:
+    - '{$creator}'
+    - '{engineer}'
+    instructions: |
+      This room runs the migration of {target_name} off quantum-vulnerable and
+      weak cryptography. {team}-scout keeps the "Crypto inventory" document here
+      and posts the board. Each finding is worked in its own private room, linked
+      from here. The security lead ({$creator}) is the only person who decides
+      what ships, through {team}-shipper. Keep messages in this room short: the
+      board line and what changed.
+    docs:
     - name: How this desk works
       description: Who does what, and how a finding moves from open to shipped
       instructions: Read when you are unsure who acts next on a finding.
@@ -350,7 +368,6 @@ room:
            The shipper only takes orders from the security lead.
         5. The shipper tells the scout, the scout rescans main, and the board
            moves.
-
-kickoff: |
-  @{team}-scout scan {target_name}, write the inventory, and open a work room
-  for every finding. Work {focus}, in that order.
+    kickoff: |
+      @{team}-scout scan {target_name}, write the inventory, and open a work room
+      for every finding. Work {focus}, in that order.
