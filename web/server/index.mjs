@@ -7,7 +7,7 @@
 import { createServer } from 'node:http';
 import { execFileSync } from 'node:child_process';
 import { createReadStream, existsSync, statSync } from 'node:fs';
-import { dirname, extname, join, normalize, resolve } from 'node:path';
+import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { readDesk } from '../../tools/board.mjs';
@@ -63,7 +63,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 function serveStatic(req, res) {
   const url = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   let file = normalize(join(DIST, url));
-  if (!file.startsWith(DIST)) return res.writeHead(403).end();
+  if (file !== DIST && !file.startsWith(DIST + sep)) return res.writeHead(403).end();
   if (!existsSync(file) || statSync(file).isDirectory()) file = join(DIST, 'index.html');
   if (!existsSync(file)) {
     res.writeHead(404, { 'content-type': 'text/plain' });

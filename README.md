@@ -94,7 +94,29 @@ Take Switch away and this stops working. These parts are Switch's:
 | Exclusive room role | Exactly one reviewer of record per finding, whichever agent holds it |
 | Room documents | The inventory can only be edited by the scout that wrote it, so the board can't be quietly changed |
 | Rooms shared by people and agents | Engineer, security lead and agents negotiate in the same thread |
-| Different providers in one room | Claude Code writes, Codex reviews, so the review is independent |
+| Different providers in one room | Claude Code writes, Codex reviews, so the review comes from a different model |
+
+## What is enforced, and by what
+
+Some rules are enforced by Switch, some by git, and some only by the
+agents' instructions. This table lists every one of them:
+
+| Rule | Enforced by | How |
+|---|---|---|
+| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Anyone else gets Switch's refusal, and the agent never sees the message |
+| One reviewer of record per finding | **Switch** | The `reviewer` role in each work room is exclusive |
+| Only the scout can change the inventory | **Switch** | A room document can only be edited by the agent that created it |
+| Main only takes reviewed fixes | **git** | The origin's `pre-receive` hook ([`scripts/pre-receive.mjs`](scripts/pre-receive.mjs)) refuses any push to main that isn't a `Ship F<n>:` merge or an `Accept risk F<n>:` commit |
+| A ship contains exactly the approved commit | **git** | The merged commit needs a `refs/approved/<sha>` mark, which the reviewer pushes for the exact sha it checked. Any later push to the branch needs a new one. A merge that adds anything beyond the clean merge is refused |
+| An approval can't be moved or reused | **git** | `refs/approved/<sha>` must point at that sha, and can't be updated or deleted |
+| No force pushes, no shipping twice | **git** | Main only moves forward, and an id that already shipped is refused |
+| An accepted risk changes no code | **git** | An `Accept risk` commit may only touch `ACCEPTED-RISKS.md` |
+| The migrator doesn't merge and the scout doesn't edit code | instructions, backed by git | The instructions say so, and the hook refuses the push anyway |
+| The reviewer reads the code, not the summary | instructions | It runs on a different provider. All four agents share one machine and folder |
+| Who pushed | **nobody** | The origin is a folder with no accounts, so git can't tell agents apart. Anyone who can write to the folder can push an approval mark. On a hosted repository, branch protection and per-agent credentials would close this. Here, Switch's addressing decides who may order a ship, and the hook decides what a ship may contain |
+
+`test/gate.test.mjs` pushes to a real bare repository with the hook
+installed and checks each git rule above.
 
 ## The demo codebase
 
@@ -121,11 +143,13 @@ The same scanner, run on two widely used Node libraries
 
 | Library | Findings | What stands out |
 |---|---|---|
-| [mscdex/ssh2](https://github.com/mscdex/ssh2) | 24 in 9 files | Every key exchange it offers is classical (ECDH, Curve25519, finite-field DH). No hybrid post-quantum exchange like OpenSSH's `mlkem768x25519-sha256` |
+| [mscdex/ssh2](https://github.com/mscdex/ssh2) | 31 in 10 files | Every key exchange it offers is classical (ECDH, Curve25519, finite-field DH). No hybrid post-quantum exchange like OpenSSH's `mlkem768x25519-sha256` |
 | [panva/jose](https://github.com/panva/jose) | 25 in 7 files | Signatures already offer ML-DSA. Encryption (JWE) is still RSA-OAEP or ECDH-ES only |
 
 The first run on these found 3 and 0 findings: real code names algorithms in
-ways the demo didn't. The rules that run added are each covered by a test.
+ways the demo didn't. A later review found more gaps (comments matched, calls
+split across lines missed, runtime algorithm names skipped). Every rule added
+for these has a test, and [REAL-SCANS.md](docs/REAL-SCANS.md) lists them.
 
 ## Run it yourself
 
@@ -135,9 +159,9 @@ without Docker (Switch Console brings its own PostgreSQL). **Docker is needed
 for the bundled Mattermost**, which is the chat app this demo uses.
 
 ```sh
-npm test               # scanner, board and demo-payments tests
+npm test               # scanner, board, git gate and demo-payments tests
 npm run scan           # the six findings, and cbom.json
-npm run setup          # creates the local git origin and prints the folder
+npm run setup          # creates the local git origin with its gate, prints the folder
 npm run board          # board.html, the desk's status read from git
 ```
 
@@ -159,9 +183,10 @@ template/crypto-desk.template.yaml   the Switch template: four agents, intake ro
 tools/cbom-scan.mjs                  rule-based crypto scanner and CycloneDX 1.6 CBOM writer
 tools/board.mjs                      the desk's status, read from git
 web/                                 the desk app: React UI and the Node API behind it
-test/                                tests for the scanner and the board
+test/                                tests for the scanner, the board and the git gate
 demo-payments/                       the codebase being migrated, with its own tests
 scripts/setup-origin.mjs             local git origin the agents clone and push to
+scripts/pre-receive.mjs              the origin's gate: what main may take
 docs/DEMO.md                         run-sheet for the demo video
 docs/REAL-SCANS.md                   the scanner on ssh2 and jose, reproducible
 ```
@@ -171,9 +196,13 @@ Generated locally and not committed: `.origin/` (the agents' git origin),
 
 ## Limits
 
-- The scanner reads JavaScript and TypeScript with fixed rules. It is
-  deliberately predictable, not complete: an algorithm picked at run time
-  from a variable is only found where its name appears as a string.
+- The scanner reads JavaScript and TypeScript with fixed rules, not a
+  parser. It is predictable, not complete. A constant in the same file is
+  resolved, and any other algorithm picked at runtime is flagged for review
+  rather than named. Values passed between files, and code inside a template
+  literal's `${...}`, aren't followed.
+- The git gate checks what main may take, not who pushed it (see the
+  enforcement table above).
 - On Windows, Switch Console can't grant a GitHub connection, so the agents
   push to a local git origin instead of opening pull requests.
 - Switch has no scheduled messages yet, so accepted-risk review dates are
