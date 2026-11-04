@@ -2,12 +2,12 @@
 // cbom-scan: find cryptography in a JavaScript codebase and write a
 // CycloneDX 1.6 CBOM (cryptography bill of materials) plus a findings table.
 //
-//   node tools/cbom-scan.mjs <repo-dir> [--out cbom.json] [--json]
+//   node tools/cbom-scan.mjs <repo-dir> [--out cbom.json] [--json] [--baseline findings.json]
 //
 // Detection is a fixed rule table, not a model, so the same code always gives
 // the same inventory. @scout runs it and the agents work from its output.
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { basename, join, relative, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
@@ -105,80 +105,222 @@ function cipherKey(name) {
   return null;
 }
 
+// Algorithms the scanner can see are in use but cannot name exactly.
+Object.assign(ALGORITHMS, {
+  'classical-sig': { name: 'Classical signature (RSA or ECDSA)', primitive: 'signature', status: 'vulnerable', priority: 'P2', nistQ: 0,
+                   why: 'A signature made with a digest name is RSA or ECDSA, and both can be forged once a large quantum computer exists. The key is loaded at runtime, so its exact type is not visible in this file.',
+                   fix: 'ML-DSA-65 (FIPS 204), dual-signed beside the classical signature while verifiers still need it.' },
+  'hash-unknown':  { name: 'Hash chosen at runtime', primitive: 'hash', status: 'review', priority: 'P3', nistQ: 0,
+                   why: 'The algorithm name comes from a value the scanner cannot resolve, so it may be SHA-1 or MD5.',
+                   fix: 'Check where the value comes from, and allow only SHA-256 or stronger.' },
+  'cipher-unknown': { name: 'Cipher chosen at runtime', primitive: 'ae', status: 'review', priority: 'P3', nistQ: 0,
+                   why: 'The cipher name comes from a value the scanner cannot resolve, so it may be weak.',
+                   fix: 'Check where the value comes from, and allow only AES-256-GCM or ChaCha20-Poly1305.' },
+});
+
+const HASHES = {
+  md5: 'md5', sha1: 'sha1', 'sha-1': 'sha1', sha256: 'sha256', 'sha-256': 'sha256', sha384: 'sha384', 'sha-384': 'sha384',
+  sha512: 'sha512', 'sha-512': 'sha512', 'sha3-256': 'sha3-256',
+};
+
+// 'SHA-1', 'sha1', 'RSA-SHA1' and 'ecdsa-with-SHA1' all name SHA-1.
+function hashKey(name) {
+  const n = String(name).toLowerCase().replace(/^rsa-/, '').replace(/^ecdsa-with-/, '');
+  return HASHES[n] ?? null;
+}
+
 const CURVE_NAMES = { prime256v1: 'P-256', 'P-256': 'P-256', secp384r1: 'P-384', 'P-384': 'P-384', secp521r1: 'P-521' };
 
-// Line rules. Each returns the algorithm key (plus details) or null.
-// `ctx` holds facts about the whole file, for rules that need them.
+// Blank out comments and template-literal text, keeping every newline, so
+// offsets and line numbers still match the source. Quoted strings are kept,
+// and also returned with their offsets for the name rule.
+// Limits: code inside `${...}` is skipped, and regex literals are not parsed.
+export function clean(src) {
+  const out = src.split('');
+  const strings = [];
+  const blank = (from, to) => {
+    for (let k = from; k < to; k++) if (out[k] !== '\n' && out[k] !== '\r') out[k] = ' ';
+  };
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    const d = src[i + 1];
+    if (c === '/' && d === '/') {
+      let j = src.indexOf('\n', i);
+      if (j < 0) j = src.length;
+      blank(i, j);
+      i = j;
+    } else if (c === '/' && d === '*') {
+      let j = src.indexOf('*/', i + 2);
+      j = j < 0 ? src.length : j + 2;
+      blank(i, j);
+      i = j;
+    } else if (c === '`') {
+      let j = i + 1;
+      while (j < src.length && src[j] !== '`') j += src[j] === '\\' ? 2 : 1;
+      j = Math.min(j + 1, src.length);
+      blank(i, j);
+      i = j;
+    } else if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < src.length && src[j] !== c && src[j] !== '\n') j += src[j] === '\\' ? 2 : 1;
+      strings.push({ at: i, value: src.slice(i + 1, j) });
+      i = j + 1;
+    } else {
+      i++;
+    }
+  }
+  return { text: out.join(''), strings };
+}
+
+// The arguments of the call whose "(" is at `open`, split at top-level commas.
+function callArgs(text, open) {
+  const args = [];
+  let depth = 0;
+  let start = open + 1;
+  for (let k = open; k < text.length; k++) {
+    const ch = text[k];
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      depth--;
+      if (depth === 0) {
+        args.push(text.slice(start, k).trim());
+        return args;
+      }
+    } else if (ch === ',' && depth === 1) {
+      args.push(text.slice(start, k).trim());
+      start = k + 1;
+    }
+  }
+  return args;
+}
+
+// What an argument is: a string literal, a constant declared with one in the
+// same file, null, or something the scanner can't know.
+function argValue(arg, ctx) {
+  if (arg === undefined || arg === '') return { missing: true };
+  if (arg === 'null' || arg === 'undefined') return { none: true };
+  const lit = /^(['"])([^'"]*)\1$/.exec(arg);
+  if (lit) return { value: lit[2] };
+  if (/^[A-Za-z_$][\w$]*$/.test(arg)) {
+    const name = arg.replace(/\$/g, '\\$');
+    const decl = new RegExp(`\\b(?:const|let|var)\\s+${name}\\s*=\\s*(['"])([^'"]*)\\1`).exec(ctx.text);
+    if (decl) return { value: decl[2] };
+  }
+  return { unknown: true };
+}
+
+function hashHit(arg, ctx, func) {
+  const v = argValue(arg, ctx);
+  if (v.unknown) return { key: 'hash-unknown', func };
+  if (v.value === undefined) return null;
+  const key = hashKey(v.value);
+  return key ? { key, func } : null;
+}
+
+// The key type behind a signature made with a digest name.
+function classicalSigKey(ctx) {
+  if (ctx.hasEcKeys) return 'ecdsa';
+  if (ctx.hasRsaKeys) return 'rsa-sig';
+  return 'classical-sig';
+}
+
+// Each rule runs over the whole cleaned file, so a call split across lines is
+// still found. `hit` returns one hit, a list of hits, or null.
 const RULES = [
-  { re: /(publicEncrypt|privateDecrypt)\s*\(/, fn: ['encrypt', 'decrypt'],
+  { re: /\b(publicEncrypt|privateDecrypt)\s*\(/g,
     hit: (m, ctx) => ({ key: 'rsa-oaep', param: ctx.rsaBits, func: m[1] === 'publicEncrypt' ? 'encrypt' : 'decrypt' }) },
-  { re: /generateKeyPairSync\(\s*['"]rsa['"]/,
-    hit: (m, ctx) => ({ key: 'rsa-oaep', param: ctx.rsaBits, func: 'keygen' }) },
-  { re: /createECDH\(\s*['"]([\w-]+)['"]/,
-    hit: (m) => ({ key: 'ecdh', curve: CURVE_NAMES[m[1]] ?? m[1], func: 'keygen' }) },
-  { re: /computeSecret\s*\(/,
+  { re: /\b(privateEncrypt|publicDecrypt)\s*\(/g,
+    hit: (m, ctx) => ({ key: 'rsa-sig', param: ctx.rsaBits, func: m[1] === 'privateEncrypt' ? 'sign' : 'verify' }) },
+  { re: /\bgenerateKeyPair(?:Sync)?\s*\(\s*['"](rsa|rsa-pss)['"]/g,
+    hit: (m, ctx) => ({ key: m[1] === 'rsa-pss' || ctx.hasSign ? 'rsa-sig' : 'rsa-oaep', param: ctx.rsaBits, func: 'keygen' }) },
+  { re: /\bgenerateKeyPair(?:Sync)?\s*\(\s*['"]ec['"]/g,
+    hit: (m, ctx) => ({ key: ctx.hasSign ? 'ecdsa' : 'ecdh', curve: ctx.ecCurve, func: 'keygen' }) },
+  { re: /\bcreateECDH\s*\(\s*(?:['"]([\w-]+)['"])?/g,
+    hit: (m) => ({ key: 'ecdh', curve: m[1] ? CURVE_NAMES[m[1]] ?? m[1] : undefined, func: 'keygen' }) },
+  { re: /\bcomputeSecret\s*\(/g,
     hit: (m, ctx) => (ctx.hasECDH ? { key: 'ecdh', curve: ctx.ecdhCurve, func: 'keyderive' } : null) },
-  { re: /generateKeyPairSync\(\s*['"]ec['"]/,
-    hit: (m, ctx) => ({ key: ctx.hasSign ? 'ecdsa' : 'ecdh', curve: ctx.ecCurve, func: 'keygen' }) },
-  { re: /\b(sign|verify)\(\s*['"](sha\d+)['"]/,
-    hit: (m, ctx) => (ctx.hasEcKeys ? { key: 'ecdsa', curve: ctx.ecCurve, func: m[1] } : null) },
-  { re: /\b(sign|verify)\(\s*null\b/,
-    hit: (m, ctx) => (ctx.mlDsa ? { key: ctx.mlDsa, func: m[1] } : null) },
-  { re: /createHash\(\s*['"]([\w-]+)['"]/,
-    hit: (m) => {
-      const k = m[1].toLowerCase();
-      return ALGORITHMS[k] ? { key: k, func: 'digest' } : null;
+  // crypto.sign(digest, data, key) and crypto.verify(...). A digest name means
+  // RSA or ECDSA; null means Ed25519/Ed448 or ML-DSA.
+  { re: /\b(sign|verify)\s*\(/g, call: true,
+    hit: (m, ctx, args) => {
+      const v = argValue(args[0], ctx);
+      if (v.none) {
+        if (ctx.mlDsa) return { key: ctx.mlDsa, func: m[1] };
+        if (ctx.hasEd) return { key: 'eddsa', func: m[1] };
+        return null;
+      }
+      const hash = v.value !== undefined ? hashKey(v.value) : null;
+      if (!hash) return null;
+      const key = classicalSigKey(ctx);
+      const out = [{ key, curve: key === 'ecdsa' ? ctx.ecCurve : undefined, func: m[1] }];
+      if (ALGORITHMS[hash].status !== 'ok') out.push({ key: hash, func: 'digest' });
+      return out;
     } },
-  { re: /createHmac\(\s*['"]([\w-]+)['"]/,
-    hit: (m) => {
-      const k = m[1].toLowerCase();
-      return ALGORITHMS[k] ? { key: k, func: 'tag' } : null;
+  // crypto.createSign('RSA-SHA256') and friends. Sign objects only do RSA and ECDSA.
+  { re: /\b(createSign|createVerify)\s*\(/g, call: true,
+    hit: (m, ctx, args) => {
+      const func = m[1] === 'createSign' ? 'sign' : 'verify';
+      const v = argValue(args[0], ctx);
+      const name = (v.value ?? '').toLowerCase();
+      const key = name.startsWith('rsa') ? 'rsa-sig' : name.startsWith('ecdsa') ? 'ecdsa' : classicalSigKey(ctx);
+      const out = [{ key, func }];
+      const hash = v.value !== undefined ? hashKey(v.value) : null;
+      if (hash && ALGORITHMS[hash].status !== 'ok') out.push({ key: hash, func: 'digest' });
+      return out;
     } },
-  { re: /createCipheriv\(\s*['"]([\w-]+)['"]/,
-    hit: (m) => (cipherKey(m[1]) ? { key: cipherKey(m[1]), func: 'encrypt' } : null) },
-  { re: /createDecipheriv\(\s*['"]([\w-]+)['"]/,
-    hit: (m) => (cipherKey(m[1]) ? { key: cipherKey(m[1]), func: 'decrypt' } : null) },
-  { re: /\b(createDiffieHellman|getDiffieHellman|createDiffieHellmanGroup)\s*\(/,
+  { re: /\b(createHash|createHmac)\s*\(/g, call: true,
+    hit: (m, ctx, args) => hashHit(args[0], ctx, m[1] === 'createHash' ? 'digest' : 'tag') },
+  // pbkdf2(password, salt, iterations, keylen, digest[, callback])
+  { re: /\bpbkdf2(?:Sync)?\s*\(/g, call: true,
+    hit: (m, ctx, args) => (args.length >= 5 ? hashHit(args[4], ctx, 'keyderive') : null) },
+  { re: /\bhkdf(?:Sync)?\s*\(/g, call: true,
+    hit: (m, ctx, args) => hashHit(args[0], ctx, 'keyderive') },
+  { re: /\b(createCipheriv|createDecipheriv)\s*\(/g, call: true,
+    hit: (m, ctx, args) => {
+      const func = m[1] === 'createCipheriv' ? 'encrypt' : 'decrypt';
+      const v = argValue(args[0], ctx);
+      if (v.unknown) return { key: 'cipher-unknown', func };
+      const key = v.value !== undefined ? cipherKey(v.value) : null;
+      return key ? { key, func } : null;
+    } },
+  { re: /\b(createDiffieHellman|getDiffieHellman|createDiffieHellmanGroup)\s*\(/g,
     hit: () => ({ key: 'ffdh', func: 'keygen' }) },
-  { re: /generateKeyPair(?:Sync)?\(\s*['"](ed25519|ed448)['"]/,
+  { re: /\bgenerateKeyPair(?:Sync)?\s*\(\s*['"](ed25519|ed448)['"]/g,
     hit: () => ({ key: 'eddsa', func: 'keygen' }) },
-  { re: /generateKeyPair\(\s*['"]rsa['"]/,
-    hit: (m, ctx) => ({ key: ctx.hasSign ? 'rsa-sig' : 'rsa-oaep', param: ctx.rsaBits, func: 'keygen' }) },
-  { re: /generateKeyPair\(\s*['"]ec['"]/,
-    hit: (m, ctx) => ({ key: ctx.hasSign ? 'ecdsa' : 'ecdh', curve: ctx.ecCurve, func: 'keygen' }) },
-  { re: /createECDH\(\s*[^'")\s]/,
-    hit: () => ({ key: 'ecdh', func: 'keygen' }) },
-  // Algorithm names written as strings (Web Crypto, JOSE, SSH). One hit per
-  // name per line; the line's other rules still run.
-  { re: /['"]([A-Za-z0-9@._+-]{4,40})['"]/g, all: true,
-    hit: (m, ctx) => {
-      const key = NAMED[m[1].toLowerCase()];
-      if (!key) return null;
-      if (key === 'x25519' && ctx.mlKem) return { key: 'x25519-hybrid', func: 'other', named: m[1] };
-      return { key, func: 'other', named: m[1] };
-    } },
-  { re: /generateKeyPairSync\(\s*['"](ml-kem-\d+|ml-dsa-\d+)['"]/,
+  { re: /\bgenerateKeyPair(?:Sync)?\s*\(\s*['"](ml-kem-\d+|ml-dsa-\d+)['"]/g,
     hit: (m) => ({ key: m[1], func: 'keygen' }) },
-  { re: /\b(encapsulate|decapsulate)\s*\(/,
+  { re: /\b(encapsulate|decapsulate)\s*\(/g,
     hit: (m, ctx) => ({ key: ctx.mlKem ?? 'ml-kem-768', func: m[1] }) },
-  { re: /generateKeyPairSync\(\s*['"]x25519['"]/,
+  { re: /\bgenerateKeyPair(?:Sync)?\s*\(\s*['"]x25519['"]/g,
     hit: (m, ctx) => ({ key: ctx.mlKem ? 'x25519-hybrid' : 'x25519', func: 'keygen' }) },
-  { re: /ecdhCurve\s*:\s*['"]([^'"]+)['"]/,
+  { re: /\becdhCurve\s*:\s*['"]([^'"]+)['"]/g,
     hit: (m) => ({ key: /MLKEM/i.test(m[1]) ? 'tls-hybrid' : 'tls-classical', param: m[1], func: 'keyderive', protocol: 'tls' }) },
 ];
 
-function fileFacts(src) {
-  const ecCurve = src.match(/namedCurve\s*:\s*['"]([\w-]+)['"]/)?.[1];
-  const ecdhCurve = src.match(/createECDH\(\s*['"]([\w-]+)['"]/)?.[1];
+// Algorithm names written as strings (Web Crypto, JOSE, SSH), exact matches only.
+function namedHit(value, ctx) {
+  const key = NAMED[value.toLowerCase()];
+  if (!key) return null;
+  if (key === 'x25519' && ctx.mlKem) return { key: 'x25519-hybrid', func: 'other', named: value };
+  return { key, func: 'other', named: value };
+}
+
+function fileFacts(text) {
+  const ecCurve = text.match(/namedCurve\s*:\s*['"]([\w-]+)['"]/)?.[1];
+  const ecdhCurve = text.match(/createECDH\s*\(\s*['"]([\w-]+)['"]/)?.[1];
   return {
-    rsaBits: src.match(/modulusLength\s*:\s*(\d+)/)?.[1],
-    hasECDH: Boolean(ecdhCurve),
+    text,
+    rsaBits: text.match(/modulusLength\s*:\s*(\d+)/)?.[1],
+    hasECDH: /\bcreateECDH\s*\(/.test(text),
     ecdhCurve: CURVE_NAMES[ecdhCurve] ?? ecdhCurve,
-    hasEcKeys: /generateKeyPairSync\(\s*['"]ec['"]/.test(src),
+    hasEcKeys: /\bgenerateKeyPair(?:Sync)?\s*\(\s*['"]ec['"]/.test(text),
+    hasRsaKeys: /\bgenerateKeyPair(?:Sync)?\s*\(\s*['"]rsa/.test(text),
+    hasEd: /['"]ed(?:25519|448)['"]/i.test(text),
     ecCurve: CURVE_NAMES[ecCurve] ?? ecCurve,
-    hasSign: /\bsign\(/.test(src),
-    mlKem: src.match(/['"](ml-kem-\d+)['"]/)?.[1],
-    mlDsa: src.match(/['"](ml-dsa-\d+)['"]/)?.[1],
+    hasSign: /\b(?:sign|createSign)\s*\(/.test(text),
+    mlKem: text.match(/['"](ml-kem-\d+)['"]/)?.[1],
+    mlDsa: text.match(/['"](ml-dsa-\d+)['"]/)?.[1],
   };
 }
 
@@ -199,48 +341,86 @@ function listSourceFiles(dir) {
   return out.sort();
 }
 
+// Scan one file's source. `rel` is the path reported for it.
+export function scanSource(src, rel) {
+  const { text, strings } = clean(src);
+  const ctx = fileFacts(text);
+  const lineStarts = [0];
+  for (let k = 0; k < src.length; k++) if (src[k] === '\n') lineStarts.push(k + 1);
+  const lines = src.split(/\r?\n/);
+  const lineOf = (offset) => {
+    let lo = 0;
+    let hi = lineStarts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (lineStarts[mid] <= offset) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo + 1;
+  };
+
+  const raw = [];
+  RULES.forEach((rule, order) => {
+    for (const m of text.matchAll(rule.re)) {
+      const args = rule.call ? callArgs(text, m.index + m[0].length - 1) : undefined;
+      const got = rule.hit(m, ctx, args);
+      for (const h of [got].flat().filter(Boolean)) raw.push({ at: m.index, order, h });
+    }
+  });
+  for (const s of strings) {
+    const h = namedHit(s.value, ctx);
+    if (h) raw.push({ at: s.at, order: RULES.length, h });
+  }
+  raw.sort((a, b) => a.at - b.at || a.order - b.order);
+
+  const hits = [];
+  const seen = new Set();
+  for (const { at, h } of raw) {
+    const line = lineOf(at);
+    const id = `${line}#${h.key}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const hit = { ...h, file: rel, line, code: lines[line - 1].trim().slice(0, 200) };
+    if (hit.curve === undefined) delete hit.curve;
+    hits.push(hit);
+  }
+  return hits;
+}
+
 export function scan(repoDir) {
   const hits = [];
   for (const file of listSourceFiles(repoDir)) {
-    const src = readFileSync(file, 'utf8');
-    const ctx = fileFacts(src);
     const rel = relative(repoDir, file).split(sep).join('/');
-    src.split(/\r?\n/).forEach((text, i) => {
-      if (/^\s*(\/\/|\/?\*)/.test(text)) return;
-      const seen = new Set();
-      for (const rule of RULES) {
-        const matches = rule.all ? [...text.matchAll(rule.re)] : [text.match(rule.re)].filter(Boolean);
-        for (const m of matches) {
-          const hit = rule.hit(m, ctx);
-          if (!hit || seen.has(hit.key)) continue;
-          seen.add(hit.key);
-          hits.push({ ...hit, file: rel, line: i + 1, code: text.trim().slice(0, 200) });
-        }
-      }
-    });
+    hits.push(...scanSource(readFileSync(file, 'utf8'), rel));
   }
   return hits;
 }
 
 const PRIORITY_ORDER = { P1: 1, P2: 2, P3: 3 };
 
-// One finding per (file, algorithm) that is not ok.
-export function findings(hits) {
+// One finding per (file, algorithm) that is not ok. Its `ref` is that pair.
+// With a baseline (the findings of an earlier scan), a finding keeps the id
+// it had there and a new one gets the next free number, so ids never shift
+// when a finding is fixed. Without one, ids are F1, F2, ... by priority.
+export function findings(hits, { baseline = [] } = {}) {
   const groups = new Map();
   for (const h of hits) {
     const algo = ALGORITHMS[h.key];
     if (algo.status === 'ok') continue;
-    const id = `${h.file}#${h.key}`;
-    if (!groups.has(id)) groups.set(id, { file: h.file, key: h.key, algo, hits: [] });
-    groups.get(id).hits.push(h);
+    const ref = `${h.file}#${h.key}`;
+    if (!groups.has(ref)) groups.set(ref, { ref, file: h.file, algo, hits: [] });
+    groups.get(ref).hits.push(h);
   }
+  const known = new Map(baseline.map((b) => [b.ref, b.id]));
+  let next = Math.max(0, ...baseline.map((b) => Number(String(b.id).slice(1)) || 0)) + 1;
   return [...groups.values()]
-    .sort((a, b) => PRIORITY_ORDER[a.algo.priority] - PRIORITY_ORDER[b.algo.priority] || a.file.localeCompare(b.file))
-    .map((g, i) => {
+    .sort((a, b) => PRIORITY_ORDER[a.algo.priority] - PRIORITY_ORDER[b.algo.priority] || a.file.localeCompare(b.file) || a.ref.localeCompare(b.ref))
+    .map((g) => {
       const first = g.hits[0];
       const detail = first.curve ?? (first.param ? `${first.param}` : undefined);
       return {
-        id: `F${i + 1}`,
+        id: known.get(g.ref) ?? `F${next++}`,
+        ref: g.ref,
         file: g.file,
         line: first.line,
         lines: g.hits.map((h) => h.line),
@@ -311,14 +491,49 @@ export function table(found) {
   return ['| # | Priority | Where | Algorithm | Status |', '|---|---|---|---|---|', ...rows].join('\n');
 }
 
+function fail(message) {
+  console.error(`cbom-scan: ${message}`);
+  process.exit(1);
+}
+
 function main(argv) {
   const args = argv.slice(2);
-  const repo = args.find((a) => !a.startsWith('--')) ?? '.';
-  const outIdx = args.indexOf('--out');
-  const out = outIdx >= 0 ? args[outIdx + 1] : null;
+  const flag = (name) => {
+    const i = args.indexOf(name);
+    return i >= 0 ? args[i + 1] : null;
+  };
+  const out = flag('--out');
+  const baselineFile = flag('--baseline');
+  const values = new Set([out, baselineFile].filter(Boolean));
+  const repo = args.find((a) => !a.startsWith('--') && !values.has(a)) ?? '.';
+  if (!existsSync(repo) || !statSync(repo).isDirectory()) fail(`${repo} is not a folder.`);
+
+  // --baseline FILE keeps finding ids stable across rescans: the first run
+  // writes FILE, and later runs reuse the ids in it.
+  let baseline = [];
+  if (baselineFile && existsSync(baselineFile)) {
+    try {
+      baseline = JSON.parse(readFileSync(baselineFile, 'utf8')).findings ?? [];
+    } catch {
+      fail(`${baselineFile} is not a findings baseline written by this tool.`);
+    }
+  }
+
   const hits = scan(repo);
-  const found = findings(hits);
-  const name = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).name;
+  const found = findings(hits, { baseline });
+  if (baselineFile && !existsSync(baselineFile)) {
+    writeFileSync(baselineFile, JSON.stringify({ findings: found.map(({ id, ref }) => ({ id, ref })) }, null, 2) + '\n');
+  }
+
+  let name = basename(resolve(repo));
+  const pkg = join(repo, 'package.json');
+  if (existsSync(pkg)) {
+    try {
+      name = JSON.parse(readFileSync(pkg, 'utf8')).name ?? name;
+    } catch {
+      // A broken package.json only costs the CBOM its name.
+    }
+  }
   const cbom = toCbom(hits, { name });
   if (out) writeFileSync(out, JSON.stringify(cbom, null, 2) + '\n');
   if (args.includes('--json')) {

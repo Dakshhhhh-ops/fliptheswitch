@@ -12,7 +12,7 @@ const LEVELS = [
   { n: 4, label: 'Level 4', note: 'SHA-384' },
   { n: 5, label: 'Level 5', note: 'AES-256' },
 ];
-const STATUS = { ok: 'meets policy', vulnerable: 'quantum-vulnerable', broken: 'classically broken', policy: 'below policy' };
+const STATUS = { ok: 'meets policy', vulnerable: 'quantum-vulnerable', broken: 'classically broken', policy: 'below policy', review: 'chosen at runtime' };
 
 // Every crypto asset on a scale of NIST quantum security levels. Switching
 // between the first commit and main moves each asset to where it now sits.

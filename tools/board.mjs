@@ -113,7 +113,7 @@ function assetList(cbom) {
 }
 
 function summarize(cbom) {
-  const count = { ok: 0, vulnerable: 0, broken: 0, policy: 0 };
+  const count = { ok: 0, vulnerable: 0, broken: 0, policy: 0, review: 0 };
   for (const c of cbom.components) {
     const status = c.properties.find((p) => p.name === 'crypto-desk:status')?.value;
     count[status] = (count[status] ?? 0) + 1;

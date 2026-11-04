@@ -11,7 +11,7 @@ an inventory is to see that surface before deciding what to migrate.
 
 ## [mscdex/ssh2](https://github.com/mscdex/ssh2) at `a3a39d7`
 
-SSH client and server. 9 crypto assets, 24 findings across 9 files.
+SSH client and server. 12 crypto assets, 31 findings across 10 files.
 
 | Algorithm | Priority | Status | Files | Example |
 |---|---|---|---|---|
@@ -22,7 +22,10 @@ SSH client and server. 9 crypto assets, 24 findings across 9 files.
 | EdDSA | P2 | vulnerable | 3 | `lib/keygen.js:63` |
 | MD5 | P2 | broken | 1 | `lib/protocol/keyParser.js:852` |
 | RSA signature | P2 | vulnerable | 8 | `lib/agent.js:617` |
+| Classical signature (RSA or ECDSA) | P2 | vulnerable | 1 | `lib/protocol/keyParser.js:390` |
 | SHA-1 | P2 | broken | 1 | `lib/protocol/keyParser.js:1056` |
+| Hash chosen at runtime | P3 | review | 3 | `lib/protocol/crypto.js:456` |
+| Cipher chosen at runtime | P3 | review | 3 | `lib/protocol/crypto.js:316` |
 
 What it shows:
 
@@ -72,8 +75,36 @@ test:
 - Ciphers beyond AES-GCM (ChaCha20-Poly1305, other AES modes, DES, 3DES, RC4)
 - Test, example and build folders skipped
 
-It still reads text with fixed rules, so an algorithm chosen at run time
-from a variable is only found where its name appears as a string.
+A review of the scanner then found real gaps, which were fixed, each with a
+test:
+
+- Comments and template-literal text were matched, so `// migrated away
+  from 'RS256'` counted as an RSA signature. Both are now blanked before
+  matching, with line numbers kept.
+- Each rule read one line at a time, so a call split across lines was
+  missed. Rules now run over the whole file.
+- `createHash('SHA-1')`, `createSign('RSA-SHA256')`, `pbkdf2Sync(..., 'sha1')`
+  and a signature made with a key loaded from PEM were missed. They are now
+  found, and the last one is reported as "Classical signature (RSA or
+  ECDSA)", because the key type isn't visible in the file.
+- An algorithm named by a variable was invisible. A constant declared in the
+  same file is resolved. Anything else is reported as **chosen at runtime**,
+  status `review`, instead of being skipped.
+- A signing RSA key made with `generateKeyPairSync` was labelled RSA-OAEP
+  and told to use ML-KEM. It is now an RSA signature.
+- Ids were renumbered on every scan, so fixing F1 turned the next finding
+  into F1. With `--baseline FILE`, ids stay as they were in the first scan.
+
+That review added 7 findings to ssh2: one signature with a runtime key
+(`lib/protocol/keyParser.js`) and six places where the cipher, MAC or hash is
+negotiated during the SSH handshake or read from a key file
+(`lib/protocol/crypto.js`, `kex.js`, `keyParser.js`, `keygen.js`, `client.js`). Those are not bugs. They mark the
+code a migration has to follow by hand, because the algorithm list lives
+elsewhere. jose's results didn't change.
+
+It still reads text with fixed rules rather than parsing JavaScript, so a
+value passed between files, or code inside a template literal's `${...}`,
+is not followed.
 
 ## Reproduce
 
