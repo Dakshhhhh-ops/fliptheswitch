@@ -25,7 +25,15 @@ export function readDesk(origin) {
   try {
     git(['clone', '-q', origin, work]);
     const root = git(['rev-list', '--max-parents=0', 'HEAD'], work).split('\n').pop();
-    const head = git(['rev-parse', '--short', 'HEAD'], work);
+    const headFull = git(['rev-parse', 'HEAD'], work);
+    const head = headFull.slice(0, 7);
+    const fileAt = (rev, path) => {
+      try {
+        return git(['show', `${rev}:${path}`], work);
+      } catch {
+        return null;
+      }
+    };
 
     const nowHits = scan(work);
     const now = findings(nowHits);
@@ -62,7 +70,9 @@ export function readDesk(origin) {
       if (ships[f.id]) state = 'shipped';
       else if (risks[f.id]) state = 'accepted risk';
       else if (branch) state = 'in review';
-      return { ...f, state, stillFlagged, branch, ship: ships[f.id], risk: risks[f.id] };
+      // The file as it was before the migration, and as it is on main now.
+      const code = { before: fileAt(root, f.file), now: fileAt(headFull, f.file) };
+      return { ...f, state, stillFlagged, branch, ship: ships[f.id], risk: risks[f.id], code };
     });
 
     return {
@@ -73,6 +83,7 @@ export function readDesk(origin) {
       timeline,
       assets: { before: summarize(cbomBase), now: summarize(cbomNow) },
       inventory: { before: assetList(cbomBase), now: assetList(cbomNow) },
+      cbom: cbomNow,
     };
   } finally {
     rmSync(work, { recursive: true, force: true });
