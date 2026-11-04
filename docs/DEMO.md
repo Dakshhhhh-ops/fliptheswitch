@@ -79,5 +79,9 @@ Priya, in `desk-f3-tls`:
   under Your Agents, then mention it again.
 - **The reviewer isn't reached:** mention `@desk-reviewer` by name in the
   work room.
+- **"crypto-desk gate: push refused":** the origin's hook says why. Most
+  often the reviewer didn't push its approval mark
+  (`refs/approved/<sha>`), or the branch moved after the review. Ask the
+  reviewer to review the current head again.
 - **The shipper refuses Priya:** check Home → Messaging apps shows Mattermost
   linked to your account (`@user`).
