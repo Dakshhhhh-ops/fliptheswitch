@@ -35,10 +35,13 @@ export function readDesk(origin) {
     const risks = existsSync(risksFile) ? parseRisks(readFileSync(risksFile, 'utf8')) : {};
 
     const ships = {};
-    for (const line of git(['log', '--format=%h%x09%cs%x09%s', 'HEAD'], work).split('\n').filter(Boolean)) {
-      const [sha, date, subject] = line.split('\t');
-      const m = /^Ship (F\d+):\s*(.*)$/.exec(subject);
-      if (m && !ships[m[1]]) ships[m[1]] = { sha, date, subject: m[2] };
+    const timeline = [];
+    for (const line of git(['log', '--first-parent', '--format=%h%x09%cI%x09%an%x09%s', 'HEAD'], work).split('\n').filter(Boolean)) {
+      const [sha, at, author, subject] = line.split('\t');
+      const ship = /^Ship (F\d+):\s*(.*)$/.exec(subject);
+      const risk = /^Accept risk (F\d+):\s*(.*)$/.exec(subject);
+      if (ship && !ships[ship[1]]) ships[ship[1]] = { sha, date: at.slice(0, 10), subject: ship[2] };
+      timeline.push({ sha, at, author, subject, kind: ship ? 'ship' : risk ? 'risk' : 'commit', finding: (ship ?? risk)?.[1] ?? null });
     }
 
     const branches = git(['branch', '-r', '--format=%(refname:short)'], work)
@@ -62,7 +65,15 @@ export function readDesk(origin) {
       return { ...f, state, stillFlagged, branch, ship: ships[f.id], risk: risks[f.id] };
     });
 
-    return { head, root: root.slice(0, 7), rows, assets: { before: summarize(cbomBase), now: summarize(cbomNow) } };
+    return {
+      head,
+      root: root.slice(0, 7),
+      rows,
+      branches,
+      timeline,
+      assets: { before: summarize(cbomBase), now: summarize(cbomNow) },
+      inventory: { before: assetList(cbomBase), now: assetList(cbomNow) },
+    };
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
@@ -75,6 +86,19 @@ export function parseRisks(md) {
     if (m) out[m[1]] = m[2].trim();
   }
   return out;
+}
+
+// The CBOM's assets, flattened for display.
+function assetList(cbom) {
+  return cbom.components.map((c) => ({
+    ref: c['bom-ref'],
+    name: c.name,
+    status: c.properties.find((p) => p.name === 'crypto-desk:status')?.value,
+    primitive: c.cryptoProperties.algorithmProperties.primitive,
+    nistQuantumLevel: c.cryptoProperties.algorithmProperties.nistQuantumSecurityLevel,
+    oid: c.cryptoProperties.oid ?? null,
+    occurrences: c.evidence.occurrences.map((o) => ({ file: o.location, line: o.line })),
+  }));
 }
 
 function summarize(cbom) {
