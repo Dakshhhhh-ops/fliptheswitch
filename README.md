@@ -126,14 +126,17 @@ to a local git origin, so nothing leaves your machine.
 ## Repository
 
 ```
-template/crypto-desk.template.yaml   the Switch template: agents, intake room, kickoff
+template/crypto-desk.template.yaml   the Switch template: four agents, intake room, kickoff
 tools/cbom-scan.mjs                  rule-based crypto scanner and CycloneDX 1.6 CBOM writer
-tools/cbom-scan.test.mjs             its tests
 tools/board.mjs                      the status board, read from git
-tools/board.test.mjs                 its tests
-demo-payments/                       the codebase being migrated
-scripts/setup-origin.mjs             local git origin for the agents
+test/                                tests for the scanner and the board
+demo-payments/                       the codebase being migrated, with its own tests
+scripts/setup-origin.mjs             local git origin the agents clone and push to
+docs/DEMO.md                         run-sheet for the demo video
 ```
+
+Generated locally and not committed: `.origin/` (the agents' git origin),
+`work/` (each agent's checkout), `cbom.json` and `board.html`.
 
 ## Limits
 

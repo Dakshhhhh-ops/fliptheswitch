@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { findings, scan, toCbom } from './cbom-scan.mjs';
+import { findings, scan, toCbom } from '../tools/cbom-scan.mjs';
 
 const demo = fileURLToPath(new URL('../demo-payments', import.meta.url));
 

@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { counts, html, parseRisks, readDesk } from './board.mjs';
+import { counts, html, parseRisks, readDesk } from '../tools/board.mjs';
 
 const demo = fileURLToPath(new URL('../demo-payments', import.meta.url));
 const git = (args, cwd) =>

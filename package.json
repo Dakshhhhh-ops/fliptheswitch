@@ -8,7 +8,7 @@
     "node": ">=24.7"
   },
   "scripts": {
-    "test": "node --test tools/cbom-scan.test.mjs tools/board.test.mjs && npm --prefix demo-payments test",
+    "test": "node --test test/cbom-scan.test.mjs test/board.test.mjs && npm --prefix demo-payments test",
     "scan": "node tools/cbom-scan.mjs demo-payments --out cbom.json",
     "setup": "node scripts/setup-origin.mjs",
     "reset": "node scripts/setup-origin.mjs --reset",
