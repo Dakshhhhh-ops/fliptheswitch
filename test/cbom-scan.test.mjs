@@ -6,10 +6,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { findings, scan, toCbom } from '../tools/cbom-scan.mjs';
+import { findings, gate, scan, toCbom, toSarif } from '../tools/cbom-scan.mjs';
 
 const demo = fileURLToPath(new URL('../demo-payments', import.meta.url));
 const scanner = fileURLToPath(new URL('../tools/cbom-scan.mjs', import.meta.url));
+const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
 function repoWith(files) {
   const dir = mkdtempSync(join(tmpdir(), 'cbom-'));
@@ -240,4 +241,94 @@ test('the command line explains a missing folder and scans one without package.j
   assert.equal(first.status, 0, first.stderr);
   assert.equal(JSON.parse(first.stdout).findings[0].id, 'F1');
   assert.deepEqual(JSON.parse(readFileSync(base, 'utf8')).findings, [{ id: 'F1', ref: 'a.js#md5' }]);
+});
+
+// SARIF for GitHub code scanning, and the --fail-on CI gate.
+
+const cli = (args, opts = {}) => spawnSync(process.execPath, [scanner, ...args], { encoding: 'utf8', ...opts });
+
+test('SARIF has one rule per algorithm and one result per finding, on the right line', () => {
+  const found = findings(scan(demo));
+  const sarif = toSarif(found, { root: 'demo-payments' });
+  assert.equal(sarif.version, '2.1.0');
+  const [run] = sarif.runs;
+  const rules = run.tool.driver.rules;
+  assert.equal(new Set(rules.map((r) => r.id)).size, rules.length, 'rule ids are unique');
+  const rsa = rules.find((r) => r.id === 'pqc/rsa-oaep');
+  assert.ok(rsa.name && rsa.shortDescription.text && rsa.help.text.includes('ML-KEM'));
+  assert.ok(rsa.properties.tags.includes('quantum-vulnerable'));
+  assert.equal(rsa.properties['security-severity'], '9.0');
+  assert.ok(rules.find((r) => r.id === 'pqc/sha1').properties.tags.includes('classically-broken'));
+  assert.ok(rules.find((r) => r.id === 'pqc/aes-128-gcm').properties.tags.includes('policy'));
+
+  assert.equal(run.results.length, found.length);
+  for (const [i, r] of run.results.entries()) {
+    assert.equal(rules[r.ruleIndex].id, r.ruleId);
+    const { uri } = r.locations[0].physicalLocation.artifactLocation;
+    assert.equal(uri, `demo-payments/${found[i].file}`);
+    assert.doesNotMatch(uri, /\|^\/|^[A-Za-z]:/, 'relative, forward slashes');
+    assert.equal(r.locations[0].physicalLocation.region.startLine, found[i].line);
+    assert.equal(r.partialFingerprints['cryptoDeskFinding/v1'], found[i].ref);
+  }
+  const levelOf = (file) => run.results.find((r) => r.locations[0].physicalLocation.artifactLocation.uri.endsWith(file)).level;
+  assert.equal(levelOf('envelope.js'), 'error', 'vulnerable P1');
+  assert.equal(levelOf('receipts.js'), 'error', 'classically broken');
+  assert.equal(levelOf('webhooks.js'), 'warning', 'vulnerable P2');
+  assert.equal(levelOf('vault.js'), 'note', 'policy');
+});
+
+test('SARIF leaves out crypto that meets policy', () => {
+  const dir = repoWith({
+    'mixed.js': "createHash('sha256');\ncreateCipheriv('aes-256-gcm', k, iv);\ncreateHash('md5');",
+  });
+  const run = toSarif(findings(scan(dir))).runs[0];
+  assert.deepEqual(run.results.map((r) => r.ruleId), ['pqc/md5']);
+  assert.equal(run.results[0].locations[0].physicalLocation.artifactLocation.uri, 'src/mixed.js');
+  assert.ok(!run.tool.driver.rules.some((r) => r.id === 'pqc/sha256'), 'no rule for an ok algorithm');
+  const ok = { id: 'F9', ref: 'src/x.js#sha256', key: 'sha256', file: 'src/x.js', line: 1, lines: [1], status: 'ok' };
+  assert.equal(toSarif([ok]).runs[0].results.length, 0);
+});
+
+test('the command line writes SARIF with paths from the repo root', () => {
+  const out = join(mkdtempSync(join(tmpdir(), 'sarif-')), 'scan.sarif');
+  const r = cli(['demo-payments', '--sarif', out], { cwd: repoRoot });
+  assert.equal(r.status, 0, r.stderr);
+  const sarif = JSON.parse(readFileSync(out, 'utf8'));
+  assert.ok(sarif.runs[0].results.every((x) => x.locations[0].physicalLocation.artifactLocation.uri.startsWith('demo-payments/src/')));
+});
+
+test('--fail-on fails on the demo at p1, passes with none, and rejects a bad level', () => {
+  const p1 = cli([demo, '--fail-on', 'p1']);
+  assert.equal(p1.status, 1);
+  assert.match(p1.stderr, /gate failed: 3 findings at P1 or above/);
+  assert.match(p1.stderr, /src\/envelope\.js:15/);
+  assert.doesNotMatch(p1.stderr, /receipts/, 'P2 findings do not fail a p1 gate');
+  assert.equal(cli([demo, '--fail-on', 'none']).status, 0);
+  assert.equal(cli([demo]).status, 0, 'no gate by default');
+  assert.equal(cli([demo, '--fail-on', 'any']).status, 1);
+  const bad = cli([demo, '--fail-on', 'p0']);
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /--fail-on must be one of/);
+});
+
+test('with a baseline, --fail-on counts only new findings', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gate-'));
+  const all = join(dir, 'all.json');
+  writeFileSync(all, JSON.stringify({ findings: findings(scan(demo)).map(({ id, ref }) => ({ id, ref })) }));
+  const known = cli([demo, '--baseline', all, '--fail-on', 'p1', '--json']);
+  assert.equal(known.status, 0, known.stderr);
+  assert.match(known.stderr, /gate passed/);
+  JSON.parse(known.stdout);
+
+  // A baseline from before the TLS finding was added: only that one is new.
+  const older = join(dir, 'older.json');
+  const before = findings(scan(demo)).filter((f) => f.file !== 'src/tls.js');
+  writeFileSync(older, JSON.stringify({ findings: before.map(({ id, ref }) => ({ id, ref })) }));
+  const one = cli([demo, '--baseline', older, '--fail-on', 'p1']);
+  assert.equal(one.status, 1);
+  assert.match(one.stderr, /1 new finding \(not in the baseline\)/);
+  assert.match(one.stderr, /src\/tls\.js/);
+  assert.doesNotMatch(one.stderr, /envelope/);
+
+  assert.deepEqual(gate(findings(scan(demo)), 'p2', { baseline: before }).map((f) => f.file), ['src/tls.js']);
 });

@@ -3,11 +3,16 @@
 // CycloneDX 1.6 CBOM (cryptography bill of materials) plus a findings table.
 //
 //   node tools/cbom-scan.mjs <repo-dir> [--out cbom.json] [--json] [--baseline findings.json]
+//                                       [--sarif findings.sarif] [--fail-on p1|p2|p3|any|none]
+//
+// --sarif writes SARIF 2.1.0 for GitHub code scanning. --fail-on makes the
+// scan a CI gate: exit 1 if a finding at or above that priority is new
+// (not in the baseline, or any finding at all when there is no baseline).
 //
 // Detection is a fixed rule table, not a model, so the same code always gives
 // the same inventory. @scout runs it and the agents work from its output.
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { basename, join, relative, resolve, sep } from 'node:path';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
@@ -421,6 +426,7 @@ export function findings(hits, { baseline = [] } = {}) {
       return {
         id: known.get(g.ref) ?? `F${next++}`,
         ref: g.ref,
+        key: first.key,
         file: g.file,
         line: first.line,
         lines: g.hits.map((h) => h.line),
@@ -491,6 +497,91 @@ export function table(found) {
   return ['| # | Priority | Where | Algorithm | Status |', '|---|---|---|---|---|', ...rows].join('\n');
 }
 
+// How each finding shows up in GitHub code scanning. Anything an attacker can
+// use today (classically broken) or record now and decrypt later (P1) is an
+// error. Signatures (P2, forged only once a quantum computer exists) and
+// runtime-chosen names we could not resolve are warnings. Policy gaps are notes.
+export function sarifLevel(algo) {
+  if (algo.status === 'broken') return 'error';
+  if (algo.status === 'vulnerable') return algo.priority === 'P1' ? 'error' : 'warning';
+  if (algo.status === 'review') return 'warning';
+  return 'note';
+}
+
+// GitHub sorts and filters security alerts by this number (0 to 10).
+const SECURITY_SEVERITY = { P1: '9.0', P2: '7.0', P3: '4.0' };
+
+const STATUS_TAG = { vulnerable: 'quantum-vulnerable', broken: 'classically-broken', policy: 'policy', review: 'needs-review' };
+
+// SARIF 2.1.0: one rule per algorithm, one result per finding. `root` is the
+// scanned folder relative to the repository root, so GitHub puts each result
+// on the right file. The fingerprint is the finding's `ref`, the same key
+// --baseline matches on, so an alert keeps its identity across commits.
+export function toSarif(found, { root = '' } = {}) {
+  const dir = String(root).split(sep).join('/').replace(/^\.(\/|$)/, '').replace(/\/+$/, '');
+  const prefix = dir ? `${dir}/` : '';
+  const rules = Object.entries(ALGORITHMS)
+    .filter(([, algo]) => algo.status !== 'ok')
+    .map(([key, algo]) => ({
+      id: `pqc/${key}`,
+      name: algo.name.replace(/[^A-Za-z0-9]+/g, ''),
+      shortDescription: { text: `${algo.name} (${algo.status})` },
+      fullDescription: { text: algo.why },
+      help: { text: `${algo.why}\n\nFix: ${algo.fix}`, markdown: `${algo.why}\n\n**Fix:** ${algo.fix}` },
+      defaultConfiguration: { level: sarifLevel(algo) },
+      properties: {
+        tags: ['security', 'cryptography', STATUS_TAG[algo.status], algo.primitive],
+        precision: 'high',
+        'security-severity': SECURITY_SEVERITY[algo.priority],
+      },
+    }));
+  const ruleIndex = new Map(rules.map((r, i) => [r.id, i]));
+  const location = (f, line) => ({
+    physicalLocation: {
+      artifactLocation: { uri: prefix + f.file, uriBaseId: '%SRCROOT%' },
+      region: { startLine: line },
+    },
+  });
+  const results = found
+    .filter((f) => f.status !== 'ok')
+    .map((f) => {
+      const ruleId = `pqc/${f.key}`;
+      const result = {
+        ruleId,
+        ruleIndex: ruleIndex.get(ruleId),
+        level: sarifLevel(ALGORITHMS[f.key]),
+        message: { text: `${f.id} ${f.priority}: ${f.algorithm} is ${f.status}. ${f.why} Fix: ${f.fix}` },
+        locations: [location(f, f.line)],
+        partialFingerprints: { 'cryptoDeskFinding/v1': f.ref },
+        properties: { findingId: f.id, priority: f.priority, status: f.status },
+      };
+      // Other lines in the same file that use the same algorithm.
+      const more = f.lines.filter((line) => line !== f.line);
+      if (more.length) {
+        result.relatedLocations = more.map((line, i) => ({ id: i + 1, ...location(f, line), message: { text: `Also uses ${f.algorithm}` } }));
+      }
+      return result;
+    });
+  return {
+    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+    version: '2.1.0',
+    runs: [{
+      tool: { driver: { name: 'crypto-desk cbom-scan', version: '0.1.0', informationUri: 'https://github.com/sandbox-quantum/switch', rules } },
+      results,
+    }],
+  };
+}
+
+const FAIL_ON = { p1: 1, p2: 2, p3: 3, any: Infinity, none: 0 };
+
+// The findings that fail a --fail-on gate: at or above `level` and not in the
+// baseline. Matching is by `ref`, the same way findings() keeps ids stable.
+export function gate(found, level, { baseline = [] } = {}) {
+  if (!Object.hasOwn(FAIL_ON, level)) throw new Error(`--fail-on must be one of ${Object.keys(FAIL_ON).join(', ')}`);
+  const known = new Set(baseline.map((b) => b.ref));
+  return found.filter((f) => !known.has(f.ref) && (PRIORITY_ORDER[f.priority] ?? Infinity) <= FAIL_ON[level]);
+}
+
 function fail(message) {
   console.error(`cbom-scan: ${message}`);
   process.exit(1);
@@ -504,7 +595,10 @@ function main(argv) {
   };
   const out = flag('--out');
   const baselineFile = flag('--baseline');
-  const values = new Set([out, baselineFile].filter(Boolean));
+  const sarifFile = flag('--sarif');
+  const failOn = String(flag('--fail-on') ?? 'none').toLowerCase();
+  if (!Object.hasOwn(FAIL_ON, failOn)) fail(`--fail-on must be one of ${Object.keys(FAIL_ON).join(', ')}.`);
+  const values = new Set([out, baselineFile, sarifFile, flag('--fail-on')].filter(Boolean));
   const repo = args.find((a) => !a.startsWith('--') && !values.has(a)) ?? '.';
   if (!existsSync(repo) || !statSync(repo).isDirectory()) fail(`${repo} is not a folder.`);
 
@@ -536,6 +630,12 @@ function main(argv) {
   }
   const cbom = toCbom(hits, { name });
   if (out) writeFileSync(out, JSON.stringify(cbom, null, 2) + '\n');
+  if (sarifFile) {
+    // SARIF paths are relative to where the scan runs, which is the repo root in CI.
+    const root = relative(process.cwd(), resolve(repo));
+    const inside = !root.startsWith('..') && !isAbsolute(root);
+    writeFileSync(sarifFile, JSON.stringify(toSarif(found, { root: inside ? root : '' }), null, 2) + '\n');
+  }
   if (args.includes('--json')) {
     console.log(JSON.stringify({ findings: found }, null, 2));
   } else {
@@ -543,6 +643,21 @@ function main(argv) {
     console.log(`Scanned ${repo}: ${assets} crypto assets, ${found.length} findings.\n`);
     console.log(table(found));
     if (out) console.log(`\nCBOM written to ${out}`);
+    if (sarifFile) console.log(`SARIF written to ${sarifFile}`);
+  }
+
+  // The gate. Its messages go to stderr so --json output stays parseable.
+  if (failOn !== 'none') {
+    const failed = gate(found, failOn, { baseline });
+    const scope = failOn === 'any' ? 'any priority' : `${failOn.toUpperCase()} or above`;
+    const kind = (n) => `${baseline.length ? 'new ' : ''}finding${n === 1 ? '' : 's'}${baseline.length ? ' (not in the baseline)' : ''}`;
+    if (failed.length) {
+      console.error(`\ncbom-scan: gate failed: ${failed.length} ${kind(failed.length)} at ${scope}:`);
+      for (const f of failed) console.error(`  ${f.id} ${f.priority} ${f.file}:${f.line} ${f.algorithm} (${f.status})`);
+      process.exitCode = 1;
+    } else {
+      console.error(`\ncbom-scan: gate passed: no ${kind(0)} at ${scope}.`);
+    }
   }
 }
 

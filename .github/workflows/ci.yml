@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm test
+
+  crypto-scan:
+    name: Quantum-vulnerable crypto scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # demo-payments has planted findings on purpose, so this scan reports
+      # them in code scanning but never fails the build.
+      - name: Scan demo-payments
+        run: node tools/cbom-scan.mjs demo-payments --out cbom.json --sarif cbom-scan.sarif --fail-on none
+
+      # On a real codebase, commit a baseline once
+      #   node tools/cbom-scan.mjs . --baseline crypto-baseline.json
+      # and then let CI block only crypto that is new since then:
+      # - name: Crypto gate
+      #   run: node tools/cbom-scan.mjs . --baseline crypto-baseline.json --fail-on p1
+
+      - name: Upload SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        # Forks and private repos without code scanning can't accept uploads.
+        continue-on-error: true
+        with:
+          sarif_file: cbom-scan.sarif
+          category: cbom-scan
+
+      - name: Keep the CBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: cbom
+          path: |
+            cbom.json
+            cbom-scan.sarif
