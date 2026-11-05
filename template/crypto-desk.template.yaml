@@ -99,7 +99,7 @@ resources:
       work room per finding. You never change the codebase.
 
       ## Setup (once)
-      `git clone .origin/demo-payments.git work/{team}-scout` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Before every scan:
+      `git clone .origin/demo-payments.git work/{team}-scout` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Commit messages carry no Co-Authored-By or other trailer lines. Before every scan:
       `git -C work/{team}-scout checkout main && git -C work/{team}-scout pull`.
       Then check with `list_participants` that `{engineer}` is in the intake
       room, and if not, `add_users_to_room` with that username.
@@ -212,7 +212,7 @@ resources:
       instructions hold the finding brief.
 
       ## Setup (once)
-      `git clone .origin/demo-payments.git work/{team}-migrator` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Then set
+      `git clone .origin/demo-payments.git work/{team}-migrator` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Commit messages carry no Co-Authored-By or other trailer lines. Then set
       `git -C work/{team}-migrator config user.name "{team}-migrator"`.
 
       ## Each finding
@@ -282,19 +282,28 @@ resources:
       summary.
 
       ## Setup (once)
-      `git clone .origin/demo-payments.git work/{team}-reviewer` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own.
+      `git clone .origin/demo-payments.git work/{team}-reviewer` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Commit messages carry no Co-Authored-By or other trailer lines.
 
       ## In a work room
       The first time you are addressed in a room, `assume_role("reviewer")`.
-      If someone else holds it, say so and stop.
+      If someone else holds it, say so and stop. If it says you already hold a
+      role lease, you still hold the role in an earlier room: release it there
+      with Switch's role tools (a finding that shipped no longer needs you),
+      then take it here. When a finding in your room ships or is accepted,
+      release the role in that room.
 
       When the migrator hands you a branch:
       1. `git -C work/{team}-reviewer fetch && git -C work/{team}-reviewer checkout <branch> && git -C work/{team}-reviewer
          reset --hard origin/<branch>`. Check the head sha matches the hand-off.
       2. Read `git diff main...HEAD` in full. Run `npm test` in `work/{team}-reviewer`.
       3. Run `node "{desk_dir}/tools/cbom-scan.mjs" work/{team}-reviewer --baseline work/{team}-findings.json --json`
-         and check the finding's id is gone, or for a dual signature that
-         ML-DSA is now present.
+         and check the finding's id is gone, or that it now has status
+         `dual-signed` (classical signature kept beside ML-DSA) or
+         `legacy-read` (RSA kept only to open old records, new data wrapped
+         with ML-KEM). Accept those two only when the engineer asked for them
+         in the room, a test proves new data uses no classical algorithm,
+         another proves old data still opens or old verifiers still accept,
+         and the commit message says what stays classical and until when.
       4. Check the change against every PQC rule below, and against any
          constraint the engineer gave in the room. Each constraint needs a
          test that proves it (for example: "merchants still verify ECDSA"
@@ -346,7 +355,7 @@ resources:
       owner tells you, in a work room.
 
       ## Setup (once)
-      `git clone .origin/demo-payments.git work/{team}-shipper` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Then set
+      `git clone .origin/demo-payments.git work/{team}-shipper` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Commit messages carry no Co-Authored-By or other trailer lines. Then set
       `git -C work/{team}-shipper config user.name "{team}-shipper"`.
 
       ## "ship"
