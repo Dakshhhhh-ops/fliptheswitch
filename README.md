@@ -1,18 +1,70 @@
 # Crypto Migration Desk
 
-**Your encryption has an expiry date.**
+[![CI](https://github.com/Dakshhhhh-ops/fliptheswitch/actions/workflows/ci.yml/badge.svg)](https://github.com/Dakshhhhh-ops/fliptheswitch/actions/workflows/ci.yml)
 
-Anything encrypted with RSA or elliptic-curve keys today can be recorded now
-and decrypted once a large quantum computer exists ("harvest now, decrypt
-later"). Moving a real codebase to post-quantum crypto is not one big
-find-and-replace. Each fix needs the engineer who knows the code, an
-independent review, and a security lead who decides what ships.
+**Your encryption has an expiry date. Some of it is already past it.**
 
-Crypto Migration Desk runs that work in team chat with
-[Switch](https://github.com/sandbox-quantum/switch). Agents find every
-quantum-vulnerable or weak use of crypto, open a private room for each
-finding with the engineer who owns the code, fix it together, and wait for
-the security lead to ship it.
+[Judge it in 90 seconds](#judge-it-in-90-seconds) · [Scan your own code](#scan-your-own-code-in-10-seconds) · [What it found in ssh2 and jose](docs/REAL-SCANS.md) · [What is enforced, and how it's proved](#what-is-enforced-and-how-its-proved) · [Run it in Switch](#run-it-yourself)
+
+Today, [ssh2](https://github.com/mscdex/ssh2), one of npm's most used SSH
+libraries, offers only classical key exchange: 31 findings in 10 files. Data
+sent over it can be recorded now and decrypted once a large quantum computer
+exists ("harvest now, decrypt later"). For data that must stay secret for
+years, that is a problem today, not in 2035. That's Mosca's rule, and this
+desk ranks every finding by it.
+
+Crypto Migration Desk runs the migration in team chat with
+[Switch](https://github.com/sandbox-quantum/switch). A scout agent finds
+every quantum-vulnerable or weak use of crypto and opens a private room for
+each finding being worked, with the engineer who owns the code. A migrator
+writes the fix, a reviewer on a different model approves the exact commit,
+and only the security lead can make the shipper merge it. Switch refuses
+anyone else, and git refuses anything unreviewed.
+
+## Judge it in 90 seconds
+
+> 1. **Nothing to install:** `npm run judge` (Node 24.7+). 14 checks in about
+>    12 seconds, against the real git gate, scanner and tests: a real
+>    post-quantum fix for F5, every shortcut refused (straight to main,
+>    unapproved, changed after approval, shipped twice, a "risk" that edits
+>    code), the approved ship accepted, the board at Shipped 1/6, and an
+>    ML-DSA-signed certificate that fails once one sha in it is changed.
+> 2. **On your code:** `node tools/cbom-scan.mjs <your-repo>`, below.
+> 3. **The agents in Switch:** [run it yourself](#run-it-yourself). The one
+>    thing the judge run can't show is Switch refusing the engineer's
+>    "ship it", because that needs Switch.
+
+## Scan your own code in 10 seconds
+
+No Switch, no install, no dependencies:
+
+```sh
+git clone https://github.com/Dakshhhhh-ops/fliptheswitch && cd fliptheswitch
+node tools/cbom-scan.mjs ../your-repo --out cbom.json
+```
+
+On the demo service it prints:
+
+| # | Priority | Where | Algorithm | Mosca |
+|---|---|---|---|---|
+| F1 | P1 | `src/envelope.js:15` | RSA-OAEP (2048) | Already late: kept for the life of the customer account (from `infra/DEPLOY.md`) |
+| F2 | P1 | `src/session.js:7` | ECDH (P-256) | Already late by 1 year (7 + 3 vs 9 years, from `infra/DEPLOY.md`) |
+| F3 | P1 | `src/tls.js:6` | TLS classical key exchange | Lifetime unknown: ask the engineer |
+| F4 | P2 | `src/receipts.js:17` | SHA-1 | Late now: broken today, no quantum computer needed |
+| F5 | P2 | `src/webhooks.js:7` | ECDSA (P-256) | On time: 6 years to spare |
+| F6 | P3 | `src/vault.js:14` | AES-128-GCM | Not on Mosca's clock: Grover only halves its strength |
+
+**Mosca's rule:** if (how long the data must stay secret) + (how long the
+migration takes) > (years until a quantum computer), you are already late.
+The lifetime comes from the code itself: a comment in the file, or a doc line
+that names the file ("kept for 7 years"). When nothing says, the verdict is
+"ask the engineer", never a guess. Migration time (3 years) and Q-Day (2035,
+NIST's planned disallow date, which is a planning date, not a prediction) are
+stated assumptions, and `--migration-years` and `--qday-year` change them.
+
+The scanner also writes a CycloneDX 1.6 CBOM (`--out`), SARIF for GitHub
+code scanning (`--sarif`), and works as a CI gate (`--fail-on p1`,
+[below](#keep-it-from-coming-back)).
 
 ## What happens
 
@@ -136,27 +188,31 @@ Take Switch away and this stops working. These parts are Switch's:
 | Rooms shared by people and agents | Engineer, security lead and agents negotiate in the same thread |
 | Different providers in one room | Claude Code writes, Codex reviews, so the review comes from a different model |
 
-## What is enforced, and by what
+## What is enforced, and how it's proved
 
 Some rules are enforced by Switch, some by git, and some only by the
-agents' instructions. This table lists every one of them:
+agents' instructions. This table lists every one of them, and what proves it:
 
-| Rule | Enforced by | How |
-|---|---|---|
-| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Anyone else gets Switch's refusal, and the agent never sees the message |
-| One reviewer of record per finding | **Switch** | The `reviewer` role in each work room is exclusive |
-| Only the scout can change the inventory | **Switch** | A room document can only be edited by the agent that created it |
-| Main only takes reviewed fixes | **git** | The origin's `pre-receive` hook ([`scripts/pre-receive.mjs`](scripts/pre-receive.mjs)) refuses any push to main that isn't a `Ship F<n>:` merge or an `Accept risk F<n>:` commit |
-| A ship contains exactly the approved commit | **git** | The merged commit needs a `refs/approved/<sha>` mark, which the reviewer pushes for the exact sha it checked. Any later push to the branch needs a new one. A merge that adds anything beyond the clean merge is refused |
-| An approval can't be moved or reused | **git** | `refs/approved/<sha>` must point at that sha, and can't be updated or deleted |
-| No force pushes, no shipping twice | **git** | Main only moves forward, and an id that already shipped is refused |
-| An accepted risk changes no code | **git** | An `Accept risk` commit may only touch `ACCEPTED-RISKS.md` |
-| The migrator doesn't merge and the scout doesn't edit code | instructions, backed by git | The instructions say so, and the hook refuses the push anyway |
-| The reviewer reads the code, not the summary | instructions | It runs on a different provider. All four agents share one machine and folder |
-| Who pushed | **nobody** | The origin is a folder with no accounts, so git can't tell agents apart. Anyone who can write to the folder can push an approval mark. On a hosted repository, branch protection and per-agent credentials would close this. Here, Switch's addressing decides who may order a ship, and the hook decides what a ship may contain |
+| Rule | Enforced by | How | Proved by |
+|---|---|---|---|
+| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Anyone else gets Switch's refusal, and the agent never sees the message | the live run (video) |
+| One reviewer of record per finding | **Switch** | The `reviewer` role in each work room is exclusive | the live run |
+| Only the scout can change the inventory | **Switch** | A room document can only be edited by the agent that created it | the live run |
+| Main only takes reviewed fixes | **git** | The origin's `pre-receive` hook ([`scripts/pre-receive.mjs`](scripts/pre-receive.mjs)) refuses any push to main that isn't a `Ship F<n>:` merge or an `Accept risk F<n>:` commit | `npm run judge` step 3; gate test "direct commits to main and force pushes are refused" |
+| A ship contains exactly the approved commit | **git** | The merged commit needs a `refs/approved/<sha>` mark, which the reviewer pushes for the exact sha it checked. Any later push to the branch needs a new one. A merge that adds anything beyond the clean merge is refused | judge steps 3–4; gate tests "a fix without an approval does not ship", "an approval covers only that commit", "a ship merge that adds unreviewed changes is refused" |
+| An approval can't be moved or reused | **git** | `refs/approved/<sha>` must point at that sha, and can't be updated or deleted | gate test "an approval cannot be moved, or point at a different commit" |
+| No force pushes, no shipping twice | **git** | Main only moves forward, and an id that already shipped is refused | judge step 5; gate tests "a finding cannot ship twice", "direct commits to main and force pushes are refused" |
+| An accepted risk changes no code | **git** | An `Accept risk` commit may only touch `ACCEPTED-RISKS.md` | judge step 6; gate test "an accepted risk may change only ACCEPTED-RISKS.md" |
+| The migrator doesn't merge and the scout doesn't edit code | instructions, backed by git | The instructions say so, and the hook refuses the push anyway | the gate tests above |
+| The reviewer reads the code, not the summary | instructions | It runs on a different provider. All four agents share one machine and folder | nothing automatic: read its review in the room |
+| Who pushed | **nobody** | The origin is a folder with no accounts, so git can't tell agents apart. Anyone who can write to the folder can push an approval mark. On a hosted repository, branch protection and per-agent credentials would close this. Here, Switch's addressing decides who may order a ship, and the hook decides what a ship may contain | nothing: a stated limit |
 
-`test/gate.test.mjs` pushes to a real bare repository with the hook
-installed and checks each git rule above.
+`test/gate.test.mjs` and `npm run judge` push to a real bare repository with
+the hook installed. Every ship also gets a migration certificate
+([`tools/certificate.mjs`](tools/certificate.mjs)): the crypto in the file
+before and after, the approved sha and its mark, the merge, and the tests at
+it. It is read from git and signed with ML-DSA-65, the signature the desk
+itself recommends, and `certificate.mjs verify` checks it.
 
 ## The demo codebase
 
@@ -194,12 +250,15 @@ for these has a test, and [REAL-SCANS.md](docs/REAL-SCANS.md) lists them.
 ## Run it yourself
 
 You need [Switch Console](https://github.com/sandbox-quantum/switch/releases/latest),
-Node 24.7+, git, and Claude Code and Codex signed in. The Switch server runs
+Node 24.7+, git, and Claude Code signed in. Codex is optional: **no Codex? Set
+both providers in the form to `claude`.** The reviewer is then still its own
+agent with its own checkout and rules, just not a different model. The Switch server runs
 without Docker (Switch Console brings its own PostgreSQL). **Docker is needed
 for the bundled Mattermost**, which is the chat app this demo uses.
 
 ```sh
-npm test               # scanner, board, git gate and demo-payments tests
+npm run judge          # the whole desk without Switch: 14 checks
+npm test               # scanner, Mosca, board, gate, templates, judge and demo-payments tests
 npm run scan           # the six findings, and cbom.json
 npm run setup          # creates the local git origin with its gate, prints the folder
 npm run board          # board.html, the desk's status read from git
@@ -209,9 +268,15 @@ npm run board          # board.html, the desk's status read from git
 2. In Mattermost, create a second account for the engineer.
 3. Templates → Import `template/crypto-desk.template.yaml`. Fill in the
    folder `npm run setup` printed and the engineer's username.
-   Create.
+   Create. The scout opens rooms for F5, F1 and F3 (the form's "Findings to
+   work"), not all six, which keeps the run light.
 4. Watch `desk-intake`. Talk to the agents from the engineer's account in the
    work rooms, and approve from yours.
+
+If a run keeps failing while the scout opens rooms, import
+`template/crypto-desk-fixed-rooms.template.yaml` instead: the template
+creates the three rooms itself, and everything else is the same (it is
+generated from the main template by `scripts/make-fixed-rooms.mjs`).
 
 `npm run reset` puts the planted code back for another run. The agents push
 to a local git origin, so nothing leaves your machine.
@@ -220,13 +285,18 @@ to a local git origin, so nothing leaves your machine.
 
 ```
 template/crypto-desk.template.yaml   the Switch template: four agents, intake room, kickoff
-tools/cbom-scan.mjs                  rule-based crypto scanner and CycloneDX 1.6 CBOM writer
+template/crypto-desk-fixed-rooms...  the backup: the same desk, with the three rooms declared
+tools/cbom-scan.mjs                  rule-based crypto scanner: CBOM, SARIF, CI gate
+tools/mosca.mjs                      Mosca's rule per finding, with the lifetime read from the code
+tools/certificate.mjs                ML-DSA-65-signed migration certificate for each ship
 tools/board.mjs                      the desk's status, read from git
 web/                                 the desk app: React UI, the Node API behind it, and the static export
-test/                                tests for the scanner, the board and the git gate
+test/                                scanner, Mosca, board, gate, templates and the judge run
 demo-payments/                       the codebase being migrated, with its own tests
+scripts/judge.mjs                    npm run judge: the desk end to end without Switch
 scripts/setup-origin.mjs             local git origin the agents clone and push to
 scripts/pre-receive.mjs              the origin's gate: what main may take
+scripts/make-fixed-rooms.mjs         generates the backup template from the main one
 docs/DEMO.md                         run-sheet for the demo video
 docs/REAL-SCANS.md                   the scanner on ssh2 and jose, reproducible
 .github/workflows/ci.yml             tests, plus the demo's findings uploaded to code scanning
