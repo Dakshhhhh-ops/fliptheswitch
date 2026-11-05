@@ -1,0 +1,11 @@
+* d248e99 desk2-shipper 2026-11-06 01:55:14 +0530 Accept risk F3: production TLS terminates at acquirer's edge gateway
+*   33c152b desk2-shipper 2026-11-06 01:54:51 +0530 Ship F1: wrap card vault data keys with hybrid X25519 + ML-KEM-768 (approved by reviewer at f03d6e0f193abe92678c2b8ce0f46e22ce25d6d9, shipped by the security lead)
+|\  
+| * f03d6e0 desk2-migrator 2026-11-06 01:39:04 +0530 F1: test that a v2 card envelope has no RSA fields
+| * 76ebe32 desk2-migrator 2026-11-06 01:18:21 +0530 F1: wrap card vault data keys with hybrid X25519 + ML-KEM-768
+|/  
+*   7761387 desk2-shipper 2026-11-06 01:14:38 +0530 Ship F5: dual-sign merchant webhooks with ECDSA P-256 and ML-DSA-65 (approved by reviewer at 6666ccbc40f8d8b45855c1776d209dc2b977215d, shipped by the security lead)
+|\  
+| * 6666ccb desk2-migrator 2026-11-05 20:37:03 +0530 F5: dual-sign webhooks with ECDSA P-256 and ML-DSA-65
+|/  
+* 724a5e6 crypto-desk setup 2026-11-05 19:25:35 +0530 demo-payments before migration

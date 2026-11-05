@@ -32,12 +32,27 @@ anyone else, and git refuses anything unreviewed.
 > 2. **On your code:** `node tools/cbom-scan.mjs <your-repo>`, below.
 > 3. **The agents in Switch:** [run it yourself](#run-it-yourself).
 
-**Status:** the git side (the gate, the scanner, the tests, the
-certificates) is proved by `npm test` and `npm run judge`, but in the judge
-run the agents' moves are scripted. The agents driving it end to end in
-Switch, including Switch refusing the engineer's "ship it", hasn't been
-run to completion yet: the first run opened its rooms and then stopped when
-Switch Console lost its connection. Results go here once it has.
+## Live run results
+
+The desk was run end to end in Switch on 5–6 November 2026, with nothing
+scripted. The full write-up, screenshots, certificates and git history are in
+[docs/live-run/](docs/live-run/README.md).
+
+**Shipped 2/6 · Accepted risk 1 · Open 3**
+
+- **F5 shipped** (`7761387`): webhooks dual-signed with ECDSA P-256 and
+  ML-DSA-65, because Arjun said 40 merchants still verify ECDSA. Approved on
+  the first review.
+- **F1 shipped** (`33c152b`): card keys wrapped with hybrid X25519 +
+  ML-KEM-768. The reviewer **requested changes** first, the migrator added a
+  test, and the security lead ruled on the legacy read path Arjun asked for.
+- **F3 accepted** (`d248e99`): TLS terminates at the acquirer's gateway;
+  owner security lead, review by 2027-02-04.
+- **Switch refused Arjun** twice, on "ship F1" and on "accept risk"
+  ([screenshot](docs/live-run/refusal-ship.png)), and the shipper refused the
+  security lead's own order while no agent held the room's reviewer role.
+- Both certificates verify: `node tools/certificate.mjs verify docs/live-run/F1.cert.json`.
+- The demo's tests went from 8 to 24 on the agents' main.
 
 ## Scan your own code in 10 seconds
 
@@ -200,9 +215,9 @@ agents' instructions. This table lists every one of them, and what proves it:
 
 | Rule | Enforced by | How | Proved by |
 |---|---|---|---|
-| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Anyone else gets Switch's refusal, and the agent never sees the message | **Not shown yet.** Switch's addressing does this by design; this desk's live run has to show it |
-| One reviewer of record per finding | **Switch** | The `reviewer` role in each work room is exclusive | **Not shown yet** (live run) |
-| Only the scout can change the inventory | **Switch** | A room document can only be edited by the agent that created it | **Not shown yet** (live run) |
+| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Anyone else gets Switch's refusal, and the agent never sees the message | Live run: Arjun's "ship F1" and "accept risk" both refused ([1](docs/live-run/refusal-ship.png), [2](docs/live-run/refusal-accept-risk.png)) |
+| One reviewer of record per finding | **Switch** | The `reviewer` role in each work room is exclusive | Live run: the shipper refused F1 while nobody held the room's reviewer role ([screenshot](docs/live-run/one-reviewer-of-record.png)) |
+| Only the scout can change the inventory | **Switch** | A room document can only be edited by the agent that created it | **Not shown yet:** no agent tried to edit the inventory in the live run |
 | Main only takes reviewed fixes | **git** | The origin's `pre-receive` hook ([`scripts/pre-receive.mjs`](scripts/pre-receive.mjs)) refuses any push to main that isn't a `Ship F<n>:` merge or an `Accept risk F<n>:` commit | `npm run judge` step 3; gate test "direct commits to main and force pushes are refused" |
 | A ship contains exactly the approved commit | **git** | The merged commit needs a `refs/approved/<sha>` mark, which the reviewer pushes for the exact sha it checked. Any later push to the branch needs a new one. A merge that adds anything beyond the clean merge is refused | judge steps 3–4; gate tests "a fix without an approval does not ship", "an approval covers only that commit", "a ship merge that adds unreviewed changes is refused" |
 | An approval can't be moved or reused | **git** | `refs/approved/<sha>` must point at that sha, and can't be updated or deleted | gate test "an approval cannot be moved, or point at a different commit" |
@@ -303,6 +318,7 @@ scripts/setup-origin.mjs             local git origin the agents clone and push 
 scripts/pre-receive.mjs              the origin's gate: what main may take
 scripts/make-fixed-rooms.mjs         generates the backup template from the main one
 docs/DEMO.md                         run-sheet for the demo video
+docs/live-run/                       the live run in Switch: write-up, screenshots, certificates, git log
 docs/REAL-SCANS.md                   the scanner on ssh2 and jose, reproducible
 .github/workflows/ci.yml             tests, plus the demo's findings uploaded to code scanning
 ```
