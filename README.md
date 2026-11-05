@@ -30,9 +30,14 @@ anyone else, and git refuses anything unreviewed.
 >    code), the approved ship accepted, the board at Shipped 1/6, and an
 >    ML-DSA-signed certificate that fails once one sha in it is changed.
 > 2. **On your code:** `node tools/cbom-scan.mjs <your-repo>`, below.
-> 3. **The agents in Switch:** [run it yourself](#run-it-yourself). The one
->    thing the judge run can't show is Switch refusing the engineer's
->    "ship it", because that needs Switch.
+> 3. **The agents in Switch:** [run it yourself](#run-it-yourself).
+
+**Status:** the git side (the gate, the scanner, the tests, the
+certificates) is proved by `npm test` and `npm run judge`, but in the judge
+run the agents' moves are scripted. The agents driving it end to end in
+Switch, including Switch refusing the engineer's "ship it", hasn't been
+run to completion yet: the first run opened its rooms and then stopped when
+Switch Console lost its connection. Results go here once it has.
 
 ## Scan your own code in 10 seconds
 
@@ -195,9 +200,9 @@ agents' instructions. This table lists every one of them, and what proves it:
 
 | Rule | Enforced by | How | Proved by |
 |---|---|---|---|
-| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Anyone else gets Switch's refusal, and the agent never sees the message | the live run (video) |
-| One reviewer of record per finding | **Switch** | The `reviewer` role in each work room is exclusive | the live run |
-| Only the scout can change the inventory | **Switch** | A room document can only be edited by the agent that created it | the live run |
+| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Anyone else gets Switch's refusal, and the agent never sees the message | **Not shown yet.** Switch's addressing does this by design; this desk's live run has to show it |
+| One reviewer of record per finding | **Switch** | The `reviewer` role in each work room is exclusive | **Not shown yet** (live run) |
+| Only the scout can change the inventory | **Switch** | A room document can only be edited by the agent that created it | **Not shown yet** (live run) |
 | Main only takes reviewed fixes | **git** | The origin's `pre-receive` hook ([`scripts/pre-receive.mjs`](scripts/pre-receive.mjs)) refuses any push to main that isn't a `Ship F<n>:` merge or an `Accept risk F<n>:` commit | `npm run judge` step 3; gate test "direct commits to main and force pushes are refused" |
 | A ship contains exactly the approved commit | **git** | The merged commit needs a `refs/approved/<sha>` mark, which the reviewer pushes for the exact sha it checked. Any later push to the branch needs a new one. A merge that adds anything beyond the clean merge is refused | judge steps 3–4; gate tests "a fix without an approval does not ship", "an approval covers only that commit", "a ship merge that adds unreviewed changes is refused" |
 | An approval can't be moved or reused | **git** | `refs/approved/<sha>` must point at that sha, and can't be updated or deleted | gate test "an approval cannot be moved, or point at a different commit" |
