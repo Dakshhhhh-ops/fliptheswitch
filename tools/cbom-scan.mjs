@@ -4,10 +4,13 @@
 //
 //   node tools/cbom-scan.mjs <repo-dir> [--out cbom.json] [--json] [--baseline findings.json]
 //                                       [--sarif findings.sarif] [--fail-on p1|p2|p3|any|none]
+//                                       [--migration-years 3] [--qday-year 2035]
 //
 // --sarif writes SARIF 2.1.0 for GitHub code scanning. --fail-on makes the
 // scan a CI gate: exit 1 if a finding at or above that priority is new
 // (not in the baseline, or any finding at all when there is no baseline).
+// Each finding also gets a Mosca verdict (tools/mosca.mjs): is it already
+// late, given how long its data must stay secret?
 //
 // Detection is a fixed rule table, not a model, so the same code always gives
 // the same inventory. @scout runs it and the agents work from its output.
@@ -15,6 +18,7 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from '
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { moscaLine, withMosca } from './mosca.mjs';
 
 // What each algorithm is, and what we think of it.
 //   vulnerable: broken by a large quantum computer (Shor). Harvest-now risk for key exchange and encryption.
@@ -432,6 +436,7 @@ export function findings(hits, { baseline = [] } = {}) {
         lines: g.hits.map((h) => h.line),
         algorithm: g.algo.name + (detail ? ` (${detail})` : ''),
         status: g.algo.status,
+        primitive: g.algo.primitive,
         priority: g.algo.priority,
         why: g.algo.why,
         fix: g.algo.fix,
@@ -493,8 +498,10 @@ export function toCbom(hits, { name = 'scanned-repo' } = {}) {
 
 export function table(found) {
   if (found.length === 0) return 'No quantum-vulnerable or weak crypto found.';
-  const rows = found.map((f) => `| ${f.id} | ${f.priority} | \`${f.file}:${f.line}\` | ${f.algorithm} | ${f.status} |`);
-  return ['| # | Priority | Where | Algorithm | Status |', '|---|---|---|---|---|', ...rows].join('\n');
+  const mosca = found.some((f) => f.mosca);
+  const rows = found.map((f) => `| ${f.id} | ${f.priority} | \`${f.file}:${f.line}\` | ${f.algorithm} | ${f.status} |${mosca ? ` ${f.mosca ? moscaLine(f.mosca) : ''} |` : ''}`);
+  const head = mosca ? ['| # | Priority | Where | Algorithm | Status | Mosca |', '|---|---|---|---|---|---|'] : ['| # | Priority | Where | Algorithm | Status |', '|---|---|---|---|---|'];
+  return [...head, ...rows].join('\n');
 }
 
 // How each finding shows up in GitHub code scanning. Anything an attacker can
@@ -598,7 +605,14 @@ function main(argv) {
   const sarifFile = flag('--sarif');
   const failOn = String(flag('--fail-on') ?? 'none').toLowerCase();
   if (!Object.hasOwn(FAIL_ON, failOn)) fail(`--fail-on must be one of ${Object.keys(FAIL_ON).join(', ')}.`);
-  const values = new Set([out, baselineFile, sarifFile, flag('--fail-on')].filter(Boolean));
+  const moscaOpts = {};
+  for (const [name, key] of [['--migration-years', 'migrationYears'], ['--qday-year', 'qdayYear']]) {
+    if (flag(name) == null) continue;
+    const n = Number(flag(name));
+    if (!Number.isFinite(n) || n < 0) fail(`${name} must be a number.`);
+    moscaOpts[key] = n;
+  }
+  const values = new Set([out, baselineFile, sarifFile, flag('--fail-on'), flag('--migration-years'), flag('--qday-year')].filter(Boolean));
   const repo = args.find((a) => !a.startsWith('--') && !values.has(a)) ?? '.';
   if (!existsSync(repo) || !statSync(repo).isDirectory()) fail(`${repo} is not a folder.`);
 
@@ -614,7 +628,7 @@ function main(argv) {
   }
 
   const hits = scan(repo);
-  const found = findings(hits, { baseline });
+  const found = withMosca(findings(hits, { baseline }), repo, moscaOpts);
   if (baselineFile && !existsSync(baselineFile)) {
     writeFileSync(baselineFile, JSON.stringify({ findings: found.map(({ id, ref }) => ({ id, ref })) }, null, 2) + '\n');
   }

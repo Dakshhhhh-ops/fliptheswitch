@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findings, scan, toCbom } from './cbom-scan.mjs';
+import { withMosca } from './mosca.mjs';
 
 const DESK = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -59,7 +60,7 @@ export function readDesk(origin) {
 
     git(['checkout', '-q', root], work);
     const baseHits = scan(work);
-    const base = findings(baseHits);
+    const base = withMosca(findings(baseHits), work);
     const cbomBase = toCbom(baseHits, { name: 'before' });
 
     const rows = base.map((f) => {
