@@ -29,16 +29,18 @@ node tools/certificate.mjs verify docs/live-run/F1.cert.json   # Signature valid
 
 | | Screenshot |
 |---|---|
-| Arjun: `@Shipper ship F1`. The shipper answers "I only take instructions from my owner". Arjun can't ship | [refusal-ship.png](refusal-ship.png) (thread on the right) |
+| Arjun: `@Shipper ship F1`. Switch answers at once ("I only take instructions from my owner, and this chat account isn't linked to a Switch user yet"), with no "Starting a session" first, so no agent ran. The reason is the unlinked account; a linked non-owner being refused is not shown | [refusal-ship.png](refusal-ship.png) (thread on the right) |
 | Arjun: `@Shipper accept risk: …` in the F3 room. Same refusal: only the security lead can accept a risk | [refusal-accept-risk.png](refusal-accept-risk.png) |
-| The security lead's `ship F1`, while no agent held the room's `reviewer` role. The shipper refused: the approval didn't come from the reviewer of record | [one-reviewer-of-record.png](one-reviewer-of-record.png) |
+| The security lead's `ship F1`, while no agent held the room's `reviewer` role. The shipper refused, following its instructions: the approval didn't come from the reviewer of record. Switch makes the role exclusive; the shipper does the checking | [one-reviewer-of-record.png](one-reviewer-of-record.png) |
 | Reviewer: CHANGES REQUESTED on F1, no approval mark pushed | [review-changes-requested.png](review-changes-requested.png) |
 | The security lead's accept-risk, which the shipper carried out | [user-accepts-risk.png](user-accepts-risk.png) |
 
 ## The scan after the run
 
 [scan-after.md](scan-after.md) is `cbom-scan` on main after the run, with the
-run's findings as the baseline so the ids match. F1's RSA is now
+run's findings as the baseline so the ids match. Without `--baseline` the ids
+are renumbered by priority, so rescan with
+`node tools/cbom-scan.mjs <checkout> --baseline work/<team>-findings.json`. F1's RSA is now
 `legacy-read` and F5's ECDSA `dual-signed`, both P3 and still listed, because
 old envelopes stay RSA-wrapped until they're re-wrapped, and ECDSA stays
 until every merchant checks ML-DSA. F3 is still `vulnerable`: an accepted

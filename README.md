@@ -4,7 +4,7 @@
 
 **Your encryption has an expiry date. Some of it is already past it.**
 
-[Judge it in 90 seconds](#judge-it-in-90-seconds) · [Scan your own code](#scan-your-own-code-in-10-seconds) · [What it found in ssh2 and jose](docs/REAL-SCANS.md) · [What is enforced, and how it's proved](#what-is-enforced-and-how-its-proved) · [Run it in Switch](#run-it-yourself)
+**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/)** (a snapshot of the live run) · [Judge it in 90 seconds](#judge-it-in-90-seconds) · [Scan your own code](#scan-your-own-code-in-10-seconds) · [What it found in ssh2 and jose](docs/REAL-SCANS.md) · [What is enforced, and how it's proved](#what-is-enforced-and-how-its-proved) · [Run it in Switch](#run-it-yourself)
 
 Today, [ssh2](https://github.com/mscdex/ssh2), one of npm's most used SSH
 libraries, offers only classical key exchange: 31 findings in 10 files. Data
@@ -48,9 +48,13 @@ scripted. The full write-up, screenshots, certificates and git history are in
   test, and the security lead ruled on the legacy read path Arjun asked for.
 - **F3 accepted** (`d248e99`): TLS terminates at the acquirer's gateway;
   owner security lead, review by 2027-02-04.
-- **Switch refused Arjun** twice, on "ship F1" and on "accept risk"
-  ([screenshot](docs/live-run/refusal-ship.png)), and the shipper refused the
-  security lead's own order while no agent held the room's reviewer role.
+- **Switch refused Arjun** on "ship F1" and on "accept risk"
+  ([screenshot](docs/live-run/refusal-ship.png)) before any agent session
+  started. The reason it gave is that his chat account isn't linked to a
+  Switch user. A linked engineer being refused for not being the owner is
+  not shown yet. The shipper also refused the security lead's own order while
+  no agent held the room's reviewer role (that check is in its
+  instructions).
 - Both certificates verify: `node tools/certificate.mjs verify docs/live-run/F1.cert.json`.
 - The demo's tests went from 8 to 24 on the agents' main.
 
@@ -215,8 +219,8 @@ agents' instructions. This table lists every one of them, and what proves it:
 
 | Rule | Enforced by | How | Proved by |
 |---|---|---|---|
-| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Anyone else gets Switch's refusal, and the agent never sees the message | Live run: Arjun's "ship F1" and "accept risk" both refused ([1](docs/live-run/refusal-ship.png), [2](docs/live-run/refusal-accept-risk.png)) |
-| One reviewer of record per finding | **Switch** | The `reviewer` role in each work room is exclusive | Live run: the shipper refused F1 while nobody held the room's reviewer role ([screenshot](docs/live-run/one-reviewer-of-record.png)) |
+| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Switch answers anyone else itself, before an agent session starts | **Partly shown.** Live run: Switch refused Arjun's "ship F1" and "accept risk" with no agent session ([1](docs/live-run/refusal-ship.png), [2](docs/live-run/refusal-accept-risk.png)), but because his chat account isn't linked to a Switch user. A linked non-owner being refused is not shown yet |
+| One reviewer of record per finding | **Switch**, checked by the shipper's instructions | Switch keeps the `reviewer` role in each work room exclusive. The shipper only ships a verdict from the agent holding it | The shipper's check: live run, it refused F1 while nobody held the role ([screenshot](docs/live-run/one-reviewer-of-record.png)). Switch blocking a second agent from taking the role: not shown yet |
 | Only the scout can change the inventory | **Switch** | A room document can only be edited by the agent that created it | **Not shown yet:** no agent tried to edit the inventory in the live run |
 | Main only takes reviewed fixes | **git** | The origin's `pre-receive` hook ([`scripts/pre-receive.mjs`](scripts/pre-receive.mjs)) refuses any push to main that isn't a `Ship F<n>:` merge or an `Accept risk F<n>:` commit | `npm run judge` step 3; gate test "direct commits to main and force pushes are refused" |
 | A ship contains exactly the approved commit | **git** | The merged commit needs a `refs/approved/<sha>` mark, which the reviewer pushes for the exact sha it checked. Any later push to the branch needs a new one. A merge that adds anything beyond the clean merge is refused | judge steps 3–4; gate tests "a fix without an approval does not ship", "an approval covers only that commit", "a ship merge that adds unreviewed changes is refused" |
