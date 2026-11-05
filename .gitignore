@@ -6,3 +6,4 @@ work/
 board.html
 web/dist/
 web/dist-static/
+.git-review-config

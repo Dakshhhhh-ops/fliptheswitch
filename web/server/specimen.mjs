@@ -1,3 +1,4 @@
+// cbom-scan: ignore-file (seals a test card with RSA on purpose, for the demo)
 // A real specimen for the "harvest now, decrypt later" scene: one test card
 // number sealed twice, right now, with node:crypto.
 //

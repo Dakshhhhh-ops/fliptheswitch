@@ -332,3 +332,53 @@ test('with a baseline, --fail-on counts only new findings', () => {
 
   assert.deepEqual(gate(findings(scan(demo)), 'p2', { baseline: before }).map((f) => f.file), ['src/tls.js']);
 });
+
+test('RSA kept only to read old records, beside ML-KEM, is a P3 legacy read path', () => {
+  const dir = repoWith({
+    'envelope.js': `import { generateKeyPairSync, privateDecrypt, encapsulate } from 'node:crypto';
+export const newKeys = () => generateKeyPairSync('ml-kem-768');
+export const legacyKeys = () => generateKeyPairSync('rsa', { modulusLength: 2048 });
+export const openOld = (k, b) => privateDecrypt(k, b);
+`,
+  });
+  const [f] = findings(scan(dir));
+  assert.equal(f.status, 'legacy-read');
+  assert.equal(f.priority, 'P3');
+  assert.match(f.why, /re-wrapped/);
+});
+
+test('RSA that still encrypts new data stays vulnerable, even beside ML-KEM', () => {
+  const dir = repoWith({
+    'envelope.js': `import { generateKeyPairSync, publicEncrypt } from 'node:crypto';
+export const newKeys = () => generateKeyPairSync('ml-kem-768');
+export const seal = (k, b) => publicEncrypt(k, b);
+`,
+  });
+  const [f] = findings(scan(dir));
+  assert.equal(f.status, 'vulnerable');
+  assert.equal(f.priority, 'P1');
+});
+
+test('ECDSA signed beside ML-DSA is dual-signed, ECDSA alone is not', () => {
+  const both = repoWith({
+    'webhooks.js': `import { generateKeyPairSync, sign } from 'node:crypto';
+const ec = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+const pq = generateKeyPairSync('ml-dsa-65');
+export const sigs = (b) => [sign('sha256', b, ec.privateKey), sign(null, b, pq.privateKey)];
+`,
+  });
+  assert.deepEqual(findings(scan(both)).map((f) => [f.status, f.priority]), [['dual-signed', 'P3']]);
+  const alone = findings(scan(demo)).find((f) => f.file === 'src/webhooks.js');
+  assert.equal(alone.status, 'vulnerable');
+});
+
+test('skips work/ at the top of a scan, and files marked ignore-file, and says so', () => {
+  const dir = repoWith({ 'ok.js': `// cbom-scan: ignore-file\nimport { createHash } from 'node:crypto';\ncreateHash('sha1');\n` });
+  mkdirSync(join(dir, 'work'));
+  writeFileSync(join(dir, 'work', 'copy.js'), `import { createHash } from 'node:crypto';\ncreateHash('md5');\n`);
+  const ignored = [];
+  assert.deepEqual(scan(dir, { ignored }), []);
+  assert.deepEqual(ignored, ['src/ok.js']);
+  const out = spawnSync(process.execPath, [scanner, dir], { encoding: 'utf8' });
+  assert.match(out.stdout, /Skipped 1 file marked ignore-file: src\/ok\.js/);
+});

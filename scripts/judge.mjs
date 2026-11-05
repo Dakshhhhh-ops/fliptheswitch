@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// cbom-scan: ignore-file (builds the planted demo and its fix on purpose)
 // Judge the desk in one command, without Switch, Claude or Codex:
 //
 //   npm run judge

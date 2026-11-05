@@ -112,6 +112,8 @@ export function verdict(finding, lifetime, { migrationYears = DEFAULTS.migration
   const base = { migrationYears, qdayYear, yearsLeft, lifetime: lifetime ?? null };
   if (finding.status === 'broken') return { ...base, clock: 'broken', verdict: 'late', label: 'Late now: broken today, no quantum computer needed' };
   if (finding.status === 'policy') return { ...base, clock: 'grover', verdict: 'n/a', label: "Not on Mosca's clock: Grover only halves its strength" };
+  if (finding.status === 'dual-signed') return { ...base, clock: 'kept', verdict: 'n/a', label: 'Dual-signed: classical kept on purpose beside ML-DSA' };
+  if (finding.status === 'legacy-read') return { ...base, clock: 'kept', verdict: 'n/a', label: 'Legacy read path: new data is post-quantum, old records wait for re-wrap' };
   if (finding.status !== 'vulnerable') return { ...base, clock: 'review', verdict: 'n/a', label: 'Algorithm picked at runtime: review first' };
   const clock = SECRECY.has(finding.primitive) ? 'secrecy' : 'trust';
   if (!lifetime) return { ...base, clock, verdict: 'ask', label: `Lifetime unknown: ask the engineer how long it must stay ${clock === 'secrecy' ? 'secret' : 'trusted'}` };
@@ -130,7 +132,7 @@ export function withMosca(found, repoDir, opts = {}) {
 
 // One line for the inventory: "x + y vs z" with the source of x.
 export function moscaLine(m) {
-  if (!m.lifetime || m.clock === 'broken' || m.clock === 'grover' || m.clock === 'review') return m.label;
+  if (!m.lifetime || m.clock === 'broken' || m.clock === 'grover' || m.clock === 'review' || m.clock === 'kept') return m.label;
   const x = m.lifetime.years === Infinity ? '∞' : round(m.lifetime.years);
   return `${m.label} (${x} + ${m.migrationYears} vs ${m.yearsLeft} years, from ${m.lifetime.source})`;
 }

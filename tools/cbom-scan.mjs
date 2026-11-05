@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// cbom-scan: ignore-file (its tables name every algorithm it looks for)
 // cbom-scan: find cryptography in a JavaScript codebase and write a
 // CycloneDX 1.6 CBOM (cryptography bill of materials) plus a findings table.
 //
@@ -336,13 +337,17 @@ function fileFacts(text) {
 // Tests, build output and examples are not the code that ships.
 const SKIP_DIRS = new Set(['test', 'tests', '__tests__', 'tap', 'spec', 'e2e', 'fixtures', 'bench', 'benchmarks', 'dist', 'build', 'examples', 'cookbook', 'docs']);
 
-function listSourceFiles(dir) {
+// The desk's own folders at the top of a scan: work/ holds the agents'
+// checkouts and .origin/ (skipped as a dot folder) the local git origin.
+const SKIP_ROOT_DIRS = new Set(['work']);
+
+function listSourceFiles(dir, root = true) {
   const out = [];
   for (const name of readdirSync(dir)) {
     if (name === 'node_modules' || name.startsWith('.')) continue;
     const full = join(dir, name);
     if (statSync(full).isDirectory()) {
-      if (!SKIP_DIRS.has(name)) out.push(...listSourceFiles(full));
+      if (!SKIP_DIRS.has(name) && !(root && SKIP_ROOT_DIRS.has(name))) out.push(...listSourceFiles(full, false));
     } else if (/\.(m|c)?(js|ts)$/.test(name) && !/\.d\.(m|c)?ts$/.test(name)) {
       out.push(full);
     }
@@ -396,16 +401,49 @@ export function scanSource(src, rel) {
   return hits;
 }
 
-export function scan(repoDir) {
+// A file that opts out with this comment in its first five lines is not
+// scanned. The scan reports how many files did, so nothing is hidden.
+const IGNORE_FILE = /cbom-scan:\s*ignore-file/;
+export const ignoresFile = (src) => IGNORE_FILE.test(src.split('\n', 5).join('\n'));
+
+export function scan(repoDir, { ignored = [] } = {}) {
   const hits = [];
   for (const file of listSourceFiles(repoDir)) {
     const rel = relative(repoDir, file).split(sep).join('/');
-    hits.push(...scanSource(readFileSync(file, 'utf8'), rel));
+    const src = readFileSync(file, 'utf8');
+    if (ignoresFile(src)) { ignored.push(rel); continue; }
+    hits.push(...scanSource(src, rel));
   }
   return hits;
 }
 
 const PRIORITY_ORDER = { P1: 1, P2: 2, P3: 3 };
+
+// A classical algorithm that a migration kept on purpose, next to its
+// post-quantum replacement in the same file. It is still listed, at P3, so
+// nobody forgets it, but it is no longer new use:
+// - legacy-read: RSA that only decrypts or makes keys, in a file that wraps
+//   new data with ML-KEM. Old records stay exposed until they are re-wrapped.
+// - dual-signed: a classical signature made beside an ML-DSA one, for
+//   verifiers that only know the classical one. A forger must break both.
+export const KEPT = {
+  'legacy-read': {
+    why: 'Kept only to read records written before the migration; new data is wrapped with ML-KEM. Those old records can still be recorded now and decrypted later, until they are re-wrapped.',
+    fix: 'Re-wrap the stored records with the new scheme, then delete this read path.',
+  },
+  'dual-signed': {
+    why: 'Kept on purpose beside an ML-DSA signature, for verifiers that only know the classical one. A forger has to break both.',
+    fix: 'Drop the classical signature once every verifier checks ML-DSA.',
+  },
+};
+
+function keptStatus(group, pq) {
+  const { algo, hits } = group;
+  if (algo.status !== 'vulnerable') return undefined;
+  if (algo.primitive === 'pke' && pq.kem && hits.every((h) => h.func !== 'encrypt')) return 'legacy-read';
+  if (algo.primitive === 'signature' && pq.dsa) return 'dual-signed';
+  return undefined;
+}
 
 // One finding per (file, algorithm) that is not ok. Its `ref` is that pair.
 // With a baseline (the findings of an earlier scan), a finding keeps the id
@@ -413,6 +451,13 @@ const PRIORITY_ORDER = { P1: 1, P2: 2, P3: 3 };
 // when a finding is fixed. Without one, ids are F1, F2, ... by priority.
 export function findings(hits, { baseline = [] } = {}) {
   const groups = new Map();
+  const pqByFile = new Map();
+  for (const h of hits) {
+    const pq = pqByFile.get(h.file) ?? {};
+    if (/^ml-kem-/.test(h.key) || h.key === 'x25519-hybrid') pq.kem = true;
+    if (/^ml-dsa-/.test(h.key)) pq.dsa = true;
+    pqByFile.set(h.file, pq);
+  }
   for (const h of hits) {
     const algo = ALGORITHMS[h.key];
     if (algo.status === 'ok') continue;
@@ -422,6 +467,10 @@ export function findings(hits, { baseline = [] } = {}) {
   }
   const known = new Map(baseline.map((b) => [b.ref, b.id]));
   let next = Math.max(0, ...baseline.map((b) => Number(String(b.id).slice(1)) || 0)) + 1;
+  for (const g of groups.values()) {
+    const kept = keptStatus(g, pqByFile.get(g.file) ?? {});
+    if (kept) g.algo = { ...g.algo, status: kept, priority: 'P3', ...KEPT[kept] };
+  }
   return [...groups.values()]
     .sort((a, b) => PRIORITY_ORDER[a.algo.priority] - PRIORITY_ORDER[b.algo.priority] || a.file.localeCompare(b.file) || a.ref.localeCompare(b.ref))
     .map((g) => {
@@ -509,6 +558,7 @@ export function table(found) {
 // error. Signatures (P2, forged only once a quantum computer exists) and
 // runtime-chosen names we could not resolve are warnings. Policy gaps are notes.
 export function sarifLevel(algo) {
+  if (algo.status in KEPT) return 'note';
   if (algo.status === 'broken') return 'error';
   if (algo.status === 'vulnerable') return algo.priority === 'P1' ? 'error' : 'warning';
   if (algo.status === 'review') return 'warning';
@@ -518,7 +568,7 @@ export function sarifLevel(algo) {
 // GitHub sorts and filters security alerts by this number (0 to 10).
 const SECURITY_SEVERITY = { P1: '9.0', P2: '7.0', P3: '4.0' };
 
-const STATUS_TAG = { vulnerable: 'quantum-vulnerable', broken: 'classically-broken', policy: 'policy', review: 'needs-review' };
+const STATUS_TAG = { vulnerable: 'quantum-vulnerable', broken: 'classically-broken', policy: 'policy', review: 'needs-review', 'legacy-read': 'legacy-read-path', 'dual-signed': 'dual-signed' };
 
 // SARIF 2.1.0: one rule per algorithm, one result per finding. `root` is the
 // scanned folder relative to the repository root, so GitHub puts each result
@@ -556,7 +606,7 @@ export function toSarif(found, { root = '' } = {}) {
       const result = {
         ruleId,
         ruleIndex: ruleIndex.get(ruleId),
-        level: sarifLevel(ALGORITHMS[f.key]),
+        level: sarifLevel(f.status in KEPT ? f : ALGORITHMS[f.key]),
         message: { text: `${f.id} ${f.priority}: ${f.algorithm} is ${f.status}. ${f.why} Fix: ${f.fix}` },
         locations: [location(f, f.line)],
         partialFingerprints: { 'cryptoDeskFinding/v1': f.ref },
@@ -627,7 +677,8 @@ function main(argv) {
     }
   }
 
-  const hits = scan(repo);
+  const ignored = [];
+  const hits = scan(repo, { ignored });
   const found = withMosca(findings(hits, { baseline }), repo, moscaOpts);
   if (baselineFile && !existsSync(baselineFile)) {
     writeFileSync(baselineFile, JSON.stringify({ findings: found.map(({ id, ref }) => ({ id, ref })) }, null, 2) + '\n');
@@ -654,7 +705,8 @@ function main(argv) {
     console.log(JSON.stringify({ findings: found }, null, 2));
   } else {
     const assets = cbom.components.length;
-    console.log(`Scanned ${repo}: ${assets} crypto assets, ${found.length} findings.\n`);
+    const skipped = ignored.length ? ` Skipped ${ignored.length} file${ignored.length === 1 ? '' : 's'} marked ignore-file: ${ignored.join(', ')}.` : '';
+    console.log(`Scanned ${repo}: ${assets} crypto assets, ${found.length} findings.${skipped}\n`);
     console.log(table(found));
     if (out) console.log(`\nCBOM written to ${out}`);
     if (sarifFile) console.log(`SARIF written to ${sarifFile}`);
