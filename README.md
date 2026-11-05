@@ -50,11 +50,12 @@ scripted. The full write-up, screenshots, certificates and git history are in
   owner security lead, review by 2027-02-04.
 - **Switch refused Arjun** on "ship F1" and on "accept risk"
   ([screenshot](docs/live-run/refusal-ship.png)) before any agent session
-  started. The reason it gave is that his chat account isn't linked to a
-  Switch user. A linked engineer being refused for not being the owner is
-  not shown yet. The shipper also refused the security lead's own order while
-  no agent held the room's reviewer role (that check is in its
-  instructions).
+  started. His chat account isn't linked to a Switch user, and to Switch's
+  owner-only rule an unlinked account
+  ["matches nobody — not the owner"](https://github.com/sandbox-quantum/switch/blob/main/docs/official/internals/identity-and-access.md#identity-claims), so it is turned away like any
+  non-owner. A linked engineer who isn't the owner gets a different refusal
+  ("my operator has restricted who can address me here"); this local server
+  has one Switch user and sign-up off, so that case isn't shown.
 - Both certificates verify: `node tools/certificate.mjs verify docs/live-run/F1.cert.json`.
 - The demo's tests went from 8 to 24 on the agents' main.
 
@@ -219,7 +220,7 @@ agents' instructions. This table lists every one of them, and what proves it:
 
 | Rule | Enforced by | How | Proved by |
 |---|---|---|---|
-| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Switch answers anyone else itself, before an agent session starts | **Partly shown.** Live run: Switch refused Arjun's "ship F1" and "accept risk" with no agent session ([1](docs/live-run/refusal-ship.png), [2](docs/live-run/refusal-accept-risk.png)), but because his chat account isn't linked to a Switch user. A linked non-owner being refused is not shown yet |
+| Only the security lead can make the shipper act | **Switch** | The shipper's addressing is `owner`. Switch answers anyone else itself, before an agent session starts | Live run, for an unlinked engineer: Switch refused Arjun's "ship F1" and "accept risk" with no agent session ([1](docs/live-run/refusal-ship.png), [2](docs/live-run/refusal-accept-risk.png)). An unlinked account [matches nobody, not the owner](https://github.com/sandbox-quantum/switch/blob/main/docs/official/internals/identity-and-access.md#identity-claims), so the owner rule turns it away; Switch words that case as "isn't linked" ([source](https://github.com/sandbox-quantum/switch/blob/main/core/switch_core/delivery/addressing.py)). **Not shown:** a linked non-owner, which needs a second Switch user (this server has one, sign-up off) |
 | One reviewer of record per finding | **Switch**, and checked by the shipper | Switch keeps the `reviewer` role in each work room exclusive. The shipper only ships a verdict from the agent holding it | The shipper's check: live run, it refused F1 while nobody held the role ([screenshot](docs/live-run/one-reviewer-of-record.png)). Switch itself: live run, the migrator's `assume_role("reviewer")` got `400: Role 'reviewer' is exclusive and currently held by another agent` ([screenshot](docs/live-run/role-lock.png)) |
 | Only the scout can change the inventory | **Switch** | A room document can only be edited by the agent that created it | Live run: the migrator's `update_room_document` on the inventory got Switch's `403: Agent … did not create document …`, and the inventory was unchanged ([screenshot](docs/live-run/inventory-lock.png)) |
 | Main only takes reviewed fixes | **git** | The origin's `pre-receive` hook ([`scripts/pre-receive.mjs`](scripts/pre-receive.mjs)) refuses any push to main that isn't a `Ship F<n>:` merge or an `Accept risk F<n>:` commit | `npm run judge` step 3; gate test "direct commits to main and force pushes are refused" |
