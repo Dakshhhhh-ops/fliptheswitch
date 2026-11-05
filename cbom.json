@@ -1,0 +1,489 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:2aa04457-c90a-45fb-8de7-5908715582bc",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-05T20:53:19.892Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "crypto-desk cbom-scan",
+          "version": "0.1.0"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "name": "main",
+      "bom-ref": "app"
+    }
+  },
+  "components": [
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/x25519-hybrid",
+      "name": "X25519 (hybrid with ML-KEM)",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "key-agree",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.3.101.110"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/envelope.js",
+            "line": 37,
+            "additionalContext": "const x25519 = generateKeyPairSync('x25519');"
+          },
+          {
+            "location": "src/envelope.js",
+            "line": 96,
+            "additionalContext": "const ephemeral = generateKeyPairSync('x25519');"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "ok"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/ml-kem-768",
+      "name": "ML-KEM-768",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kem",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen",
+            "encapsulate",
+            "decapsulate"
+          ],
+          "nistQuantumSecurityLevel": 3
+        },
+        "oid": "2.16.840.1.101.3.4.4.2"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/envelope.js",
+            "line": 38,
+            "additionalContext": "const mlkem = generateKeyPairSync('ml-kem-768');"
+          },
+          {
+            "location": "src/envelope.js",
+            "line": 98,
+            "additionalContext": "const { sharedKey: mlkemSecret, ciphertext: kemCiphertext } = encapsulate(vaultPublicKey.mlkem);"
+          },
+          {
+            "location": "src/envelope.js",
+            "line": 132,
+            "additionalContext": "const mlkemSecret = decapsulate(vaultPrivateKey.mlkem, kemCiphertext);"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "ok"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/rsa-oaep/2048",
+      "name": "RSA-OAEP",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "pke",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen",
+            "decrypt"
+          ],
+          "nistQuantumSecurityLevel": 0,
+          "parameterSetIdentifier": "2048"
+        },
+        "oid": "1.2.840.113549.1.1.7"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/envelope.js",
+            "line": 48,
+            "additionalContext": "return generateKeyPairSync('rsa', { modulusLength: 2048 });"
+          },
+          {
+            "location": "src/envelope.js",
+            "line": 147,
+            "additionalContext": "const dataKey = privateDecrypt("
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "vulnerable"
+        },
+        {
+          "name": "crypto-desk:priority",
+          "value": "P1"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/sha256",
+      "name": "SHA-256",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keyderive",
+            "digest"
+          ],
+          "nistQuantumSecurityLevel": 2
+        },
+        "oid": "2.16.840.1.101.3.4.2.1"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/envelope.js",
+            "line": 68,
+            "additionalContext": "return Buffer.from(hkdfSync('sha256', Buffer.concat(parts), Buffer.alloc(0), KEK_INFO, 32));"
+          },
+          {
+            "location": "src/session.js",
+            "line": 14,
+            "additionalContext": "return createHash('sha256').update(secret).digest();"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "ok"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/aes-256-gcm",
+      "name": "AES-256-GCM",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "ae",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "encrypt",
+            "decrypt"
+          ],
+          "nistQuantumSecurityLevel": 5
+        },
+        "oid": "2.16.840.1.101.3.4.1.46"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/envelope.js",
+            "line": 73,
+            "additionalContext": "const cipher = createCipheriv('aes-256-gcm', key, iv);"
+          },
+          {
+            "location": "src/envelope.js",
+            "line": 80,
+            "additionalContext": "const decipher = createDecipheriv('aes-256-gcm', key, iv);"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "ok"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/sha1",
+      "name": "SHA-1",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "digest"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.3.14.3.2.26"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/receipts.js",
+            "line": 17,
+            "additionalContext": "return createHash('sha1').update(canonical(receipt)).digest('hex');"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "broken"
+        },
+        {
+          "name": "crypto-desk:priority",
+          "value": "P2"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/ecdh/p-256",
+      "name": "ECDH",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "key-agree",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen",
+            "keyderive"
+          ],
+          "nistQuantumSecurityLevel": 0,
+          "curve": "P-256"
+        },
+        "oid": "1.2.840.10045.2.1"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/session.js",
+            "line": 7,
+            "additionalContext": "const ecdh = createECDH('prime256v1');"
+          },
+          {
+            "location": "src/session.js",
+            "line": 13,
+            "additionalContext": "const secret = party.ecdh.computeSecret(peerPublicKey);"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "vulnerable"
+        },
+        {
+          "name": "crypto-desk:priority",
+          "value": "P1"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/tls-classical/prime256v1",
+      "name": "TLS classical key exchange",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "key-agree",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keyderive"
+          ],
+          "nistQuantumSecurityLevel": 0
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/tls.js",
+            "line": 6,
+            "additionalContext": "ecdhCurve: 'prime256v1',"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "vulnerable"
+        },
+        {
+          "name": "crypto-desk:priority",
+          "value": "P1"
+        },
+        {
+          "name": "crypto-desk:tls-groups",
+          "value": "prime256v1"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/aes-128-gcm",
+      "name": "AES-128-GCM",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "ae",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "encrypt",
+            "decrypt"
+          ],
+          "nistQuantumSecurityLevel": 1
+        },
+        "oid": "2.16.840.1.101.3.4.1.6"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/vault.js",
+            "line": 14,
+            "additionalContext": "const cipher = createCipheriv('aes-128-gcm', key, iv);"
+          },
+          {
+            "location": "src/vault.js",
+            "line": 21,
+            "additionalContext": "const decipher = createDecipheriv('aes-128-gcm', key, iv);"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "policy"
+        },
+        {
+          "name": "crypto-desk:priority",
+          "value": "P3"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/ecdsa/p-256",
+      "name": "ECDSA",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen",
+            "sign",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0,
+          "curve": "P-256"
+        },
+        "oid": "1.2.840.10045.4.3.2"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/webhooks.js",
+            "line": 21,
+            "additionalContext": "const ecdsa = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });"
+          },
+          {
+            "location": "src/webhooks.js",
+            "line": 31,
+            "additionalContext": "const headers = { [ECDSA_HEADER]: sign('sha256', data, privateKey).toString('base64') };"
+          },
+          {
+            "location": "src/webhooks.js",
+            "line": 52,
+            "additionalContext": "const ecdsaOk = verifySafely(() => verify('sha256', data, publicKey, ecdsaSig));"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "vulnerable"
+        },
+        {
+          "name": "crypto-desk:priority",
+          "value": "P2"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/ml-dsa-65",
+      "name": "ML-DSA-65",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "keygen",
+            "sign",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 3
+        },
+        "oid": "2.16.840.1.101.3.4.3.18"
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/webhooks.js",
+            "line": 22,
+            "additionalContext": "const mldsa = generateKeyPairSync('ml-dsa-65');"
+          },
+          {
+            "location": "src/webhooks.js",
+            "line": 33,
+            "additionalContext": "headers[MLDSA_HEADER] = sign(null, data, mldsaPrivateKey).toString('base64');"
+          },
+          {
+            "location": "src/webhooks.js",
+            "line": 57,
+            "additionalContext": "const mldsaOk = verifySafely(() => verify(null, data, mldsaPublicKey, mldsaSig));"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "ok"
+        }
+      ]
+    }
+  ]
+}
