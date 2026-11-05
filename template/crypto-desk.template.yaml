@@ -45,8 +45,8 @@ params:
   focus:
     type: string
     label: Findings to work
-    description: The finding ids the desk works, in order. The rest stay open on the board until the security lead adds them.
-    default: F1, F5, F3
+    description: The finding ids the desk opens rooms for and works, in this order. The rest stay open on the board, with no room, until the security lead adds them. Fewer rooms make a lighter run.
+    default: F5, F1, F3
   parallel:
     type: number
     label: Findings worked at once
@@ -57,6 +57,7 @@ params:
   provider:
     type: provider
     label: Provider for scout, migrator and shipper
+    description: No Codex? Set this and the reviewer's provider both to claude.
     default:
     - claude
     - codex
@@ -65,7 +66,7 @@ params:
   review_provider:
     type: provider
     label: Provider for the reviewer
-    description: Pick a different one from the migrator's for an independent review.
+    description: Pick a different one from the migrator's for an independent review. No Codex? Pick claude. The reviewer is still a separate agent with its own checkout and instructions, just not a different model.
     default:
     - codex
     - opencode
@@ -127,18 +128,34 @@ resources:
       and agents report changes to you, and you record them. Its content:
 
       1. A board line: `Shipped S/N · Accepted risk A · In progress P · Open O`
-      2. A table: `# | Priority | Where | Algorithm | Status | Room | State`.
+      2. A table: `# | Priority | Where | Algorithm | Status | Mosca | Room | State`.
          State is one of: open, in progress, in review, approved, shipped,
          accepted risk. Add a short note when useful (for example
-         "dual-signed, ECDSA sunset pending").
+         "dual-signed, ECDSA sunset pending"). Room is "none yet" for a
+         finding not in the list below.
       3. The CBOM: path, serial number, and a count of assets by status.
+      4. Under the table, one line: "Mosca: late if (how long the data stays
+         secret) + (migration time) > (years until Q-Day). Assumed: migration
+         <migrationYears> years, Q-Day <qdayYear>."
+
+      ## Mosca
+      Each finding in the tool's output has `mosca`. Put `mosca.label` in the
+      Mosca column, and when it has `lifetime.source`, add "(from <source>)".
+      Don't change a verdict on your own judgment. When a finding's verdict is
+      `ask`, ask the engineer in its work room, when you start it, how long
+      the data it protects must stay secret. When they answer, work it out
+      the same way (their years + migrationYears against yearsLeft: below 0 is
+      "Already late by N years", under 2 spare is "Cutting it close", else
+      "On time") and record it with "(from <engineer>, in the room)".
 
       After each update, post the board line and what changed in the intake
       room, in two lines at most.
 
       ## Opening work rooms
-      After the first scan, open a room for every finding, in priority order,
-      with `create_room`:
+      After the first scan, open a room for each finding in this list, in
+      this order, and no others: {focus}. The rest stay on the board with no
+      room until the security lead asks for one; then open it the same way.
+      Use `create_room`:
       - name: `{team}-<id lowercase>-<file stem>`, for example `{team}-f1-envelope`
       - description: one line naming the problem
       - agent_names: `{team}-scout`, `{team}-migrator`, `{team}-reviewer`, `{team}-shipper`
@@ -154,7 +171,8 @@ resources:
       `finding <id>`.
 
       The finding brief has: the id, priority, file and lines, the algorithm,
-      why it matters (from the tool), the suggested fix (from the tool),
+      why it matters (from the tool), the suggested fix (from the tool), the
+      Mosca line,
       whether it is external owner and why, the branch name to use
       (`pqc/<id lowercase>-<file stem>`), and "Rules: see the PQC rules in your
       own instructions. The security lead decides what ships; tell
@@ -165,8 +183,9 @@ resources:
       others open on the board until the security lead asks you to add one.
       Work at most {parallel} at once. To
       start one, `connect_to_room` the work room and `send_targeted_message` to
-      `{team}-migrator` and `{engineer}`: one line with the finding, and ask the
-      engineer to say any constraint the code does not show. Then
+      `{team}-migrator` and `{engineer}`: one line with the finding and its
+      Mosca label, and ask the engineer to say any constraint the code does
+      not show (and, for an `ask` verdict, how long the data must stay secret). Then
       `connect_to_room` back to the intake room. When a finding is shipped or
       accepted, start the next open one.
 
@@ -277,7 +296,10 @@ resources:
          and check the finding's id is gone, or for a dual signature that
          ML-DSA is now present.
       4. Check the change against every PQC rule below, and against any
-         constraint the engineer gave in the room.
+         constraint the engineer gave in the room. Each constraint needs a
+         test that proves it (for example: "merchants still verify ECDSA"
+         needs a test where a verifier that only knows ECDSA accepts the new
+         event). A constraint with no test is a CHANGES REQUESTED item.
 
       Reject when any rule is broken. Look hardest for: RSA swapped for ML-KEM
       one-for-one, a missing classical half or HKDF, existing data or headers
@@ -383,7 +405,8 @@ resources:
       instructions: Read when you are unsure who acts next on a finding.
       content: |
         1. The scout scans main with tools/cbom-scan.mjs, writes the CycloneDX
-           CBOM and the inventory, and opens one private room per finding.
+           CBOM and the inventory, and opens one private room for each finding
+           being worked.
         2. In a work room the migrator posts a plan, the engineer adds what the
            code does not show, and the migrator pushes a branch with tests.
         3. The agent holding the exclusive reviewer role approves an exact sha
@@ -394,4 +417,4 @@ resources:
            moves.
     kickoff: |
       @{team}-scout scan {target_name}, write the inventory, and open a work room
-      for every finding. Work {focus}, in that order.
+      for each of {focus}. Work them in that order.
