@@ -52,6 +52,25 @@ function Compare({ row }) {
   );
 }
 
+// Mosca's rule: data lifetime + migration time against years until Q-Day.
+function Mosca({ m }) {
+  const life = m.lifetime;
+  const sums = life && (m.clock === 'secrecy' || m.clock === 'trust');
+  const x = life ? (life.years === null || life.years > 1e6 ? '∞' : Math.round(life.years * 10) / 10) : null;
+  return (
+    <>
+      <strong className={`m-${slug(m.verdict)}`}>{m.label}.</strong>{' '}
+      {sums && (
+        <>
+          {x} {m.clock === 'secrecy' ? 'years secret' : 'years trusted'} + {m.migrationYears} to migrate, against {m.yearsLeft} until {m.qdayYear}.{' '}
+          From <code>{life.source}</code>: “{life.quote}”
+        </>
+      )}
+      {m.verdict === 'ask' && <>Nothing in the code says how long this data lives, so the scout asks the engineer instead of guessing.</>}
+    </>
+  );
+}
+
 function Evidence({ row }) {
   if (row.ship) return <>Merged <code>{row.ship.sha}</code> on {row.ship.date}. {row.stillFlagged && 'The classical algorithm stays beside the new one on purpose.'}</>;
   if (row.risk) return <>{row.risk}</>;
@@ -109,6 +128,7 @@ function Drawer({ row, onClose }) {
         </header>
         <Compare row={row} />
         <dl className="drawer-body">
+          {row.mosca && <div><dt>Mosca</dt><dd><Mosca m={row.mosca} /></dd></div>}
           <div><dt>Why</dt><dd>{row.why}</dd></div>
           <div><dt>Planned fix</dt><dd>{row.fix}</dd></div>
           <div><dt>Evidence</dt><dd><Evidence row={row} /></dd></div>
@@ -163,9 +183,9 @@ export default function Findings({ rows }) {
         <h2 className="section-title">
           Six lines of code,
           <br />
-          <em>six rooms.</em>
+          <em>ranked by how late.</em>
         </h2>
-        <p className="section-sub">Each finding is worked in its own Switch room with the engineer who owns the code. Hover for the line itself; open one to compare it with main.</p>
+        <p className="section-sub">Under each, Mosca's rule: how long the data must stay secret, plus the migration, against the years left before Q-Day. A finding being worked has its own Switch room with the engineer who owns the code. Hover for the line itself; open one to compare it with main.</p>
       </div>
 
       <ol className="fx-list" onMouseMove={(e) => pos.current && (pos.current.x(e.clientX + 24), pos.current.y(e.clientY - 120))} onMouseLeave={() => setHover(null)}
@@ -192,7 +212,10 @@ export default function Findings({ rows }) {
               data-cursor="Open"
             >
               <span className="fx-id">{r.id}</span>
-              <span className="fx-algo">{r.algorithm}</span>
+              <span className="fx-algo">
+                {r.algorithm}
+                {r.mosca && <small className={`fx-mosca m-${slug(r.mosca.verdict)}`}>{r.mosca.label}</small>}
+              </span>
               <code className="fx-where">{r.file}:{r.line}</code>
               <span className={`pill s-${slug(r.state)}`}>{r.state}</span>
             </button>
