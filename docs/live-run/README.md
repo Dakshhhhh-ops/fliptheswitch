@@ -33,6 +33,7 @@ node tools/certificate.mjs verify docs/live-run/F1.cert.json   # Signature valid
 | Arjun: `@Shipper accept risk: …` in the F3 room. Same refusal: only the security lead can accept a risk | [refusal-accept-risk.png](refusal-accept-risk.png) |
 | The security lead's `ship F1`, while no agent held the room's `reviewer` role. The shipper refused, following its instructions: the approval didn't come from the reviewer of record. Switch makes the role exclusive; the shipper does the checking | [one-reviewer-of-record.png](one-reviewer-of-record.png) |
 | After the run: the reviewer took the `reviewer` role in the F3 room, then the migrator tried `assume_role("reviewer")`. Switch answered `400: {"detail":"Role 'reviewer' is exclusive and currently held by another agent"}` | [role-lock.png](role-lock.png) |
+| After the run: the migrator called `update_room_document` on the scout's "Crypto inventory" in desk2-intake. Switch answered `403: {"detail":"Agent 2ba77be1-… did not create document 3be3ccc8-…"}` and the document was unchanged | [inventory-lock.png](inventory-lock.png) |
 | Reviewer: CHANGES REQUESTED on F1, no approval mark pushed | [review-changes-requested.png](review-changes-requested.png) |
 | The security lead's accept-risk, which the shipper carried out | [user-accepts-risk.png](user-accepts-risk.png) |
 
