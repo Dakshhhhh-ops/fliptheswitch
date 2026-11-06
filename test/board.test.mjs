@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { counts, html, parseRisks, readDesk } from '../tools/board.mjs';
+import { boardLine, counts, html, parseRisks, readDesk } from '../tools/board.mjs';
 
 const demo = fileURLToPath(new URL('../demo-payments', import.meta.url));
 const git = (args, cwd) =>
@@ -49,7 +49,7 @@ test('reads every state from git', () => {
   assert.equal(state.F3, 'accepted risk');
   assert.equal(state.F5, 'in review');
   assert.equal(state.F2, 'open');
-  assert.deepEqual(counts(desk.rows), { shipped: 1, 'accepted risk': 1, 'in review': 1, open: 3 });
+  assert.deepEqual(counts(desk.rows), { shipped: 1, 'accepted risk': 1, 'in review': 1, open: 3, 'risks on record': 1 });
 });
 
 test('a shipped fix that cleared the scan is not marked as still flagged', () => {
@@ -75,4 +75,14 @@ test('the page escapes what it shows', () => {
   });
   assert.doesNotMatch(page, /<script>/);
   assert.match(page, /&lt;script&gt;/);
+});
+
+test('a shipped finding with a risk on record is named on the board line', () => {
+  const rows = [
+    { id: 'F1', state: 'shipped' },
+    { id: 'F3', state: 'shipped', risk: 'production TLS is on the acquirer gateway' },
+    { id: 'F5', state: 'open' },
+  ];
+  assert.equal(boardLine(rows), 'Shipped 2/3 (F3 with a risk on record) · Accepted risk 0 · In review 0 · Open 1');
+  assert.equal(counts(rows)['risks on record'], 1);
 });

@@ -18,7 +18,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findings, scan } from '../tools/cbom-scan.mjs';
 import { moscaLine, withMosca } from '../tools/mosca.mjs';
-import { counts, readDesk } from '../tools/board.mjs';
+import { boardLine, counts, readDesk } from '../tools/board.mjs';
 import { liveRuns, replay } from '../tools/replay.mjs';
 import { createPublicKey, sign } from 'node:crypto';
 import { audit, canonical, check, deskKey, issue, pubFileFor, publicKeyFrom } from '../tools/certificate.mjs';
@@ -199,7 +199,7 @@ export function judge({ log = console.log, keep = true } = {}) {
     log('\n7. The board, read from git');
     const desk = readDesk(origin);
     const c = counts(desk.rows);
-    const line = `Shipped ${c.shipped}/${desk.rows.length} · Accepted risk ${c['accepted risk']} · In progress ${c['in review']} · Open ${c.open}`;
+    const line = boardLine(desk.rows);
     step(line, 'Shipped 1/6 · Accepted risk 1', c.shipped === 1 && c['accepted risk'] === 1 && desk.rows.length === 6);
 
     log('\n8. A signed migration certificate for F5');
@@ -254,8 +254,8 @@ export function judge({ log = console.log, keep = true } = {}) {
       const b = counts(readDesk(bundle).rows);
       const want = run.board;
       step(
-        `Board from its origin: Shipped ${b.shipped}/6 · Accepted risk ${b['accepted risk']}`,
-        `Shipped ${want.shipped}/6 · Accepted risk ${want['accepted risk']}`,
+        `Board from its origin: ${boardLine(readDesk(bundle).rows)}`,
+        `Shipped ${want.shipped}/6 · Accepted risk ${want['accepted risk']} · risks on record ${want['risks on record']}`,
         Object.keys(want).every((k) => b[k] === want[k]),
       );
     }

@@ -2,6 +2,15 @@
   "name": "Live run 1",
   "team": "desk2",
   "dates": "5–6 November 2026",
-  "certificates": ["F5", "F1"],
-  "board": { "shipped": 2, "accepted risk": 1, "in review": 0, "open": 3 }
+  "certificates": [
+    "F5",
+    "F1"
+  ],
+  "board": {
+    "shipped": 2,
+    "accepted risk": 1,
+    "in review": 0,
+    "open": 3,
+    "risks on record": 1
+  }
 }

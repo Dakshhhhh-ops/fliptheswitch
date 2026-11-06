@@ -6,7 +6,11 @@
 // Nothing here is typed in by hand. The findings come from scanning the first
 // commit (before the migration) and main (now) with cbom-scan. A finding is:
 //   shipped        a "Ship <id>:" merge is on main
-//   accepted risk  ACCEPTED-RISKS.md on main has a line for it
+//   accepted risk  ACCEPTED-RISKS.md on main has a line for it, and it isn't shipped
+//
+// A finding counts once. A shipped finding can still have a risk on record
+// (F3 in live run 2: the staging fix shipped, production TLS stays with the
+// acquirer), so the board line names those beside the shipped count.
 //   in review      a pqc/<id>-* branch exists on the origin
 //   open           none of those
 import { execFileSync } from 'node:child_process';
@@ -123,9 +127,20 @@ function summarize(cbom) {
 }
 
 export function counts(rows) {
-  const c = { shipped: 0, 'accepted risk': 0, 'in review': 0, open: 0 };
-  for (const r of rows) c[r.state]++;
+  const c = { shipped: 0, 'accepted risk': 0, 'in review': 0, open: 0, 'risks on record': 0 };
+  for (const r of rows) {
+    c[r.state]++;
+    if (r.risk) c['risks on record']++;
+  }
   return c;
+}
+
+// "Shipped 3/6 (F3 with a risk on record) · Accepted risk 0 · In review 0 · Open 3"
+export function boardLine(rows) {
+  const c = counts(rows);
+  const withRisk = rows.filter((r) => r.state === 'shipped' && r.risk).map((r) => r.id);
+  const shipped = `Shipped ${c.shipped}/${rows.length}${withRisk.length ? ` (${withRisk.join(', ')} with a risk on record)` : ''}`;
+  return [shipped, `Accepted risk ${c['accepted risk']}`, `In review ${c['in review']}`, `Open ${c.open}`].join(' · ');
 }
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
@@ -135,7 +150,7 @@ export function html(desk) {
   const n = desk.rows.length;
   const rows = desk.rows.map((r) => {
     const detail = r.ship
-      ? `Merged <code>${esc(r.ship.sha)}</code> on ${esc(r.ship.date)}${r.stillFlagged ? ' · still in the scan (dual-signed, classical kept on purpose)' : ''}`
+      ? `Merged <code>${esc(r.ship.sha)}</code> on ${esc(r.ship.date)}${r.stillFlagged ? ' · still in the scan (dual-signed, classical kept on purpose)' : ''}${r.risk ? ` · risk on record: ${esc(r.risk)}` : ''}`
       : r.risk
         ? esc(r.risk)
         : r.branch

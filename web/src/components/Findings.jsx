@@ -72,7 +72,7 @@ function Mosca({ m }) {
 }
 
 function Evidence({ row }) {
-  if (row.ship) return <>Merged <code>{row.ship.sha}</code> on {row.ship.date}. {row.stillFlagged && 'The classical algorithm stays beside the new one on purpose.'}</>;
+  if (row.ship) return <>Merged <code>{row.ship.sha}</code> on {row.ship.date}. {row.stillFlagged && 'The classical algorithm stays beside the new one on purpose.'}{row.risk && <> Risk on record for what the fix can't reach: {row.risk}</>}</>;
   if (row.risk) return <>{row.risk}</>;
   if (row.branch) return <>Fix under review on <code>{row.branch}</code>.</>;
   return <>Room open in Switch. Nothing on the origin yet.</>;
