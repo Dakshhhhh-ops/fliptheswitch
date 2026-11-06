@@ -33,7 +33,7 @@ node tools/certificate.mjs verify docs/live-run/F5.cert.json --tests   # 10 chec
 node tools/certificate.mjs verify docs/live-run/F1.cert.json --tests   # 10 checks, 24/24 tests at the merge
 ```
 
-`test/live-run.test.mjs` replays the agents' pushes in order into a fresh
+`node tools/replay.mjs docs/live-run/origin.bundle` replays the agents' pushes in order into a fresh
 origin with the gate: every one passes, and the board read from it is
 Shipped 2/6 · Accepted risk 1.
 

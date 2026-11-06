@@ -29,7 +29,7 @@ anyone else, and git refuses anything unreviewed.
 >    negotiation between the engineer, the security lead and four agents.
 >    [Run it yourself](#run-it-yourself) to repeat it.
 > 2. **Check it yourself, with nothing to install:** `npm run judge` (Node
->    24.7+). 18 checks in about 20 seconds. It replays the agents' git
+>    24.7+). 19 checks in about 25 seconds. It replays the agents' git
 >    moves against the real gate, scanner and tests: a post-quantum fix for
 >    F5, every shortcut refused (straight to main, unapproved, changed after
 >    approval, shipped twice, a "risk" that edits code), the approved ship
@@ -68,8 +68,8 @@ scripted. The full write-up, screenshots, certificates and git history are in
 - The agents' git history is in the repository:
   `git clone docs/live-run/origin.bundle live && git -C live log --graph --all`.
   Every commit, branch and `refs/approved/<sha>` mark they pushed. Replayed
-  in order into a fresh origin, every push passes the gate
-  (`test/live-run.test.mjs`).
+  in order into a fresh origin, every push passes the gate:
+  `node tools/replay.mjs docs/live-run/origin.bundle`.
 - Both certificates verify against that history, signed by the desk's key
   ([`desk-key.pub.pem`](docs/live-run/desk-key.pub.pem)):
   `node tools/certificate.mjs verify docs/live-run/F1.cert.json --tests`
@@ -309,7 +309,7 @@ for the bundled Mattermost**, which is the chat app this demo uses.
 
 ```sh
 npm run doctor         # what this machine has and what's missing, with the fix for each
-npm run judge          # 18 checks: the gate, scanner and certificates, and the live run's git
+npm run judge          # 19 checks: the gate, scanner and certificates, and the live run's git
 npm test               # scanner, Mosca, board, gate, templates, live run, judge and demo-payments tests
 npm run scan           # the six findings, and cbom.json
 npm run setup          # creates the local git origin with its gate, prints the folder
@@ -348,6 +348,7 @@ tools/cbom-scan.mjs                  rule-based crypto scanner: CBOM, SARIF, CI 
 tools/mosca.mjs                      Mosca's rule per finding, with the lifetime read from the code
 tools/certificate.mjs                ML-DSA-65-signed migration certificate for each ship
 tools/board.mjs                      the desk's status, read from git
+tools/replay.mjs                     replays a live run's git history through the gate
 web/                                 the desk app: React UI, the Node API behind it, and the static export
 test/                                scanner, Mosca, board, gate, templates, live run and the judge run
 demo-payments/                       the codebase being migrated, with its own tests

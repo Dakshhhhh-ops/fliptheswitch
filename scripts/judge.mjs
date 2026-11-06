@@ -19,6 +19,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findings, scan } from '../tools/cbom-scan.mjs';
 import { moscaLine, withMosca } from '../tools/mosca.mjs';
 import { counts, readDesk } from '../tools/board.mjs';
+import { liveRuns, replay } from '../tools/replay.mjs';
 import { createPublicKey, sign } from 'node:crypto';
 import { audit, canonical, check, deskKey, issue, pubFileFor, publicKeyFrom } from '../tools/certificate.mjs';
 
@@ -229,22 +230,35 @@ export function judge({ log = console.log, keep = true } = {}) {
     };
     step('That forgery re-signed with another key', "refused: not the desk's key, and git disagrees", !check(resigned, { publicKey: deskPub }) && audit(resigned, origin).some((x) => !x.ok));
 
-    log('\n9. The live run in Switch, checked from the git it left (docs/live-run/origin.bundle)');
-    const liveDir = join(DESK, 'docs', 'live-run');
-    const livePub = publicKeyFrom(join(liveDir, 'desk-key.pub.pem'));
-    const bundle = join(liveDir, 'origin.bundle');
-    for (const id of ['F5', 'F1']) {
-      const live = JSON.parse(readFileSync(join(liveDir, `${id}.cert.json`), 'utf8'));
-      const liveClaims = audit(live, bundle);
+    const livePub = publicKeyFrom(join(DESK, 'docs', 'live-run', 'desk-key.pub.pem'));
+    for (const [n, run] of liveRuns().entries()) {
+      const bundle = join(run.dir, 'origin.bundle');
+      log(`\n${9 + n}. ${run.name} in Switch (${run.team}, ${run.dates}), checked from the git it left (${run.folder}/origin.bundle)`);
+      for (const id of run.certificates) {
+        const live = JSON.parse(readFileSync(join(run.dir, `${id}.cert.json`), 'utf8'));
+        const liveClaims = audit(live, bundle);
+        step(
+          `${id}: the agents' certificate matches the agents' git`,
+          "signed by the desk's key, every claim true",
+          check(live, { publicKey: livePub }) && liveClaims.every((x) => x.ok),
+          `approved ${live.review.approvedCommit.slice(0, 7)} by the reviewer, shipped ${live.ship.merge.slice(0, 7)} by the shipper, ${live.tests.pass} tests`,
+        );
+      }
+      const { steps: pushes, sameMain } = replay(bundle);
       step(
-        `${id}: the agents' certificate matches the agents' git`,
-        "signed by the desk's key, every claim true",
-        check(live, { publicKey: livePub }) && liveClaims.every((x) => x.ok),
-        `approved ${live.review.approvedCommit.slice(0, 7)} by the reviewer, shipped ${live.ship.merge.slice(0, 7)} by the shipper, ${live.tests.pass} tests`,
+        "The agents' pushes, replayed into a fresh origin, all pass the gate",
+        'every push accepted, the shortcut refused, same main',
+        pushes.every((x) => x.ok) && sameMain,
+        `${pushes.filter((x) => x.expect === 'pass').length} pushes`,
+      );
+      const b = counts(readDesk(bundle).rows);
+      const want = run.board;
+      step(
+        `Board from its origin: Shipped ${b.shipped}/6 · Accepted risk ${b['accepted risk']}`,
+        `Shipped ${want.shipped}/6 · Accepted risk ${want['accepted risk']}`,
+        Object.keys(want).every((k) => b[k] === want[k]),
       );
     }
-    const liveBoard = counts(readDesk(bundle).rows);
-    step(`Board from the live origin: Shipped ${liveBoard.shipped}/6 · Accepted risk ${liveBoard['accepted risk']}`, 'Shipped 2/6 · Accepted risk 1', liveBoard.shipped === 2 && liveBoard['accepted risk'] === 1);
 
     const failed = results.filter((x) => !x.ok);
     log(`\n${failed.length ? `✘ ${failed.length} of ${results.length} checks failed.` : `All ${results.length} checks held`} (${((Date.now() - t0) / 1000).toFixed(1)} s).`);
