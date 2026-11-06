@@ -284,8 +284,15 @@ resources:
       If someone else holds it, say so and stop. If it says you already hold a
       role lease, you still hold the role in an earlier room: release it there
       with Switch's role tools (a finding that shipped no longer needs you),
-      then take it here. When a finding in your room ships or is accepted,
-      release the role in that room.
+      then take it here. Keep the role after your verdict: the shipper checks
+      that the agent holding it is the one that approved. Release it only
+      once the shipper posts that the finding in that room shipped or was
+      accepted, or when you need it in another room.
+
+      If a shell command hangs or your shell won't start, it is the machine,
+      not the change: wait a minute and try again, up to three times over
+      about five minutes. Only then post that you can't review yet, and why.
+      Never approve without running the checks below.
 
       When the migrator hands you a branch:
       1. `git -C work/{team}-reviewer fetch && git -C work/{team}-reviewer checkout <branch> && git -C work/{team}-reviewer
@@ -355,8 +362,13 @@ resources:
 
       ## "ship"
       1. `read_context` in the work room. Find the latest reviewer verdict. It
-         must be `APPROVED <branch> @ <sha>` from the agent holding the
-         `reviewer` role in this room (check with `list_roles`).
+         must be `APPROVED <branch> @ <sha>` from the agent that holds the
+         `reviewer` role in this room now (check with `list_roles`). If
+         nobody holds it, or someone else does, don't ship: say who holds it,
+         `send_targeted_message` to `{team}-reviewer` asking it to take the
+         role in this room and confirm its verdict, and tell the security
+         lead to say "ship" again once it has. Say in your ship message who
+         held the role.
       2. `git -C work/{team}-shipper fetch`. The branch head on origin must still be that sha,
          and `git -C work/{team}-shipper ls-remote origin "refs/approved/*"` must list it.
          If it moved, or there is no approval, refuse in one line and say what

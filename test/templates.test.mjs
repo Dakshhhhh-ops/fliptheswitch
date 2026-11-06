@@ -28,3 +28,16 @@ test('the fixed-rooms template declares each room with an exclusive reviewer rol
 test('a single provider is offered for people without Codex', () => {
   assert.match(main, /No Codex\? Set this and the reviewer's provider both to claude\./);
 });
+
+// Lessons from the live runs: the reviewer released its role right after
+// approving, and a stalled shell made it give up at once.
+test('the reviewer keeps its role until the ship, and retries a stalled shell', () => {
+  assert.match(main, /Keep the role after your verdict/);
+  assert.match(main, /up to three times over\s+about five minutes/);
+  assert.match(main, /Never approve without running the checks below/);
+});
+
+test('the shipper ships only a verdict from the agent holding the role now', () => {
+  assert.match(main, /holds the\s+`reviewer` role in this room now/);
+  assert.match(main, /If\s+nobody holds it, or someone else does, don't ship/);
+});
