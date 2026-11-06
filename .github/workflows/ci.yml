@@ -9,14 +9,37 @@ permissions:
 
 jobs:
   test:
-    name: Tests
+    name: Tests and judge (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/doctor.mjs || true
+      - run: npm test
+      - run: npm run judge
+      - name: Live-run certificates against the agents' git
+        run: |
+          node tools/certificate.mjs verify docs/live-run/F1.cert.json --tests
+          node tools/certificate.mjs verify docs/live-run/F5.cert.json --tests
+
+  web:
+    name: Desk app builds and exports
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: npm test
+      - run: npm run setup
+      - run: npm run export
+      - name: The snapshot has the six findings
+        run: node -e "const d=require('./web/dist-static/api/desk.json'); const n=(d.rows??d.findings??[]).length; console.log(n,'findings'); process.exit(n===6?0:1)"
 
   crypto-scan:
     name: Quantum-vulnerable crypto scan
