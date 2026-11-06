@@ -101,14 +101,14 @@ Take Switch away and the desk stops working. These parts are Switch's:
 |---|---|---|---|
 | Template | One form creates the four agents, the intake room, its guide document and the kickoff | Four agents and their rules set up by hand, per team | Run from a chat message to Switch's buddy agent |
 | Agents creating rooms (`create_room`, `link_rooms`) | The scout opens a private room per finding with the right people | One shared channel for every finding | The scout opened the F5, F1 and F3 rooms itself |
-| Addressing policies | `owner` on the shipper is the ship gate | Any agent obeys anyone who can type in the room | Arjun's "ship F3" refused before an agent ran ([screenshot](docs/live-run-2/refusal-ship.png)) |
+| Addressing policies | `owner` on the shipper is the ship gate. `owner-agents` on the reviewer: only the security lead and the desk's own agents can ask it for a verdict | Any agent obeys anyone who can type in the room, so the engineer could ask the reviewer to approve | Arjun's "ship F3" refused before an agent ran ([screenshot](docs/live-run-2/refusal-ship.png)) |
 | Exclusive room role | One reviewer of record per finding | Any agent can claim it reviewed | A second agent's `assume_role("reviewer")` got Switch's `400` ([screenshot](docs/live-run/role-lock.png)) |
 | Room documents | Only the scout can edit the inventory, so the board can't be quietly changed | Any agent can rewrite it | The migrator's edit got Switch's `403` ([screenshot](docs/live-run-2/inventory-lock-and-board.png)) |
 | Targeted messages | Hand-offs go to whoever holds the reviewer role; the shipper tells the scout what shipped | Agents polling chat for their name | Every hand-off and ship notice |
 | Rooms shared by people and agents | Engineer, security lead and agents negotiate in one thread | Constraints relayed by hand between tools | Arjun's constraints changed both fixes |
 | Different providers in one room | Claude Code writes, Codex reviews | The author marks its own work | Codex requested changes on F1 in both runs ([run 1 screenshot](docs/live-run/review-changes-requested.png)) |
 
-Switch decides **who** may order a ship. Git decides **what** a ship may
+Switch decides **who** may order a ship, and who may ask the reviewer for a verdict. Git decides **what** a ship may
 contain: the origin's gate only lets main take a merge of an approved commit,
 or an accepted risk that changes no code. Every rule, what enforces it and
 what proves it: [docs/ENFORCEMENT.md](docs/ENFORCEMENT.md).
