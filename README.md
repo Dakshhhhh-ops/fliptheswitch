@@ -23,14 +23,20 @@ anyone else, and git refuses anything unreviewed.
 
 ## Judge it in 90 seconds
 
-> 1. **Nothing to install:** `npm run judge` (Node 24.7+). 14 checks in about
->    12 seconds, against the real git gate, scanner and tests: a real
->    post-quantum fix for F5, every shortcut refused (straight to main,
->    unapproved, changed after approval, shipped twice, a "risk" that edits
->    code), the approved ship accepted, the board at Shipped 1/6, and an
->    ML-DSA-signed certificate that fails once one sha in it is changed.
-> 2. **On your code:** `node tools/cbom-scan.mjs <your-repo>`, below.
-> 3. **The agents in Switch:** [run it yourself](#run-it-yourself).
+> 1. **The agents in Switch:** [the live run](docs/live-run/README.md), with
+>    screenshots. Switch decided who could order a ship, held the one
+>    reviewer role, locked the inventory to the scout, and carried the
+>    negotiation between the engineer, the security lead and four agents.
+>    [Run it yourself](#run-it-yourself) to repeat it.
+> 2. **The git half, with nothing to install:** `npm run judge` (Node
+>    24.7+). 14 checks in under 30 seconds against the real git gate,
+>    scanner and tests: a real post-quantum fix for F5, every shortcut
+>    refused (straight to main, unapproved, changed after approval, shipped
+>    twice, a "risk" that edits code), the approved ship accepted, the board
+>    at Shipped 1/6, and an ML-DSA-signed certificate that fails once one sha
+>    in it is changed. The agents' moves are scripted here: what Switch does
+>    can't be shown without Switch.
+> 3. **On your code:** `node tools/cbom-scan.mjs <your-repo>`, below.
 
 ## Live run results
 
@@ -98,7 +104,7 @@ flowchart TB
   subgraph intake["desk-intake"]
     scout["@desk-scout<br/>scans, keeps the Crypto inventory"]
   end
-  subgraph work["desk-f1-envelope … desk-f6-vault (one private room per finding)"]
+  subgraph work["desk-f5-webhooks · desk-f1-envelope · desk-f3-tls (one private room per finding worked)"]
     mig["@desk-migrator (Claude Code)<br/>plan → branch → tests"]
     eng(["Engineer<br/>adds what the code doesn't show"])
     rev["reviewer role → @desk-reviewer (Codex)<br/>APPROVED sha / CHANGES REQUESTED"]
@@ -194,6 +200,7 @@ GitHub's code scanning, with a fingerprint that follows it across commits:
 | Quantum-vulnerable signature (P2) | warning | 7.0 |
 | Algorithm picked at runtime, needs review (P3) | warning | 4.0 |
 | Below policy: AES-128 (P3) | note | 4.0 |
+| Kept on purpose beside its post-quantum replacement: legacy read path or dual signature (P3) | note | 4.0 |
 
 This repository's [CI](.github/workflows/ci.yml) runs the tests and uploads
 the demo's findings to code scanning. It doesn't fail on them: they're
@@ -203,15 +210,16 @@ planted.
 
 Take Switch away and this stops working. These parts are Switch's:
 
-| Switch feature | What it does here |
-|---|---|
-| Template (`template/crypto-desk.template.yaml`) | One form creates the four agents, the intake room, its guide document and the kickoff |
-| Agents creating rooms (`create_room`, `link_rooms`) | The scout opens a private room per finding with the right people and links them to intake |
-| Addressing policies | `owner` on the shipper is the ship gate. `anyone` lets the engineer work with the other agents |
-| Exclusive room role | Exactly one reviewer of record per finding, whichever agent holds it |
-| Room documents | The inventory can only be edited by the scout that wrote it, so the board can't be quietly changed |
-| Rooms shared by people and agents | Engineer, security lead and agents negotiate in the same thread |
-| Different providers in one room | Claude Code writes, Codex reviews, so the review comes from a different model |
+| Switch feature | What it does here | Without it | In the live run |
+|---|---|---|---|
+| Template (`template/crypto-desk.template.yaml`) | One form creates the four agents, the intake room, its guide document and the kickoff | Four agents and their rules set up by hand, per team | Run from a chat message to Switch's buddy agent |
+| Agents creating rooms (`create_room`, `link_rooms`) | The scout opens a private room per finding with the right people and links them to intake | One shared channel for every finding, or a person making rooms | The scout opened the F5, F1 and F3 rooms and started F1 on its own |
+| Addressing policies | `owner` on the shipper is the ship gate. `anyone` lets the engineer work with the other agents | Any agent obeys anyone who can type in the room | Arjun's "ship F1" and "accept risk" refused before an agent ran ([screenshot](docs/live-run/refusal-ship.png)) |
+| Exclusive room role | Exactly one reviewer of record per finding, whichever agent holds it | Any agent can claim it reviewed | The migrator's `assume_role("reviewer")` got Switch's `400` ([screenshot](docs/live-run/role-lock.png)) |
+| Room documents | The inventory can only be edited by the scout that wrote it, so the board can't be quietly changed | Any agent can rewrite the inventory | The migrator's edit got Switch's `403` ([screenshot](docs/live-run/inventory-lock.png)) |
+| Targeted messages (`send_targeted_message`, `target_roles`) | Hand-offs go to whoever holds the reviewer role, and the shipper tells the scout what shipped | Agents polling chat for their name | The migrator handed each fix to the reviewer role, or by name when nobody held it; the shipper told the scout, and the scout updated the board after each ship |
+| Rooms shared by people and agents | Engineer, security lead and agents negotiate in the same thread | Constraints relayed by hand between tools | Arjun's ECDSA and legacy-read constraints changed both fixes |
+| Different providers in one room | Claude Code writes, Codex reviews, so the review comes from a different model | The author marks its own work | Codex requested changes on F1 before approving ([screenshot](docs/live-run/review-changes-requested.png)) |
 
 ## What is enforced, and how it's proved
 
@@ -282,7 +290,7 @@ without Docker (Switch Console brings its own PostgreSQL). **Docker is needed
 for the bundled Mattermost**, which is the chat app this demo uses.
 
 ```sh
-npm run judge          # the whole desk without Switch: 14 checks
+npm run judge          # the git half without Switch: 14 checks
 npm test               # scanner, Mosca, board, gate, templates, judge and demo-payments tests
 npm run scan           # the six findings, and cbom.json
 npm run setup          # creates the local git origin with its gate, prints the folder
@@ -290,12 +298,17 @@ npm run board          # board.html, the desk's status read from git
 ```
 
 1. In Switch Console, add a server on this computer with Mattermost.
-2. In Mattermost, create a second account for the engineer.
-3. Templates → Import `template/crypto-desk.template.yaml`. Fill in the
+2. **Link your Mattermost account to your Switch user:** Home → Messaging
+   apps → your account, and post the code it shows from Mattermost. The
+   shipper only obeys its owner, and until this link exists it can't tell
+   that you are the owner.
+3. In Mattermost, create a second account for the engineer. Don't link it:
+   to Switch it is then not the owner, so the shipper refuses it.
+4. Templates → Import `template/crypto-desk.template.yaml`. Fill in the
    folder `npm run setup` printed and the engineer's username.
    Create. The scout opens rooms for F5, F1 and F3 (the form's "Findings to
    work"), not all six, which keeps the run light.
-4. Watch `desk-intake`. Talk to the agents from the engineer's account in the
+5. Watch `desk-intake`. Talk to the agents from the engineer's account in the
    work rooms, and approve from yours.
 
 If a run keeps failing while the scout opens rooms, import
@@ -318,7 +331,7 @@ tools/board.mjs                      the desk's status, read from git
 web/                                 the desk app: React UI, the Node API behind it, and the static export
 test/                                scanner, Mosca, board, gate, templates and the judge run
 demo-payments/                       the codebase being migrated, with its own tests
-scripts/judge.mjs                    npm run judge: the desk end to end without Switch
+scripts/judge.mjs                    npm run judge: the git half of the desk, without Switch
 scripts/setup-origin.mjs             local git origin the agents clone and push to
 scripts/pre-receive.mjs              the origin's gate: what main may take
 scripts/make-fixed-rooms.mjs         generates the backup template from the main one
