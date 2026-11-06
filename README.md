@@ -4,7 +4,7 @@
 
 **Your encryption has an expiry date. Some of it is already past it.**
 
-**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/)** (a snapshot of the live run) · [Judge it in 90 seconds](#judge-it-in-90-seconds) · [Scan your own code](#scan-your-own-code-in-10-seconds) · [What it found in ssh2 and jose](docs/REAL-SCANS.md) · [What is enforced, and how it's proved](#what-is-enforced-and-how-its-proved) · [Run it in Switch](#run-it-yourself)
+**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/)** (a snapshot of live run 1) · [Judge it in 90 seconds](#judge-it-in-90-seconds) · [Scan your own code](#scan-your-own-code-in-10-seconds) · [What it found in ssh2 and jose](docs/REAL-SCANS.md) · [What is enforced, and how it's proved](#what-is-enforced-and-how-its-proved) · [Run it in Switch](#run-it-yourself)
 
 Today, [ssh2](https://github.com/mscdex/ssh2), one of npm's most used SSH
 libraries, offers only classical key exchange: 31 findings in 10 files. Data
@@ -23,60 +23,58 @@ anyone else, and git refuses anything unreviewed.
 
 ## Judge it in 90 seconds
 
-> 1. **The agents in Switch:** [the live run](docs/live-run/README.md), with
+> 1. **The agents in Switch:** [the live runs](docs/live-run-2/README.md), with
 >    screenshots. Switch decided who could order a ship, held the one
 >    reviewer role, locked the inventory to the scout, and carried the
 >    negotiation between the engineer, the security lead and four agents.
 >    [Run it yourself](#run-it-yourself) to repeat it.
 > 2. **Check it yourself, with nothing to install:** `npm run judge` (Node
->    24.7+). 19 checks in about 25 seconds. It replays the agents' git
+>    24.7+). 24 checks in about a minute. It replays the agents' git
 >    moves against the real gate, scanner and tests: a post-quantum fix for
 >    F5, every shortcut refused (straight to main, unapproved, changed after
 >    approval, shipped twice, a "risk" that edits code), the approved ship
 >    accepted, and a signed certificate that fails once one sha in it is
->    changed or it's re-signed with another key. Then it checks the **live
->    Switch run**: both of the agents' certificates against the git history
->    they left ([`origin.bundle`](docs/live-run/origin.bundle)), and the
->    board read from it. The replayed moves are scripted; what Switch
+>    changed or it's re-signed with another key. Then it checks **both live
+>    Switch runs** from the git history the agents left: their certificates,
+>    every push replayed through the gate, and the board. The replayed moves are scripted; what Switch
 >    refused is in the screenshots, because that can't be shown without Switch.
 > 3. **On your code:** `node tools/cbom-scan.mjs <your-repo>`, below.
 
 ## Live run results
 
-The desk was run end to end in Switch on 5–6 November 2026, with nothing
-scripted. The full write-up, screenshots, certificates and git history are in
-[docs/live-run/](docs/live-run/README.md).
+The desk has been run end to end in Switch twice, with nothing scripted.
+Each run's write-up, screenshots, certificates and the agents' git history
+are in the repository.
 
-**Shipped 2/6 · Accepted risk 1 · Open 3**
+**[Live run 2](docs/live-run-2/README.md)** (`desk3`, 6 November 2026):
+**Shipped 3/6 · Open 3**, and F3's production TLS an accepted risk.
 
-- **F5 shipped** (`7761387`): webhooks dual-signed with ECDSA P-256 and
-  ML-DSA-65, because Arjun said 40 merchants still verify ECDSA. Approved on
-  the first review.
-- **F1 shipped** (`33c152b`): card keys wrapped with hybrid X25519 +
-  ML-KEM-768. The reviewer **requested changes** first, the migrator added a
-  test, and the security lead ruled on the legacy read path Arjun asked for.
-- **F3 accepted** (`d248e99`): TLS terminates at the acquirer's gateway;
-  owner security lead, review by 2027-02-04.
-- **Switch refused Arjun** on "ship F1" and on "accept risk"
-  ([screenshot](docs/live-run/refusal-ship.png)) before any agent session
-  started. His chat account isn't linked to a Switch user, and to Switch's
-  owner-only rule an unlinked account
-  ["matches nobody — not the owner"](https://github.com/sandbox-quantum/switch/blob/main/docs/official/internals/identity-and-access.md#identity-claims), so it is turned away like any
-  non-owner. A linked engineer who isn't the owner gets a different refusal
-  ("my operator has restricted who can address me here"); this local server
-  has one Switch user and sign-up off, so that case isn't shown.
-- The agents' git history is in the repository:
-  `git clone docs/live-run/origin.bundle live && git -C live log --graph --all`.
-  Every commit, branch and `refs/approved/<sha>` mark they pushed. Replayed
-  in order into a fresh origin, every push passes the gate:
-  `node tools/replay.mjs docs/live-run/origin.bundle`.
-- Both certificates verify against that history, signed by the desk's key
-  ([`desk-key.pub.pem`](docs/live-run/desk-key.pub.pem)):
-  `node tools/certificate.mjs verify docs/live-run/F1.cert.json --tests`
-  checks the signer, that the merge ships exactly the approved commit, that
-  the approval mark points at it, that the scanner sees the same crypto
-  before and after, and reruns the tests at the merge.
-- The demo's tests went from 8 to 24 on the agents' main.
+- **F5 shipped** (`90d83ac`): dual-signed with ECDSA and ML-DSA-65, because
+  Arjun said 40 merchants still verify ECDSA. Approved first time.
+- **F1 shipped** (`947f2c2`): hybrid X25519 + ML-KEM-768 with a read-only RSA
+  path for old envelopes. Codex **requested changes** (the commit didn't say
+  when RSA retires), the migrator fixed it, and Codex approved, with no
+  person involved.
+- **F3 shipped** (`a343979`) for staging, and its production TLS, on the
+  acquirer's gateway, recorded as an accepted risk (`374c45f`).
+- People sent only answers and decisions: 3 answers from the engineer, 4
+  decisions from the security lead, no nudges. One retry after Codex's
+  sandbox stalled on Windows ([what happened](docs/live-run-2/README.md#what-went-wrong-and-what-changed-because-of-it)).
+- Switch refused the engineer's "ship F3" [before any agent ran](docs/live-run-2/refusal-ship.png),
+  and refused the migrator's edit to the scout's inventory with a
+  [`403`](docs/live-run-2/inventory-lock-and-board.png).
+
+**[Live run 1](docs/live-run/README.md)** (`desk2`, 5–6 November 2026):
+Shipped 2/6 · Accepted risk 1. It also caught Switch's `400` when a second
+agent tried to take the [reviewer role](docs/live-run/role-lock.png). What
+went wrong in it changed the template that run 2 used.
+
+Check any run from git, with nothing but Node:
+
+```sh
+node tools/replay.mjs docs/live-run-2/origin.bundle                   # every push, replayed through the gate
+node tools/certificate.mjs verify docs/live-run-2/F1.cert.json --tests # signer, every sha, and the tests at the merge
+```
 
 ## Scan your own code in 10 seconds
 
@@ -309,7 +307,7 @@ for the bundled Mattermost**, which is the chat app this demo uses.
 
 ```sh
 npm run doctor         # what this machine has and what's missing, with the fix for each
-npm run judge          # 19 checks: the gate, scanner and certificates, and the live run's git
+npm run judge          # 24 checks: the gate, scanner and certificates, and both live runs' git
 npm test               # scanner, Mosca, board, gate, templates, live run, judge and demo-payments tests
 npm run scan           # the six findings, and cbom.json
 npm run setup          # creates the local git origin with its gate, prints the folder
@@ -352,14 +350,15 @@ tools/replay.mjs                     replays a live run's git history through th
 web/                                 the desk app: React UI, the Node API behind it, and the static export
 test/                                scanner, Mosca, board, gate, templates, live run and the judge run
 demo-payments/                       the codebase being migrated, with its own tests
-scripts/judge.mjs                    npm run judge: the gate, scanner and certificates, and the live run's git
+scripts/judge.mjs                    npm run judge: the gate, scanner and certificates, and the live runs' git
 scripts/doctor.mjs                   npm run doctor: checks this machine for everything the desk needs
 scripts/setup-origin.mjs             local git origin the agents clone and push to
 scripts/pre-receive.mjs              the origin's gate: what main may take
 scripts/make-fixed-rooms.mjs         generates the backup template from the main one
 docs/DEMO.md                         run-sheet for the demo video
-docs/live-run/                       the live run in Switch: write-up, screenshots, certificates,
-                                     the agents' git history (origin.bundle) and the desk's public key
+docs/live-run-2/                     live run 2 in Switch (desk3): write-up, timestamped log, screenshots,
+                                     certificates and the agents' git history (origin.bundle)
+docs/live-run/                       live run 1 (desk2), and the desk's public key
 docs/REAL-SCANS.md                   the scanner on ssh2 and jose, reproducible
 .github/workflows/ci.yml             tests, plus the demo's findings uploaded to code scanning
 ```
