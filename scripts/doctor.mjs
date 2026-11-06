@@ -96,6 +96,38 @@ const codex = run('codex', ['--version']);
 if (codex.ok) ok('Codex', codex.out.split('\n').pop());
 else warn('Codex not found', 'Optional. Set both providers in the form to `claude`; the reviewer is then its own agent on the same model.');
 
+// Codex agent sessions left over from an earlier run. In the live run, four
+// stale ones (from the day before) were running when the reviewer's shell
+// stalled; once they were stopped, the sandbox worked again.
+if (codex.ok) {
+  const STALE_HOURS = 6;
+  let sessions = [];
+  if (process.platform === 'win32') {
+    const ps = run('powershell', [
+      '-NoProfile',
+      '-Command',
+      "Get-CimInstance Win32_Process -Filter \"Name='codex.exe'\" | Where-Object { $_.CommandLine -match 'app-server' } | ForEach-Object { '{0} {1}' -f $_.ProcessId, [int]((Get-Date) - $_.CreationDate).TotalMinutes }",
+    ]);
+    sessions = ps.out.split(/\r?\n/).map((l) => l.trim().split(/\s+/).map(Number)).filter((p) => p.length === 2 && p.every(Number.isFinite));
+  } else {
+    const ps = run('ps', ['-eo', 'pid=,etimes=,args=']);
+    sessions = ps.out
+      .split('\n')
+      .filter((l) => /codex.*app-server/.test(l))
+      .map((l) => l.trim().split(/\s+/).slice(0, 2).map(Number))
+      .map(([pid, secs]) => [pid, Math.round(secs / 60)]);
+  }
+  const stale = sessions.filter(([, minutes]) => minutes > STALE_HOURS * 60);
+  if (stale.length) {
+    warn(
+      `${stale.length} Codex agent session${stale.length === 1 ? '' : 's'} older than ${STALE_HOURS} hours: PID ${stale.map(([pid]) => pid).join(', ')}`,
+      `Left over from an earlier run, they can stall the reviewer's sandboxed shell. Stop them before a run: ${
+        process.platform === 'win32' ? `Stop-Process -Id ${stale.map(([pid]) => pid).join(',')}` : `kill ${stale.map(([pid]) => pid).join(' ')}`
+      }`,
+    );
+  } else if (sessions.length) ok(`Codex agent sessions: ${sessions.length}, none older than ${STALE_HOURS} hours`);
+}
+
 const docker = run('docker', ['info', '--format', '{{.ServerVersion}}']);
 if (docker.ok) ok('Docker is running', `server ${docker.out}`);
 else bad('Docker is not running (Switch Console runs Mattermost in it)', 'start Docker Desktop');
