@@ -89,6 +89,20 @@ ways the demo didn't. A later review found more gaps (comments matched, calls
 split across lines missed, runtime algorithm names skipped). Every rule added
 for these has a test, and [REAL-SCANS.md](REAL-SCANS.md) lists them.
 
+## How accurate it is
+
+`node tools/scanner-bench.mjs` scores the scanner against 53 labelled lines of
+real-world crypto code in [test/fixtures/scanner-bench](../test/fixtures/scanner-bench/):
+Node's crypto, Web Crypto, JOSE, node-forge, node-rsa, tweetnacl and
+elliptic, plus decoys (comments, docs strings, modern algorithms) and code
+whose algorithm is only known at runtime, which it should flag for a person.
+
+**Precision 100%, recall 94%** (33 of 35). The two misses are listed as known
+gaps: an algorithm passed through your own wrapper function, and a
+standalone X25519 in a file that also does the hybrid (the scanner takes it
+for the hybrid's classical half). `npm test` fails if precision drops,
+recall falls under 90%, or a new miss appears.
+
 ## Limits
 
 The scanner reads JavaScript and TypeScript with fixed rules, not a parser.

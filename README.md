@@ -36,8 +36,8 @@ people:
    real gate (every shortcut refused, the approved ship accepted), then checks
    **both live Switch runs** from the git history the agents left: their
    signed certificates, every push replayed through the gate, and the board.
-3. **Scan your own code:** `node tools/cbom-scan.mjs ../your-repo`
-   ([more](docs/SCANNER.md)).
+3. **Scan your own code:** `node tools/cbom-scan.mjs ../your-repo`. Measured
+   on labelled code: 100% precision, 94% recall ([more](docs/SCANNER.md)).
 
 ## The live runs
 
@@ -45,7 +45,7 @@ Run end to end in Switch twice, with nothing scripted. The latest:
 **[live run 2](docs/live-run-2/README.md)** (`desk3`, 6 November 2026), with a
 timestamped log of every message and push.
 
-**Shipped 3/6 · Open 3**, and F3's production TLS an accepted risk
+**Shipped 3/6 (F3 with a risk on record) · Open 3**
 
 | Finding | What happened |
 |---|---|
@@ -115,51 +115,44 @@ what proves it: [docs/ENFORCEMENT.md](docs/ENFORCEMENT.md).
 
 ## Run it yourself
 
+Every step that doesn't need a person is a command. The whole run, with every
+message to send and what to do if it gets stuck: [docs/RUN-SHEET.md](docs/RUN-SHEET.md).
+
 You need [Switch Console](https://github.com/sandbox-quantum/switch/releases/latest)
 with its Mattermost (which needs Docker), Node 24.7+, git 2.38+ and Claude
-Code. Codex is optional: without it, set both providers in the form to
-`claude`.
+Code; Codex is optional. Once per machine, link your Mattermost account to
+your Switch user (Home → Messaging apps), so the shipper knows it's you.
 
 ```sh
-npm run doctor   # what this machine has and what's missing, with the fix for each
-npm run setup    # the local git origin with its gate; prints the folder for the form
+npm run doctor         # what this machine has and what's missing, with the fix for each
+npm run desk:up        # origin, a fresh team prefix, the engineer's account, templates, Codex check;
+                       # prints the one message that starts the desk
+npm run desk:watch     # logs every message and push, and says when an agent is waiting on you
+npm run desk:package   # keeps the run as docs/live-run-N and verifies it
 ```
-
-1. In Switch Console, add a server on this computer with Mattermost.
-2. **Link your Mattermost account to your Switch user** (Home → Messaging
-   apps). The shipper only obeys its owner, and can't tell it's you until
-   then.
-3. Create a second Mattermost account for the engineer, and don't link it.
-4. Templates → Import [`template/crypto-desk.template.yaml`](template/crypto-desk.template.yaml),
-   fill in the folder and the engineer's username, and create it.
-5. Watch `desk-intake`. Answer the agents from the engineer's account, and
-   approve from yours.
-
-`npm run reset` puts the planted code back. Everything stays on your machine.
-If the scout keeps failing to open rooms, import
-`template/crypto-desk-fixed-rooms.template.yaml` instead.
 
 ## Repository
 
 ```
 template/      the Switch template (and a backup that declares the rooms)
-tools/         scanner, Mosca's rule, certificates, board, live-run replay
-scripts/       judge, doctor, the git gate, origin setup
+tools/         scanner and its benchmark, Mosca's rule, certificates, board, live-run replay
+scripts/       judge, doctor, desk:up/watch/package, the git gate, origin setup
 web/           the desk app: React UI on a Node API that reads the agents' git
 demo-payments/ the payments service being migrated, with six planted problems
 docs/          both live runs, enforcement, scanner, desk app, real-world scans
-test/          65 tests, plus demo-payments' own; CI runs them on Linux, Windows and macOS
+test/          73 tests, plus demo-payments' own; CI runs them on Linux, Windows and macOS
 ```
 
 More: [the scanner and CI gate](docs/SCANNER.md) ·
 [the desk app](docs/DESK-APP.md) ·
 [what it found in ssh2 and jose](docs/REAL-SCANS.md) ·
+[the live run, step by step](docs/RUN-SHEET.md) ·
 [the demo video run-sheet](docs/DEMO.md)
 
 ## Limits
 
 - The scanner uses fixed rules for JavaScript and TypeScript, not a parser:
-  predictable, not complete ([details](docs/SCANNER.md#limits)).
+  predictable and measured, not complete ([details](docs/SCANNER.md#how-accurate-it-is)).
 - The origin is a local folder with no accounts, so git can't tell which
   agent pushed. Switch's addressing decides who may order a ship; the gate
   decides what it may contain.
