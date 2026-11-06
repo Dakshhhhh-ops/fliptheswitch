@@ -9,7 +9,8 @@
   },
   "scripts": {
     "judge": "node scripts/judge.mjs",
-    "test": "node --test test/cbom-scan.test.mjs test/board.test.mjs test/gate.test.mjs test/mosca.test.mjs test/templates.test.mjs test/judge.test.mjs && npm --prefix demo-payments test",
+    "doctor": "node scripts/doctor.mjs",
+    "test": "node --test test/cbom-scan.test.mjs test/board.test.mjs test/gate.test.mjs test/mosca.test.mjs test/templates.test.mjs test/live-run.test.mjs test/judge.test.mjs && npm --prefix demo-payments test",
     "scan": "node tools/cbom-scan.mjs demo-payments --out cbom.json",
     "setup": "node scripts/setup-origin.mjs",
     "reset": "node scripts/setup-origin.mjs --reset",
