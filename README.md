@@ -4,7 +4,7 @@
 
 **Your encryption has an expiry date. Some of it is already past it.**
 
-**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/)** · [Judge it in 90 seconds](#judge-it-in-90-seconds) · [The live run](docs/live-run/README.md) · [Why it needs Switch](#why-it-needs-switch) · [Run it yourself](#run-it-yourself)
+**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/)** · [Judge it in 90 seconds](#judge-it-in-90-seconds) · [The live runs](docs/live-run-2/README.md) · [Why it needs Switch](#why-it-needs-switch) · [Run it yourself](#run-it-yourself)
 
 Data sent today with classical crypto can be recorded now and decrypted once
 a large quantum computer exists. [ssh2](https://github.com/mscdex/ssh2), one
@@ -25,36 +25,38 @@ people:
 
 ## Judge it in 90 seconds
 
-1. **Watch the agents in Switch:** [the live run](docs/live-run/README.md),
-   with screenshots of every refusal.
+1. **Watch the agents in Switch:** [live run 2](docs/live-run-2/README.md),
+   with a timestamped log and screenshots of the refusals.
 2. **Check it yourself, nothing to install** (Node 24.7+):
    ```sh
    git clone https://github.com/Dakshhhhh-ops/fliptheswitch && cd fliptheswitch
    npm run judge
    ```
-   19 checks in about 25 seconds. It plays the desk's git moves against the
+   24 checks in about a minute. It plays the desk's git moves against the
    real gate (every shortcut refused, the approved ship accepted), then checks
-   the **live Switch run** from the git history the agents left: their
+   **both live Switch runs** from the git history the agents left: their
    signed certificates, every push replayed through the gate, and the board.
 3. **Scan your own code:** `node tools/cbom-scan.mjs ../your-repo`
    ([more](docs/SCANNER.md)).
 
-## The live run
+## The live runs
 
-Run end to end in Switch on 5–6 November 2026. Write-up, screenshots,
-certificates and the agents' git history: [docs/live-run/](docs/live-run/README.md).
+Run end to end in Switch twice, with nothing scripted. The latest:
+**[live run 2](docs/live-run-2/README.md)** (`desk3`, 6 November 2026), with a
+timestamped log of every message and push.
 
-**Shipped 2/6 · Accepted risk 1 · Open 3**
+**Shipped 3/6 · Open 3**, and F3's production TLS an accepted risk
 
 | Finding | What happened |
 |---|---|
-| **F5** webhooks, ECDSA | Arjun (the engineer): "40 merchants still verify ECDSA". So the fix dual-signs with ECDSA and ML-DSA-65. Approved first time, shipped as `7761387` |
-| **F1** card keys, RSA-OAEP | Wrapped with hybrid X25519 + ML-KEM-768. Codex **requested changes**, the migrator added a test, then it was approved and shipped as `33c152b` |
-| **F3** TLS | Production TLS is on the acquirer's gateway, outside the repo: an accepted risk with an owner and a review date (`d248e99`) |
-| **Refusals** | Switch refused Arjun's "ship F1" [before any agent ran](docs/live-run/refusal-ship.png), refused a second agent the [reviewer role](docs/live-run/role-lock.png), and refused an edit to the [scout's inventory](docs/live-run/inventory-lock.png) |
+| **F5** webhooks, ECDSA | Arjun (the engineer): "40 merchants still verify ECDSA". So the fix dual-signs with ECDSA and ML-DSA-65. Approved first time, shipped as `90d83ac` |
+| **F1** card keys, RSA-OAEP | Hybrid X25519 + ML-KEM-768, with RSA kept only to read old envelopes. Codex **requested changes** (the commit didn't say when RSA retires), the migrator fixed it, Codex approved. Shipped as `947f2c2` |
+| **F3** TLS | Staging moved to hybrid TLS 1.3 (`a343979`). Production is on the acquirer's gateway, outside the repo: a change request, and an accepted risk with an owner and a review date (`374c45f`) |
+| **People** | 3 answers from the engineer, 4 decisions from the security lead, no nudges. One retry after Codex's sandbox stalled on Windows |
+| **Refusals** | Switch refused Arjun's "ship F3" [before any agent ran](docs/live-run-2/refusal-ship.png), and the migrator's edit to the scout's inventory with a [`403`](docs/live-run-2/inventory-lock-and-board.png). [Live run 1](docs/live-run/README.md) also caught its `400` for a second [reviewer](docs/live-run/role-lock.png) |
 
-Check it from git: `node tools/replay.mjs docs/live-run/origin.bundle` and
-`node tools/certificate.mjs verify docs/live-run/F1.cert.json --tests`.
+Check it from git: `node tools/replay.mjs docs/live-run-2/origin.bundle` and
+`node tools/certificate.mjs verify docs/live-run-2/F1.cert.json --tests`.
 
 ## How it works
 
@@ -99,12 +101,12 @@ Take Switch away and the desk stops working. These parts are Switch's:
 |---|---|---|---|
 | Template | One form creates the four agents, the intake room, its guide document and the kickoff | Four agents and their rules set up by hand, per team | Run from a chat message to Switch's buddy agent |
 | Agents creating rooms (`create_room`, `link_rooms`) | The scout opens a private room per finding with the right people | One shared channel for every finding | The scout opened the F5, F1 and F3 rooms itself |
-| Addressing policies | `owner` on the shipper is the ship gate | Any agent obeys anyone who can type in the room | Arjun's "ship F1" refused before an agent ran ([screenshot](docs/live-run/refusal-ship.png)) |
+| Addressing policies | `owner` on the shipper is the ship gate | Any agent obeys anyone who can type in the room | Arjun's "ship F3" refused before an agent ran ([screenshot](docs/live-run-2/refusal-ship.png)) |
 | Exclusive room role | One reviewer of record per finding | Any agent can claim it reviewed | A second agent's `assume_role("reviewer")` got Switch's `400` ([screenshot](docs/live-run/role-lock.png)) |
-| Room documents | Only the scout can edit the inventory, so the board can't be quietly changed | Any agent can rewrite it | The migrator's edit got Switch's `403` ([screenshot](docs/live-run/inventory-lock.png)) |
+| Room documents | Only the scout can edit the inventory, so the board can't be quietly changed | Any agent can rewrite it | The migrator's edit got Switch's `403` ([screenshot](docs/live-run-2/inventory-lock-and-board.png)) |
 | Targeted messages | Hand-offs go to whoever holds the reviewer role; the shipper tells the scout what shipped | Agents polling chat for their name | Every hand-off and ship notice |
 | Rooms shared by people and agents | Engineer, security lead and agents negotiate in one thread | Constraints relayed by hand between tools | Arjun's constraints changed both fixes |
-| Different providers in one room | Claude Code writes, Codex reviews | The author marks its own work | Codex requested changes on F1 ([screenshot](docs/live-run/review-changes-requested.png)) |
+| Different providers in one room | Claude Code writes, Codex reviews | The author marks its own work | Codex requested changes on F1 in both runs ([run 1 screenshot](docs/live-run/review-changes-requested.png)) |
 
 Switch decides **who** may order a ship. Git decides **what** a ship may
 contain: the origin's gate only lets main take a merge of an approved commit,
@@ -145,8 +147,8 @@ tools/         scanner, Mosca's rule, certificates, board, live-run replay
 scripts/       judge, doctor, the git gate, origin setup
 web/           the desk app: React UI on a Node API that reads the agents' git
 demo-payments/ the payments service being migrated, with six planted problems
-docs/          the live run, enforcement, scanner, desk app, real-world scans
-test/          60 tests, plus demo-payments' own; CI runs them on Linux, Windows and macOS
+docs/          both live runs, enforcement, scanner, desk app, real-world scans
+test/          65 tests, plus demo-payments' own; CI runs them on Linux, Windows and macOS
 ```
 
 More: [the scanner and CI gate](docs/SCANNER.md) ·
