@@ -19,7 +19,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findings, scan } from '../tools/cbom-scan.mjs';
 import { moscaLine, withMosca } from '../tools/mosca.mjs';
 import { counts, readDesk } from '../tools/board.mjs';
-import { check, deskKey, issue } from '../tools/certificate.mjs';
+import { createPublicKey, sign } from 'node:crypto';
+import { audit, canonical, check, deskKey, issue, pubFileFor, publicKeyFrom } from '../tools/certificate.mjs';
 
 const DESK = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const slash = (p) => p.split('\\').join('/');
@@ -201,12 +202,49 @@ export function judge({ log = console.log, keep = true } = {}) {
     step(line, 'Shipped 1/6 · Accepted risk 1', c.shipped === 1 && c['accepted risk'] === 1 && desk.rows.length === 6);
 
     log('\n8. A signed migration certificate for F5');
-    const cert = issue({ origin, id: 'F5', key: deskKey(null) });
+    const keyFile = join(root, 'desk-key.pem');
+    const key = deskKey(keyFile);
+    const deskPub = publicKeyFrom(pubFileFor(keyFile));
+    const cert = issue({ origin, id: 'F5', key });
     const certFile = join(root, 'F5.cert.json');
     writeFileSync(certFile, JSON.stringify(cert, null, 2) + '\n');
-    step('Certificate signed with ML-DSA-65 verifies', 'valid', check(cert), `approved ${cert.review.approvedCommit.slice(0, 7)}, shipped ${cert.ship.merge.slice(0, 7)}, tests ${cert.tests.pass} passed`);
+    const claims = audit(cert, origin);
+    step(
+      "Certificate signed by the desk's ML-DSA-65 key, every claim matching git",
+      'valid',
+      check(cert, { publicKey: deskPub }) && claims.every((x) => x.ok),
+      `approved ${cert.review.approvedCommit.slice(0, 7)}, shipped ${cert.ship.merge.slice(0, 7)}, tests ${cert.tests.pass} passed, ${claims.length} claims checked`,
+    );
     const forged = { ...cert, review: { ...cert.review, approvedCommit: '0'.repeat(40) } };
-    step('The same certificate with the approval sha changed', 'invalid', !check(forged));
+    step('The same certificate with the approval sha changed', 'invalid', !check(forged, { publicKey: deskPub }));
+    const other = deskKey(null);
+    const { signature: _, ...forgedBody } = forged;
+    const resigned = {
+      ...forgedBody,
+      signature: {
+        algorithm: 'ML-DSA-65',
+        publicKey: createPublicKey(other).export({ type: 'spki', format: 'der' }).toString('base64'),
+        value: sign(null, Buffer.from(canonical(forgedBody)), other).toString('base64'),
+      },
+    };
+    step('That forgery re-signed with another key', "refused: not the desk's key, and git disagrees", !check(resigned, { publicKey: deskPub }) && audit(resigned, origin).some((x) => !x.ok));
+
+    log('\n9. The live run in Switch, checked from the git it left (docs/live-run/origin.bundle)');
+    const liveDir = join(DESK, 'docs', 'live-run');
+    const livePub = publicKeyFrom(join(liveDir, 'desk-key.pub.pem'));
+    const bundle = join(liveDir, 'origin.bundle');
+    for (const id of ['F5', 'F1']) {
+      const live = JSON.parse(readFileSync(join(liveDir, `${id}.cert.json`), 'utf8'));
+      const liveClaims = audit(live, bundle);
+      step(
+        `${id}: the agents' certificate matches the agents' git`,
+        "signed by the desk's key, every claim true",
+        check(live, { publicKey: livePub }) && liveClaims.every((x) => x.ok),
+        `approved ${live.review.approvedCommit.slice(0, 7)} by the reviewer, shipped ${live.ship.merge.slice(0, 7)} by the shipper, ${live.tests.pass} tests`,
+      );
+    }
+    const liveBoard = counts(readDesk(bundle).rows);
+    step(`Board from the live origin: Shipped ${liveBoard.shipped}/6 · Accepted risk ${liveBoard['accepted risk']}`, 'Shipped 2/6 · Accepted risk 1', liveBoard.shipped === 2 && liveBoard['accepted risk'] === 1);
 
     const failed = results.filter((x) => !x.ok);
     log(`\n${failed.length ? `✘ ${failed.length} of ${results.length} checks failed.` : `All ${results.length} checks held`} (${((Date.now() - t0) / 1000).toFixed(1)} s).`);
