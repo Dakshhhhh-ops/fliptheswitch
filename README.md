@@ -28,14 +28,17 @@ anyone else, and git refuses anything unreviewed.
 >    reviewer role, locked the inventory to the scout, and carried the
 >    negotiation between the engineer, the security lead and four agents.
 >    [Run it yourself](#run-it-yourself) to repeat it.
-> 2. **The git half, with nothing to install:** `npm run judge` (Node
->    24.7+). 14 checks in under 30 seconds against the real git gate,
->    scanner and tests: a real post-quantum fix for F5, every shortcut
->    refused (straight to main, unapproved, changed after approval, shipped
->    twice, a "risk" that edits code), the approved ship accepted, the board
->    at Shipped 1/6, and an ML-DSA-signed certificate that fails once one sha
->    in it is changed. The agents' moves are scripted here: what Switch does
->    can't be shown without Switch.
+> 2. **Check it yourself, with nothing to install:** `npm run judge` (Node
+>    24.7+). 18 checks in about 20 seconds. It replays the agents' git
+>    moves against the real gate, scanner and tests: a post-quantum fix for
+>    F5, every shortcut refused (straight to main, unapproved, changed after
+>    approval, shipped twice, a "risk" that edits code), the approved ship
+>    accepted, and a signed certificate that fails once one sha in it is
+>    changed or it's re-signed with another key. Then it checks the **live
+>    Switch run**: both of the agents' certificates against the git history
+>    they left ([`origin.bundle`](docs/live-run/origin.bundle)), and the
+>    board read from it. The replayed moves are scripted; what Switch
+>    refused is in the screenshots, because that can't be shown without Switch.
 > 3. **On your code:** `node tools/cbom-scan.mjs <your-repo>`, below.
 
 ## Live run results
@@ -62,7 +65,17 @@ scripted. The full write-up, screenshots, certificates and git history are in
   non-owner. A linked engineer who isn't the owner gets a different refusal
   ("my operator has restricted who can address me here"); this local server
   has one Switch user and sign-up off, so that case isn't shown.
-- Both certificates verify: `node tools/certificate.mjs verify docs/live-run/F1.cert.json`.
+- The agents' git history is in the repository:
+  `git clone docs/live-run/origin.bundle live && git -C live log --graph --all`.
+  Every commit, branch and `refs/approved/<sha>` mark they pushed. Replayed
+  in order into a fresh origin, every push passes the gate
+  (`test/live-run.test.mjs`).
+- Both certificates verify against that history, signed by the desk's key
+  ([`desk-key.pub.pem`](docs/live-run/desk-key.pub.pem)):
+  `node tools/certificate.mjs verify docs/live-run/F1.cert.json --tests`
+  checks the signer, that the merge ships exactly the approved commit, that
+  the approval mark points at it, that the scanner sees the same crypto
+  before and after, and reruns the tests at the merge.
 - The demo's tests went from 8 to 24 on the agents' main.
 
 ## Scan your own code in 10 seconds
@@ -202,9 +215,10 @@ GitHub's code scanning, with a fingerprint that follows it across commits:
 | Below policy: AES-128 (P3) | note | 4.0 |
 | Kept on purpose beside its post-quantum replacement: legacy read path or dual signature (P3) | note | 4.0 |
 
-This repository's [CI](.github/workflows/ci.yml) runs the tests and uploads
-the demo's findings to code scanning. It doesn't fail on them: they're
-planted.
+This repository's [CI](.github/workflows/ci.yml) runs the tests, the judge
+and the live-run certificate checks on Linux, Windows and macOS, builds and
+exports the desk app, and uploads the demo's findings to code scanning. It
+doesn't fail on the findings: they're planted.
 
 ## Why it needs Switch
 
@@ -245,7 +259,11 @@ the hook installed. Every ship also gets a migration certificate
 ([`tools/certificate.mjs`](tools/certificate.mjs)): the crypto in the file
 before and after, the approved sha and its mark, the merge, and the tests at
 it. It is read from git and signed with ML-DSA-65, the signature the desk
-itself recommends, and `certificate.mjs verify` checks it.
+itself recommends. `certificate.mjs verify` checks that the signature is the
+desk's key (not just whatever key the certificate carries), then checks every
+claim in it against git: the merge is on main and merges exactly the approved
+commit, the approval mark points at it, and the scanner sees the same crypto
+before and after. `--tests` reruns the tests at the merge.
 
 ## The demo codebase
 
@@ -283,21 +301,23 @@ for these has a test, and [REAL-SCANS.md](docs/REAL-SCANS.md) lists them.
 ## Run it yourself
 
 You need [Switch Console](https://github.com/sandbox-quantum/switch/releases/latest),
-Node 24.7+, git, and Claude Code signed in. Codex is optional: **no Codex? Set
+Node 24.7+, git 2.38+, and Claude Code signed in. Codex is optional: **no Codex? Set
 both providers in the form to `claude`.** The reviewer is then still its own
 agent with its own checkout and rules, just not a different model. The Switch server runs
 without Docker (Switch Console brings its own PostgreSQL). **Docker is needed
 for the bundled Mattermost**, which is the chat app this demo uses.
 
 ```sh
-npm run judge          # the git half without Switch: 14 checks
-npm test               # scanner, Mosca, board, gate, templates, judge and demo-payments tests
+npm run doctor         # what this machine has and what's missing, with the fix for each
+npm run judge          # 18 checks: the gate, scanner and certificates, and the live run's git
+npm test               # scanner, Mosca, board, gate, templates, live run, judge and demo-payments tests
 npm run scan           # the six findings, and cbom.json
 npm run setup          # creates the local git origin with its gate, prints the folder
 npm run board          # board.html, the desk's status read from git
 ```
 
-1. In Switch Console, add a server on this computer with Mattermost.
+1. In Switch Console, add a server on this computer with Mattermost. Then
+   `npm run doctor` should show the Switch server and Mattermost as up.
 2. **Link your Mattermost account to your Switch user:** Home → Messaging
    apps → your account, and post the code it shows from Mattermost. The
    shipper only obeys its owner, and until this link exists it can't tell
@@ -329,14 +349,16 @@ tools/mosca.mjs                      Mosca's rule per finding, with the lifetime
 tools/certificate.mjs                ML-DSA-65-signed migration certificate for each ship
 tools/board.mjs                      the desk's status, read from git
 web/                                 the desk app: React UI, the Node API behind it, and the static export
-test/                                scanner, Mosca, board, gate, templates and the judge run
+test/                                scanner, Mosca, board, gate, templates, live run and the judge run
 demo-payments/                       the codebase being migrated, with its own tests
-scripts/judge.mjs                    npm run judge: the git half of the desk, without Switch
+scripts/judge.mjs                    npm run judge: the gate, scanner and certificates, and the live run's git
+scripts/doctor.mjs                   npm run doctor: checks this machine for everything the desk needs
 scripts/setup-origin.mjs             local git origin the agents clone and push to
 scripts/pre-receive.mjs              the origin's gate: what main may take
 scripts/make-fixed-rooms.mjs         generates the backup template from the main one
 docs/DEMO.md                         run-sheet for the demo video
-docs/live-run/                       the live run in Switch: write-up, screenshots, certificates, git log
+docs/live-run/                       the live run in Switch: write-up, screenshots, certificates,
+                                     the agents' git history (origin.bundle) and the desk's public key
 docs/REAL-SCANS.md                   the scanner on ssh2 and jose, reproducible
 .github/workflows/ci.yml             tests, plus the demo's findings uploaded to code scanning
 ```
