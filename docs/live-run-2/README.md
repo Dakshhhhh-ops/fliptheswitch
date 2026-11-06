@@ -5,8 +5,9 @@ The second full run of the desk in Switch, after the fixes that
 payments service, team prefix `desk3`. A watcher logged every chat message
 and every push to the origin as it happened: [chat-log.md](chat-log.md).
 
-**Shipped 3/6 · Open 3**, and F3's production TLS recorded as an accepted
-risk ([final board](inventory-lock-and-board.png)).
+**Shipped 3/6 (F3 with a risk on record) · Open 3**: F3's staging fix
+shipped, and its production TLS is recorded as an accepted risk
+([final board](inventory-lock-and-board.png)).
 
 | Finding | What happened | On main |
 |---|---|---|
@@ -82,9 +83,11 @@ Also sent, and not part of the workflow:
   ambiguous about when, and this time the shipper shipped anyway; in run 1 it
   refused. The template now has the reviewer keep the role until the ship,
   and the shipper check who holds it at that moment and say so.
-- **The board says "Accepted risk 0"** although `ACCEPTED-RISKS.md` names
-  F3: a finding counts once, and F3's code fix is on main, so it counts as
-  shipped. The scout's inventory notes the production risk beside it.
+- **The scout's board line said "Accepted risk 0"** although
+  `ACCEPTED-RISKS.md` names F3: a finding counts once, and F3's code fix is
+  on main, so it counted as shipped. The desk's board now names such
+  findings: `Shipped 3/6 (F3 with a risk on record) · Accepted risk 0 · In
+  review 0 · Open 3`.
 
 ## Check it yourself
 

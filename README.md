@@ -47,7 +47,7 @@ Each run's write-up, screenshots, certificates and the agents' git history
 are in the repository.
 
 **[Live run 2](docs/live-run-2/README.md)** (`desk3`, 6 November 2026):
-**Shipped 3/6 · Open 3**, and F3's production TLS an accepted risk.
+**Shipped 3/6 (F3 with a risk on record) · Open 3**: F3's staging fix shipped, and its production TLS, on the acquirer's gateway, is an accepted risk.
 
 - **F5 shipped** (`90d83ac`): dual-signed with ECDSA and ML-DSA-65, because
   Arjun said 40 merchants still verify ECDSA. Approved first time.
@@ -296,46 +296,45 @@ ways the demo didn't. A later review found more gaps (comments matched, calls
 split across lines missed, runtime algorithm names skipped). Every rule added
 for these has a test, and [REAL-SCANS.md](docs/REAL-SCANS.md) lists them.
 
+**How accurate is it?** `node tools/scanner-bench.mjs` scores it against 53
+labelled lines of real-world crypto code ([test/fixtures/scanner-bench](test/fixtures/scanner-bench/)):
+Node's crypto, Web Crypto, JOSE, node-forge, node-rsa, tweetnacl and elliptic,
+plus decoys (comments, docs strings, modern algorithms) and code whose
+algorithm is only known at runtime. **Precision 100%, recall 94%** (33 of 35).
+The two misses are listed as known gaps: an algorithm passed through your own
+wrapper function, and a standalone X25519 in a file that also does the
+hybrid. `npm test` fails if precision drops, recall falls under 90%, or a new
+miss appears.
+
 ## Run it yourself
 
-You need [Switch Console](https://github.com/sandbox-quantum/switch/releases/latest),
-Node 24.7+, git 2.38+, and Claude Code signed in. Codex is optional: **no Codex? Set
-both providers in the form to `claude`.** The reviewer is then still its own
-agent with its own checkout and rules, just not a different model. The Switch server runs
-without Docker (Switch Console brings its own PostgreSQL). **Docker is needed
-for the bundled Mattermost**, which is the chat app this demo uses.
+Every step that doesn't need a person is a command. The full run, with every
+message to send and what to do if it gets stuck: [docs/RUN-SHEET.md](docs/RUN-SHEET.md).
+
+You need [Switch Console](https://github.com/sandbox-quantum/switch/releases/latest)
+with its Mattermost (which needs Docker), Node 24.7+, git 2.38+ and Claude
+Code. Codex is optional: without it the reviewer runs on Claude, as its own
+agent with its own checkout and rules. Once per machine, link your Mattermost
+account to your Switch user (Home → Messaging apps): the shipper only obeys
+its owner, and that link is how it knows the account is yours.
 
 ```sh
 npm run doctor         # what this machine has and what's missing, with the fix for each
-npm run judge          # 24 checks: the gate, scanner and certificates, and both live runs' git
-npm test               # scanner, Mosca, board, gate, templates, live run, judge and demo-payments tests
-npm run scan           # the six findings, and cbom.json
-npm run setup          # creates the local git origin with its gate, prints the folder
-npm run board          # board.html, the desk's status read from git
+npm run desk:up        # origin reset, a fresh team prefix, the engineer's account, templates, Codex check;
+                       # prints the one message that starts the desk
+npm run desk:watch     # logs every message and push, and says when an agent is waiting on you
+npm run desk:package   # keeps the run as docs/live-run-N: git history, certificates, log, board, and verifies it
 ```
 
-1. In Switch Console, add a server on this computer with Mattermost. Then
-   `npm run doctor` should show the Switch server and Mattermost as up.
-2. **Link your Mattermost account to your Switch user:** Home → Messaging
-   apps → your account, and post the code it shows from Mattermost. The
-   shipper only obeys its owner, and until this link exists it can't tell
-   that you are the owner.
-3. In Mattermost, create a second account for the engineer. Don't link it:
-   to Switch it is then not the owner, so the shipper refuses it.
-4. Templates → Import `template/crypto-desk.template.yaml`. Fill in the
-   folder `npm run setup` printed and the engineer's username.
-   Create. The scout opens rooms for F5, F1 and F3 (the form's "Findings to
-   work"), not all six, which keeps the run light.
-5. Watch `desk-intake`. Talk to the agents from the engineer's account in the
-   work rooms, and approve from yours.
+`desk:up` refuses to reset an origin that holds a run nobody has packaged.
+Without Switch:
 
-If a run keeps failing while the scout opens rooms, import
-`template/crypto-desk-fixed-rooms.template.yaml` instead: the template
-creates the three rooms itself, and everything else is the same (it is
-generated from the main template by `scripts/make-fixed-rooms.mjs`).
-
-`npm run reset` puts the planted code back for another run. The agents push
-to a local git origin, so nothing leaves your machine.
+```sh
+npm run judge          # 24 checks: the gate, scanner and certificates, and both live runs' git
+npm test               # every tool, the scanner benchmark, both live runs, and demo-payments
+npm run scan           # the six findings, and cbom.json
+npm run board          # board.html, the desk's status read from git
+```
 
 ## Repository
 
@@ -347,14 +346,17 @@ tools/mosca.mjs                      Mosca's rule per finding, with the lifetime
 tools/certificate.mjs                ML-DSA-65-signed migration certificate for each ship
 tools/board.mjs                      the desk's status, read from git
 tools/replay.mjs                     replays a live run's git history through the gate
+tools/scanner-bench.mjs              scores the scanner against labelled code: precision and recall
 web/                                 the desk app: React UI, the Node API behind it, and the static export
 test/                                scanner, Mosca, board, gate, templates, live run and the judge run
 demo-payments/                       the codebase being migrated, with its own tests
 scripts/judge.mjs                    npm run judge: the gate, scanner and certificates, and the live runs' git
 scripts/doctor.mjs                   npm run doctor: checks this machine for everything the desk needs
+scripts/desk-up.mjs, desk-watch.mjs, desk-package.mjs   a live run in Switch: set up, follow, keep as evidence
 scripts/setup-origin.mjs             local git origin the agents clone and push to
 scripts/pre-receive.mjs              the origin's gate: what main may take
 scripts/make-fixed-rooms.mjs         generates the backup template from the main one
+docs/RUN-SHEET.md                    the live run step by step: every message, and what to do if it's stuck
 docs/DEMO.md                         run-sheet for the demo video
 docs/live-run-2/                     live run 2 in Switch (desk3): write-up, timestamped log, screenshots,
                                      certificates and the agents' git history (origin.bundle)
@@ -369,10 +371,11 @@ Generated locally and not committed: `.origin/` (the agents' git origin),
 ## Limits
 
 - The scanner reads JavaScript and TypeScript with fixed rules, not a
-  parser. It is predictable, not complete. A constant in the same file is
-  resolved, and any other algorithm picked at runtime is flagged for review
-  rather than named. Values passed between files, and code inside a template
-  literal's `${...}`, aren't followed.
+  parser: predictable, with no dependencies, and measured (100% precision,
+  94% recall on the labelled set above). A constant in the same file is
+  resolved; any other algorithm picked at runtime is flagged for review
+  rather than named. Values passed through your own functions or between
+  files aren't followed.
 - The git gate checks what main may take, not who pushed it (see the
   enforcement table above).
 - On Windows, Switch Console can't grant a GitHub connection, so the agents
