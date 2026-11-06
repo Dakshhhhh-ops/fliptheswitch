@@ -12,6 +12,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { codexSessions, STALE_CODEX_MINUTES } from './local-switch.mjs';
 
 const DESK = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ORIGIN = join(DESK, '.origin', 'demo-payments.git');
@@ -86,7 +87,7 @@ if (!existsSync(ORIGIN)) {
 
 const work = join(DESK, 'work');
 const leftovers = existsSync(work) ? readdirSync(work) : [];
-if (leftovers.length) warn(`work/ has checkouts from an earlier run: ${leftovers.join(', ')}`, 'Use a new team prefix in the form, or delete work/ before reusing the same one.');
+if (leftovers.length) warn(`work/ has checkouts from an earlier run: ${leftovers.join(', ')}`, 'Fine: npm run desk:up picks a team prefix no earlier run used.');
 
 const claude = run('claude', ['--version']);
 if (claude.ok) ok('Claude Code', claude.out.split('\n')[0]);
@@ -100,32 +101,17 @@ else warn('Codex not found', 'Optional. Set both providers in the form to `claud
 // stale ones (from the day before) were running when the reviewer's shell
 // stalled; once they were stopped, the sandbox worked again.
 if (codex.ok) {
-  const STALE_HOURS = 6;
-  let sessions = [];
-  if (process.platform === 'win32') {
-    const ps = run('powershell', [
-      '-NoProfile',
-      '-Command',
-      "Get-CimInstance Win32_Process -Filter \"Name='codex.exe'\" | Where-Object { $_.CommandLine -match 'app-server' } | ForEach-Object { '{0} {1}' -f $_.ProcessId, [int]((Get-Date) - $_.CreationDate).TotalMinutes }",
-    ]);
-    sessions = ps.out.split(/\r?\n/).map((l) => l.trim().split(/\s+/).map(Number)).filter((p) => p.length === 2 && p.every(Number.isFinite));
-  } else {
-    const ps = run('ps', ['-eo', 'pid=,etimes=,args=']);
-    sessions = ps.out
-      .split('\n')
-      .filter((l) => /codex.*app-server/.test(l))
-      .map((l) => l.trim().split(/\s+/).slice(0, 2).map(Number))
-      .map(([pid, secs]) => [pid, Math.round(secs / 60)]);
-  }
-  const stale = sessions.filter(([, minutes]) => minutes > STALE_HOURS * 60);
+  const sessions = codexSessions();
+  const stale = sessions.filter(([, minutes]) => minutes > STALE_CODEX_MINUTES);
+  const pids = stale.map(([pid]) => pid);
   if (stale.length) {
     warn(
-      `${stale.length} Codex agent session${stale.length === 1 ? '' : 's'} older than ${STALE_HOURS} hours: PID ${stale.map(([pid]) => pid).join(', ')}`,
+      `${stale.length} Codex agent session${stale.length === 1 ? '' : 's'} older than 6 hours: PID ${pids.join(', ')}`,
       `Left over from an earlier run, they can stall the reviewer's sandboxed shell. Stop them before a run: ${
-        process.platform === 'win32' ? `Stop-Process -Id ${stale.map(([pid]) => pid).join(',')}` : `kill ${stale.map(([pid]) => pid).join(' ')}`
-      }`,
+        process.platform === 'win32' ? `Stop-Process -Id ${pids.join(',')}` : `kill ${pids.join(' ')}`
+      } (or npm run desk:up -- --stop-stale-codex)`,
     );
-  } else if (sessions.length) ok(`Codex agent sessions: ${sessions.length}, none older than ${STALE_HOURS} hours`);
+  } else if (sessions.length) ok(`Codex agent sessions: ${sessions.length}, none older than 6 hours`);
 }
 
 const docker = run('docker', ['info', '--format', '{{.ServerVersion}}']);
@@ -161,6 +147,6 @@ else bad('Mattermost not found', 'add a server with Mattermost in Switch Console
 console.log(
   failed
     ? `\n${failed} thing${failed === 1 ? '' : 's'} to fix. The judge and the tests only need the first section.`
-    : '\nReady. Next: README → "Run it yourself", step 1.',
+    : '\nReady. Next: npm run desk:up (docs/RUN-SHEET.md has the whole run).',
 );
 process.exitCode = failed ? 1 : 0;
