@@ -370,7 +370,7 @@ resources:
          to origin/main and post that reason word for word. Never work around it.
       4. Issue the migration certificate, signed with ML-DSA-65:
          `node "{desk_dir}/tools/certificate.mjs" issue .origin/demo-payments.git <id> --key .origin/desk-signing.pem --out work/<id>.cert.json`,
-         then `node "{desk_dir}/tools/certificate.mjs" verify work/<id>.cert.json`.
+         then `node "{desk_dir}/tools/certificate.mjs" verify work/<id>.cert.json --key .origin/desk-signing.pem --origin .origin/demo-payments.git`.
       5. Post the merge sha, the certificate path and the verify result. Then
          `send_targeted_message` to `{team}-scout`: `<id> shipped at <merge sha>`.
 
