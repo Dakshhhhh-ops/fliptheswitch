@@ -18,12 +18,24 @@ origin's gate.
 | **F1** card vault, RSA-OAEP 2048 | Migrator wrapped data keys with hybrid X25519 + ML-KEM-768 (HKDF-SHA-256 over both secrets), kept a read path for old envelopes. **Reviewer requested changes**: the scanner still saw RSA. Migrator added a test that a v2 envelope has no RSA fields | Arjun: "Nothing else unwraps them … keep the legacy read path". Security lead ruled that the read path is accepted if three conditions hold | `76ebe32`, then `f03d6e0` approved, shipped as `33c152b` |
 | **F3** TLS, classical key exchange | Shipper recorded the risk in `ACCEPTED-RISKS.md` only | Security lead: "production TLS terminates at the acquirer's edge gateway … review in 90 days" | `d248e99`, owner security lead, review by 2027-02-04 |
 
-Both ship certificates verify:
+The agents' git origin, as the run left it, is [`origin.bundle`](origin.bundle):
+every commit, branch and approval mark they pushed.
 
 ```sh
-node tools/certificate.mjs verify docs/live-run/F5.cert.json   # Signature valid (ML-DSA-65). 14/14 tests at the merge
-node tools/certificate.mjs verify docs/live-run/F1.cert.json   # Signature valid (ML-DSA-65). 24/24 tests at the merge
+git clone docs/live-run/origin.bundle live && git -C live log --graph --all --format="%h %an %s"
 ```
+
+Both ship certificates verify against it, signed by the desk's key
+([`desk-key.pub.pem`](desk-key.pub.pem)). `--tests` reruns the tests at each merge:
+
+```sh
+node tools/certificate.mjs verify docs/live-run/F5.cert.json --tests   # 10 checks, 14/14 tests at the merge
+node tools/certificate.mjs verify docs/live-run/F1.cert.json --tests   # 10 checks, 24/24 tests at the merge
+```
+
+`test/live-run.test.mjs` replays the agents' pushes in order into a fresh
+origin with the gate: every one passes, and the board read from it is
+Shipped 2/6 · Accepted risk 1.
 
 ## What Switch refused
 
@@ -72,6 +84,8 @@ risk is recorded, not fixed.
 
 ## Files
 
+- `origin.bundle`: the agents' git origin, every commit and ref
+- `desk-key.pub.pem`: the public key the shipper signed the certificates with
 - `main-log.txt`, `refs.txt`: the origin's main history and every ref,
   including both `refs/approved/<sha>` marks
 - `F5.cert.json`, `F1.cert.json`: the migration certificates
