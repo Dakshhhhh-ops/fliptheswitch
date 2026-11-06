@@ -26,7 +26,7 @@ import { moscaLine, withMosca } from './mosca.mjs';
 //   broken:     already broken by ordinary computers.
 //   policy:     not broken, but below the CNSA 2.0 / org policy level.
 //   ok:         meets policy, including post-quantum algorithms.
-const ALGORITHMS = {
+export const ALGORITHMS = {
   'rsa-oaep':    { name: 'RSA-OAEP', primitive: 'pke', status: 'vulnerable', priority: 'P1', oid: '1.2.840.113549.1.1.7', nistQ: 0,
                    why: 'RSA is broken by Shor\'s algorithm. Anything wrapped with it today can be recorded now and unwrapped later.',
                    fix: 'Hybrid X25519 + ML-KEM-768 (FIPS 203) key wrap, then HKDF and AES-256-GCM.' },
@@ -101,6 +101,7 @@ const NAMED = {
   'diffie-hellman-group18-sha512': 'ffdh', 'diffie-hellman-group-exchange-sha1': 'ffdh', 'diffie-hellman-group-exchange-sha256': 'ffdh',
   'mlkem768x25519-sha256': 'pq-hybrid-kex', 'sntrup761x25519-sha512': 'pq-hybrid-kex', 'sntrup761x25519-sha512@openssh.com': 'pq-hybrid-kex',
   x25519mlkem768: 'tls-hybrid',
+  'sha-1': 'sha1',
   'ml-kem-512': 'ml-kem-512', 'ml-kem-768': 'ml-kem-768', 'ml-kem-1024': 'ml-kem-1024',
   'ml-dsa-44': 'ml-dsa-44', 'ml-dsa-65': 'ml-dsa-65', 'ml-dsa-87': 'ml-dsa-87',
 };
@@ -304,6 +305,19 @@ const RULES = [
     hit: (m, ctx) => ({ key: ctx.mlKem ?? 'ml-kem-768', func: m[1] }) },
   { re: /\bgenerateKeyPair(?:Sync)?\s*\(\s*['"]x25519['"]/g,
     hit: (m, ctx) => ({ key: ctx.mlKem ? 'x25519-hybrid' : 'x25519', func: 'keygen' }) },
+  // Popular libraries that do classical crypto without node:crypto.
+  { re: /\bpki\.rsa\.(generateKeyPair|setPublicKey|setPrivateKey)\s*\(/g, // node-forge
+    hit: (m, ctx) => ({ key: ctx.hasSign ? 'rsa-sig' : 'rsa-oaep', func: 'keygen' }) },
+  { re: /\bmd\.(sha1|md5)\.create\s*\(/g, // node-forge digests
+    hit: (m) => ({ key: m[1], func: 'digest' }) },
+  { re: /\bnew\s+NodeRSA\s*\(/g, // node-rsa
+    hit: (m, ctx) => ({ key: ctx.hasSign ? 'rsa-sig' : 'rsa-oaep', func: 'keygen' }) },
+  { re: /\bnacl\.(box|scalarMult)\b/g, // tweetnacl: X25519
+    hit: () => ({ key: 'x25519', func: 'keyderive' }) },
+  { re: /\bnacl\.sign\b/g, // tweetnacl: Ed25519
+    hit: () => ({ key: 'eddsa', func: 'sign' }) },
+  { re: /\bnew\s+(?:\w+\.)?(?:ec|EC|eddsa|EdDSA)\s*\(\s*['"]([\w-]+)['"]/g, // elliptic
+    hit: (m, ctx) => (ctx.usesElliptic ? { key: /^ed/i.test(m[1]) ? 'eddsa' : 'ecdsa', curve: CURVE_NAMES[m[1]] ?? m[1], func: 'keygen' } : null) },
   { re: /\becdhCurve\s*:\s*['"]([^'"]+)['"]/g,
     hit: (m) => ({ key: /MLKEM/i.test(m[1]) ? 'tls-hybrid' : 'tls-classical', param: m[1], func: 'keyderive', protocol: 'tls' }) },
 ];
@@ -331,6 +345,7 @@ function fileFacts(text) {
     hasSign: /\b(?:sign|createSign)\s*\(/.test(text),
     mlKem: text.match(/['"](ml-kem-\d+)['"]/)?.[1],
     mlDsa: text.match(/['"](ml-dsa-\d+)['"]/)?.[1],
+    usesElliptic: /['"]elliptic['"]/.test(text),
   };
 }
 
