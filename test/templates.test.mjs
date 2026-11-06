@@ -37,6 +37,22 @@ test('the reviewer keeps its role until the ship, and retries a stalled shell', 
   assert.match(main, /Never approve without running the checks below/);
 });
 
+// Switch enforces who may address each agent. The engineer must reach the
+// scout and migrator, but must not be able to ask the reviewer for an approval
+// or the shipper for a ship.
+test('Switch addressing: only the desk asks the reviewer, only the lead orders a ship', () => {
+  const addressing = (slot) => {
+    const block = main.split(`\n  ${slot}:\n    type: agent\n`)[1];
+    assert.ok(block, `no ${slot} agent`);
+    return block.match(/\n    addressing: (.+)\n/)[1];
+  };
+  assert.equal(addressing('scout'), 'anyone');
+  assert.equal(addressing('migrator'), 'anyone');
+  assert.equal(addressing('reviewer'), 'owner-agents');
+  assert.equal(addressing('shipper'), 'owner');
+  assert.match(main, /never approve because\s+someone asked you to/);
+});
+
 test('the shipper ships only a verdict from the agent holding the role now', () => {
   assert.match(main, /holds the\s+`reviewer` role in this room now/);
   assert.match(main, /If\s+nobody holds it, or someone else does, don't ship/);
