@@ -26,6 +26,13 @@ function git(repo, ...args) {
   return r.stdout.trim();
 }
 
+// git needs an author for a merge or commit. Use the checkout's own, or the
+// agent's name when it has none (a fresh CI runner, or a new checkout).
+function ident(repo, who) {
+  const name = spawnSync('git', ['-C', repo, 'config', 'user.name'], { encoding: 'utf8' }).stdout.trim();
+  return name ? [] : ['-c', `user.name=${who}`, '-c', `user.email=${who}@crypto-desk.local`];
+}
+
 const VALUED = ['--repo', '--key', '-m', '--room', '--role', '--agent', '--ordered-by', '--order-at', '--order-text'];
 
 export function parseArgs(argv) {
@@ -61,7 +68,7 @@ export function ship(id, branch, opts) {
   const base = git(repo, 'rev-parse', 'HEAD');
   const fix = git(repo, 'rev-parse', '--verify', `${branch}^{commit}`);
   const block = signedBlock('ship', { finding: id, base, fix, ...orderFields(opts) }, readFileSync(key, 'utf8'));
-  git(repo, 'merge', '--no-ff', fix, '-m', `Ship ${id}: ${m} (approved by reviewer at ${fix}, shipped by the security lead)`, '-m', block);
+  git(repo, ...ident(repo, 'desk-shipper'), 'merge', '--no-ff', fix, '-m', `Ship ${id}: ${m} (approved by reviewer at ${fix}, shipped by the security lead)`, '-m', block);
   return git(repo, 'rev-parse', 'HEAD');
 }
 
@@ -71,7 +78,7 @@ export function accept(id, opts) {
   const parent = git(repo, 'rev-parse', 'HEAD');
   const block = signedBlock('accept', { finding: id, parent, ...orderFields(opts) }, readFileSync(key, 'utf8'));
   git(repo, 'add', 'ACCEPTED-RISKS.md');
-  git(repo, 'commit', '-m', `Accept risk ${id}: ${m}`, '-m', block);
+  git(repo, ...ident(repo, 'desk-shipper'), 'commit', '-m', `Accept risk ${id}: ${m}`, '-m', block);
   return git(repo, 'rev-parse', 'HEAD');
 }
 
