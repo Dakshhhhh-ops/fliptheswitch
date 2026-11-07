@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { nextTeam, packaged, teamsIn } from '../scripts/desk-up.mjs';
-import { isPerson, parsePosts } from '../scripts/desk-watch.mjs';
+import { cleanLog, isPerson, parsePosts } from '../scripts/desk-watch.mjs';
 import { nextRunDir, packageRun } from '../scripts/desk-package.mjs';
 import { leftovers, switchAgents } from '../scripts/local-switch.mjs';
 import { judge } from '../scripts/judge.mjs';
@@ -70,6 +70,20 @@ test('desk:package keeps a run as evidence, and skips a certificate from another
   for (const f of ['origin.bundle', 'refs.txt', 'main-log.txt', 'scan-after.md', 'chat-log.md', 'run.json', 'README.md', 'F5.cert.json']) assert.ok(existsSync(join(out, f)), f);
   assert.match(readFileSync(join(out, 'README.md'), 'utf8'), /\| 12:00 \| user \| f5-webhooks \| @desk9-shipper ship F5 \|/);
 
+  // Repackaging into the same folder (--out): the written-up README, the
+  // screenshots and the run's name are kept; the draft goes elsewhere.
+  writeFileSync(join(out, 'README.md'), '# My write-up\n');
+  writeFileSync(join(out, 'final-board.png'), 'png');
+  writeFileSync(join(out, 'run.json'), JSON.stringify({ name: 'Live run 9' }));
+  const draft = join(certs, 'draft.md');
+  const again = packageRun({ origin: join(root, 'origin.git'), certs, out, log, draft, team: 'desk9', key });
+  assert.equal(readFileSync(join(out, 'README.md'), 'utf8'), '# My write-up\n');
+  assert.equal(readFileSync(join(out, 'final-board.png'), 'utf8'), 'png');
+  assert.ok(again.readmeKept);
+  assert.equal(again.run.name, 'Live run 9');
+  assert.match(readFileSync(draft, 'utf8'), /ship F5/);
+  assert.deepEqual(again.run.certificates, ['F5']);
+
   // The same certificate against the desk's real key: not the desk's, so it's left out.
   const out2 = join(mkdtempSync(join(tmpdir(), 'desk-out-')), 'live-run-9');
   const r2 = packageRun({ origin: join(root, 'origin.git'), certs, out: out2, log, team: 'desk9', name: 'Test run' });
@@ -109,4 +123,26 @@ test('leftovers: other teams, and every Codex session but the newest', () => {
   assert.deepEqual(fresh.claude.map((a) => a.pid), [3, 4, 5]);
   assert.deepEqual(fresh.codex.map((a) => a.pid), [9, 7]);
   assert.deepEqual(leftovers(agents).claude.map((a) => a.pid), [3, 4], 'no team known: older than 6 hours');
+});
+
+test('cleanLog drops what a restarted desk:watch logged again, and keeps resends', () => {
+  const log = [
+    '05:00:00Z watching desk4; log in work/desk4-run-log.md',
+    '05:00:10Z GIT refs/heads/main abc1234 planted',
+    '05:01:00Z HUMAN#1 desk4-f3-tls user: @desk4-shipper ship F3',
+    '05:02:00Z HUMAN#2 desk4-f3-tls user: @desk4-shipper ship F3',
+    '06:00:00Z watching desk4; log in work/desk4-run-log.md',
+    '06:00:05Z GIT refs/heads/main abc1234 planted',
+    '06:00:06Z HUMAN#1 desk4-f3-tls user: @desk4-shipper ship F3',
+    '06:00:07Z HUMAN#2 desk4-f3-tls user: @desk4-shipper ship F3',
+    '06:05:00Z HUMAN#3 desk4-f2-jwt arjun: use ML-DSA',
+    '06:06:00Z agent desk4-f2-jwt desk4-migrator: ok',
+  ];
+  assert.deepEqual(cleanLog(log), [
+    '05:00:10Z GIT refs/heads/main abc1234 planted',
+    '05:01:00Z HUMAN#1 desk4-f3-tls user: @desk4-shipper ship F3',
+    '05:02:00Z HUMAN#2 desk4-f3-tls user: @desk4-shipper ship F3',
+    '06:05:00Z HUMAN#3 desk4-f2-jwt arjun: use ML-DSA',
+    '06:06:00Z agent desk4-f2-jwt desk4-migrator: ok',
+  ]);
 });

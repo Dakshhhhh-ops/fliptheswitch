@@ -31,6 +31,36 @@ export function parsePosts(raw) {
 }
 
 export const isPerson = (name, team) => !name.startsWith(`${team}-`) && !NOT_PEOPLE.test(name);
+
+// A log line without its time, and with HUMAN#n as HUMAN: the same message
+// or ref change gives the same key, whenever it was seen.
+export const logKey = (line) => line.replace(/^\d\d:\d\d:\d\dZ /, '').replace(/^HUMAN#\d+ /, 'HUMAN ');
+
+export const isRestart = (line) => / watching \S+; log in /.test(line);
+
+// A restarted desk:watch logs every earlier message and ref again. After each
+// restart line, drop as many copies of a line as were already logged before
+// it: a message sent twice (a resend) keeps both copies. Renumbers HUMAN#n.
+export function cleanLog(lines) {
+  const before = new Map();
+  let avail = new Map();
+  const kept = [];
+  for (const line of lines) {
+    if (isRestart(line)) {
+      avail = new Map(before);
+      continue;
+    }
+    const k = logKey(line);
+    if (avail.get(k) > 0) {
+      avail.set(k, avail.get(k) - 1);
+      continue;
+    }
+    kept.push(line);
+    before.set(k, (before.get(k) ?? 0) + 1);
+  }
+  let n = 0;
+  return kept.map((l) => l.replace(/^(\d\d:\d\d:\d\dZ )HUMAN#\d+ /, (_, t) => `${t}HUMAN#${++n} `));
+}
 const noise = (text) => !text || /(joined|added to) the (channel|team)/.test(text) || /^\*\*Working…/.test(text) || /^Starting a session/.test(text) || /^\*\*Queued/.test(text);
 
 async function main() {
@@ -53,19 +83,30 @@ async function main() {
     console.log(s);
   };
 
+  // Restarted on a log that has lines already: carry on its HUMAN#n count, and
+  // on the first pass don't log again what it already holds.
+  const earlier = existsSync(logFile) ? cleanLog(readFileSync(logFile, 'utf8').split('\n').filter(Boolean)) : [];
+  let already = new Map();
+  for (const l of earlier) already.set(logKey(l), (already.get(logKey(l)) ?? 0) + 1);
+  const logNew = (line) => {
+    const k = logKey(line);
+    if (already.get(k) > 0) return already.set(k, already.get(k) - 1);
+    log(line);
+  };
   const seen = new Set();
   let refs = '';
-  let people = 0;
+  let people = earlier.filter((l) => /^\S+Z HUMAN#/.test(l)).length;
   let warnedCodex = false;
-  log(`watching ${team}; log in ${logFile}`);
-  for (;;) {
+  log(`watching ${team}; log in ${logFile}${earlier.length ? ` (restarted: ${earlier.length} lines already logged)` : ''}`);
+  for (let pass = 0; ; pass++) {
+    if (pass === 1) already = new Map();
     let now = '';
     try {
       now = execFileSync('git', ['--git-dir', ORIGIN, 'for-each-ref', '--format=%(refname) %(objectname:short) %(subject)'], { encoding: 'utf8' }).trim();
     } catch {}
     if (now !== refs) {
       const before = new Set(refs.split('\n'));
-      for (const r of now.split('\n')) if (r && !before.has(r)) log(`GIT ${r}`);
+      for (const r of now.split('\n')) if (r && !before.has(r)) logNew(`GIT ${r}`);
       refs = now;
     }
     const rooms = mmctl(mm.container, 'channel', 'list', mattermostTeam)
@@ -78,8 +119,14 @@ async function main() {
         seen.add(p.id);
         if (noise(p.text)) continue;
         const person = isPerson(p.name, team);
+        const body = `${room} ${p.name}: ${p.text.slice(0, 300)}`;
+        const k = `${person ? 'HUMAN' : 'agent'} ${body}`;
+        if (already.get(k) > 0) {
+          already.set(k, already.get(k) - 1);
+          continue;
+        }
         if (person) people++;
-        log(`${person ? `HUMAN#${people}` : 'agent'} ${room} ${p.name}: ${p.text.slice(0, 300)}`);
+        log(`${person ? `HUMAN#${people}` : 'agent'} ${body}`);
         if (!person) {
           const asked = [...p.text.matchAll(/@([\w.-]+)/g)].map((m) => m[1]).filter((n) => isPerson(n, team));
           if (asked.length) console.log(`   → your turn: ${room} is waiting on ${[...new Set(asked)].join(', ')} (docs/RUN-SHEET.md)`);

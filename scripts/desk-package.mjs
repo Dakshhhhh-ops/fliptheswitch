@@ -10,7 +10,10 @@
 //   chat-log.md        desk:watch's log: every message and push, timestamped
 //   main-log.txt, refs.txt, scan-after.md, desk-key.pub.pem
 //   run.json           the board it ended on, which npm test and npm run judge check
-//   README.md          a first write-up: the board, what people sent, how to check it
+//   README.md          a first write-up: the board, what people sent, how to check it.
+//                      If the folder has one already (repackaging a run with
+//                      --out), it's kept, and the draft goes to work/<team>-README.draft.md.
+//                      Screenshots in the folder are never touched.
 // Then it verifies everything it wrote: certificates, the replay through the
 // gate, and the board. Add screenshots to the folder yourself.
 import { execFileSync } from 'node:child_process';
@@ -21,6 +24,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { boardLine, counts, readDesk } from '../tools/board.mjs';
 import { audit, check, publicKeyFrom } from '../tools/certificate.mjs';
 import { replay } from '../tools/replay.mjs';
+import { cleanLog } from './desk-watch.mjs';
 
 const DESK = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const git = (...a) => execFileSync('git', a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -34,7 +38,7 @@ export function nextRunDir(docs = join(DESK, 'docs')) {
   }
 }
 
-export function packageRun({ origin, certs, out, log, team = 'desk', name, dates = new Date().toISOString().slice(0, 10), key = join(DESK, 'docs', 'live-run', 'desk-key.pub.pem') }) {
+export function packageRun({ origin, certs, out, log, draft, team = 'desk', name, dates = new Date().toISOString().slice(0, 10), key = join(DESK, 'docs', 'live-run', 'desk-key.pub.pem') }) {
   mkdirSync(out, { recursive: true });
   const bundle = join(out, 'origin.bundle');
   git('--git-dir', origin, 'bundle', 'create', bundle, '--all');
@@ -80,7 +84,7 @@ export function packageRun({ origin, certs, out, log, team = 'desk', name, dates
   // The log, and what people sent.
   let people = [];
   if (log && existsSync(log)) {
-    const lines = readFileSync(log, 'utf8').split('\n').filter((l) => l && !/Working…|Queued\. Waiting/.test(l));
+    const lines = cleanLog(readFileSync(log, 'utf8').split('\n').filter((l) => l && !/Working…|Queued\. Waiting/.test(l)));
     writeFileSync(
       join(out, 'chat-log.md'),
       `# ${name ?? 'Live run'}: the log, as it happened\n\nWritten by \`npm run desk:watch\` during the run: every chat message in the ${team} rooms (each cut to 300 characters) and every change to a ref on the origin, with the UTC time it was seen. Messages from people are numbered \`HUMAN#n\`.\n\n\`\`\`\n${lines.join('\n')}\n\`\`\`\n`,
@@ -91,7 +95,9 @@ export function packageRun({ origin, certs, out, log, team = 'desk', name, dates
       .map(([, time, room, who, text]) => ({ time: time.slice(0, 5), room: room.replace(`${team}-`, ''), who, text }));
   }
 
-  const runName = name ?? `Live run ${nextRunDir().n - (existsSync(out) ? 1 : 0)}`;
+  // Repackaging a run (--out an existing folder) keeps its name.
+  const earlierRun = existsSync(join(out, 'run.json')) ? JSON.parse(readFileSync(join(out, 'run.json'), 'utf8')) : null;
+  const runName = name ?? earlierRun?.name ?? `Live run ${nextRunDir().n - (existsSync(out) ? 1 : 0)}`;
   const run = { name: runName, team, dates, signed, certificates, board };
   writeFileSync(join(out, 'run.json'), `${JSON.stringify(run, null, 2)}\n`);
 
@@ -103,9 +109,13 @@ export function packageRun({ origin, certs, out, log, team = 'desk', name, dates
   const { steps, sameMain } = replay(bundle, { keys: out });
   const folder = slash(relative(DESK, out));
 
+  // A README someone has written up is kept; the fresh draft goes beside it.
+  const readmeKept = existsSync(join(out, 'README.md'));
+  const readmeTo = readmeKept ? (draft ?? join(DESK, 'work', `${team}-README.draft.md`)) : join(out, 'README.md');
+  if (readmeKept) mkdirSync(dirname(readmeTo), { recursive: true });
   const esc = (s) => s.replace(/\|/g, '\\|');
   writeFileSync(
-    join(out, 'README.md'),
+    readmeTo,
     `# ${runName}: ${team}, ${dates}
 
 **${boardLine(desk.rows)}**
@@ -145,7 +155,7 @@ ${certificates.map((id) => `node tools/certificate.mjs verify ${folder}/${id}.ce
 `,
   );
 
-  return { out, run, certChecks, skipped, replay: { ok: steps.every((s) => s.ok) && sameMain, pushes: steps.length }, line: boardLine(desk.rows) };
+  return { out, run, readme: readmeTo, readmeKept, certChecks, skipped, replay: { ok: steps.every((s) => s.ok) && sameMain, pushes: steps.length }, line: boardLine(desk.rows) };
 }
 
 async function main(argv) {
@@ -167,6 +177,7 @@ async function main(argv) {
   for (const c of r.certChecks) console.log(`  ${c.ok ? '✔' : '✘'} ${c.id} certificate: the desk's key, every claim matches git`);
   for (const s of r.skipped) console.log(`  ! skipped ${s}`);
   console.log(`  ${r.replay.ok ? '✔' : '✘'} replay: ${r.replay.pushes} pushes through the gate, as the run made them`);
+  if (r.readmeKept) console.log(`  ✔ kept the existing README.md; a fresh draft (board, what people sent) is in ${slash(relative(DESK, r.readme))}`);
   console.log(`\nNext: add screenshots and what happened to ${slash(relative(DESK, r.out))}/README.md, then npm test.`);
   process.exitCode = r.certChecks.every((c) => c.ok) && r.replay.ok ? 0 : 1;
 }
