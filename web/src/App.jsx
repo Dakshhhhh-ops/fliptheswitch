@@ -3,6 +3,7 @@ import Nav from './components/Nav.jsx';
 import Hero from './components/Hero.jsx';
 import QDay from './components/QDay.jsx';
 import Findings from './components/Findings.jsx';
+import Room from './components/Room.jsx';
 import Spectrum from './components/Spectrum.jsx';
 import Receipt from './components/Receipt.jsx';
 import Preloader from './components/Preloader.jsx';
@@ -41,6 +42,7 @@ export default function App() {
             <Hero counts={counts} total={desk.rows.length} started={started} />
             <QDay />
             <Findings rows={desk.rows} />
+            <Room />
             <Spectrum inventory={desk.inventory} />
           </main>
           <Receipt desk={desk} counts={counts} />

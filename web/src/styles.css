@@ -325,3 +325,25 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px s
 .m-close { color: var(--accepted); }
 .m-on-time { color: var(--shipped); }
 .m-ask { color: var(--review); }
+
+/* In the room: three moments from live run 3's chat */
+.rm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; max-width: var(--max); margin: 0 auto; }
+.rm-card { min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-2); padding: 24px 22px 18px; display: flex; flex-direction: column; }
+.rm-title { margin: 0 0 8px; font: 400 clamp(28px, 2.6vw, 38px)/1 var(--serif); letter-spacing: -0.01em; }
+.rm-sub { margin: 0 0 20px; color: var(--ink-2); font-size: 14px; }
+.rm-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.rm-line { min-width: 0; border-left: 2px solid var(--line-2); padding: 2px 0 2px 12px; }
+.rm-person { border-left-color: var(--accepted); }
+.rm-agent { border-left-color: var(--review); }
+.rm-git { border-left-color: var(--shipped); }
+.rm-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font: 500 11px/1.4 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.rm-name { color: var(--ink); }
+.rm-finding { color: var(--shipped); }
+.rm-time { margin-left: auto; color: var(--faint); text-decoration: none; text-transform: none; letter-spacing: 0; }
+.rm-time:hover, .rm-time:focus-visible { color: var(--ink); text-decoration: underline; }
+.rm-text { margin: 6px 0 0; font: 14px/1.5 var(--mono); color: var(--ink-2); overflow-wrap: anywhere; }
+.rm-git .rm-text { color: var(--ink); }
+.rm-note { margin: 4px 0 0; font: 500 11px/1.4 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--accepted); }
+.section-sub a { color: var(--ink); }
+@media (max-width: 1100px) { .rm-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .rm-card { padding: 20px 16px 16px; } .rm-time { margin-left: 0; } }

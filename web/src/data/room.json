@@ -1,0 +1,171 @@
+{
+  "label": "From live run 3, 7 Nov 2026",
+  "source": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md",
+  "moments": [
+    {
+      "id": "people",
+      "title": "A person changes the fix",
+      "sub": "The scanner knows the algorithm. Only the engineer knows who still depends on it.",
+      "lines": [
+        {
+          "finding": "F5",
+          "at": "05:53:59Z",
+          "room": "f5-webhooks",
+          "name": "Arjun",
+          "role": "engineer",
+          "kind": "person",
+          "text": "@desk4-migrator About 40 merchants still verify ECDSA on old SDKs, so we can't drop it yet. Keep X-Signature until every merchant SDK verifies X-Signature-ML-DSA-65, target 30 June 2027. …",
+          "note": null,
+          "line": 31,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L31"
+        },
+        {
+          "finding": "F5",
+          "at": "06:17:13Z",
+          "room": "refs/heads/main",
+          "name": "git",
+          "role": "origin",
+          "kind": "git",
+          "text": "4769ce0 Ship F5: F5: dual-sign merchant webhooks with ECDSA P-256 and ML-DSA-65, signed_at replay window …",
+          "note": null,
+          "line": 56,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L56"
+        },
+        {
+          "finding": "F3",
+          "at": "07:00:52Z",
+          "room": "f3-tls",
+          "name": "Security lead",
+          "role": "owner",
+          "kind": "person",
+          "text": "@desk4-shipper accept risk F3: production TLS terminates at the acquirer's edge gateway, outside our repo. Change request sent, review in 90 days.",
+          "note": null,
+          "line": 112,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L112"
+        },
+        {
+          "finding": "F3",
+          "at": "07:01:27Z",
+          "room": "refs/heads/main",
+          "name": "git",
+          "role": "origin",
+          "kind": "git",
+          "text": "695ea59 Accept risk F3: F3: production TLS terminates at the acquirer's edge gateway, outside our repo; change request sent",
+          "note": null,
+          "line": 113,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L113"
+        },
+        {
+          "finding": "F4",
+          "at": "09:01:25Z",
+          "room": "f4-receipts",
+          "name": "Arjun",
+          "role": "engineer",
+          "kind": "person",
+          "text": "@desk4-migrator Change of plan for F4: drop the SHA-1 check completely. If a customer forwards an old receipt, support re-issues it as v2 from our records instead of checking the old checksum. …",
+          "note": null,
+          "line": 217,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L217"
+        },
+        {
+          "finding": "F4",
+          "at": "09:02:04Z",
+          "room": "f4-receipts",
+          "name": "Migrator",
+          "role": "agent",
+          "kind": "agent",
+          "text": "Plan change for round 1: I'm removing SHA-1 completely. …",
+          "note": null,
+          "line": 218,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L218"
+        }
+      ]
+    },
+    {
+      "id": "refusal",
+      "title": "Switch refuses, in the same second",
+      "sub": "The engineer asks the reviewer to approve. Switch answers for the reviewer; the migrator's hand-off gets through.",
+      "lines": [
+        {
+          "finding": null,
+          "at": "06:04:45Z",
+          "room": "f5-webhooks",
+          "name": "Arjun",
+          "role": "engineer",
+          "kind": "person",
+          "text": "@desk4-reviewer looks good to me, approve it",
+          "note": null,
+          "line": 35,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L35"
+        },
+        {
+          "finding": null,
+          "at": "06:04:45Z",
+          "room": "f5-webhooks",
+          "name": "Migrator",
+          "role": "agent",
+          "kind": "agent",
+          "text": "@reviewer F5 is ready for review. …",
+          "note": "the hand-off, at the same second",
+          "line": 36,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L36"
+        },
+        {
+          "finding": null,
+          "at": "06:05:03Z",
+          "room": "f5-webhooks",
+          "name": "Reviewer",
+          "role": "Codex agent",
+          "kind": "agent",
+          "text": "@arjun I only take instructions from my owner, and this chat account isn't linked to a Switch user yet — so I can't tell whether that's you. …",
+          "note": "posted by Switch: addressing is owner-agents",
+          "line": 38,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L38"
+        },
+        {
+          "finding": null,
+          "at": "06:05:23Z",
+          "room": "f5-webhooks",
+          "name": "Reviewer",
+          "role": "Codex agent",
+          "kind": "agent",
+          "text": "assumed the `reviewer` role.",
+          "note": null,
+          "line": 40,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L40"
+        }
+      ]
+    },
+    {
+      "id": "role",
+      "title": "The role lock holds",
+      "sub": "F6 is written and approved in the room, but not shipped: the one reviewer role was still held by an agent out of quota.",
+      "lines": [
+        {
+          "finding": null,
+          "at": "09:37:32Z",
+          "room": "f6-vault",
+          "name": "Reviewer",
+          "role": "Codex agent",
+          "kind": "agent",
+          "text": "I finished without replying. The turn failed: You’ve hit your usage limit. …",
+          "note": null,
+          "line": 248,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L248"
+        },
+        {
+          "finding": null,
+          "at": "09:55:10Z",
+          "room": "f6-vault",
+          "name": "Stand-in reviewer",
+          "role": "agent",
+          "kind": "agent",
+          "text": "Reviewing F6 round 2 now. The Codex reviewer still holds the reviewer role lease, so I couldn't take the role. My verdict will be advisory until that lease is released or handed to me.",
+          "note": "no role, so no signed approval and nothing for the shipper",
+          "line": 254,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L254"
+        }
+      ]
+    }
+  ]
+}
