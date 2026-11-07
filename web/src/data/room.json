@@ -167,5 +167,187 @@
         }
       ]
     }
-  ]
+  ],
+  "added": {
+    "F5": [
+      {
+        "finding": null,
+        "at": "05:53:59Z",
+        "room": "f5-webhooks",
+        "name": "Arjun",
+        "role": "engineer",
+        "kind": "person",
+        "text": "@desk4-migrator About 40 merchants still verify ECDSA on old SDKs, so we can't drop it yet. Keep X-Signature until every merchant SDK verifies X-Signature-ML-DSA-65, target 30 June 2027. We'll confirm here before it's …",
+        "note": null,
+        "line": 31,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L31"
+      },
+      {
+        "finding": null,
+        "at": "06:10:34Z",
+        "room": "f5-webhooks",
+        "name": "Reviewer",
+        "role": "Codex agent",
+        "kind": "agent",
+        "text": "@desk4-migrator CHANGES REQUESTED 1. `src/webhooks.js:29-38,54-60` — both headers sign only the body, and `verifyEvent` validates signatures without any timestamp or 5-minute freshness …",
+        "note": null,
+        "line": 44,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L44"
+      },
+      {
+        "finding": null,
+        "at": "06:11:46Z",
+        "room": "f5-webhooks",
+        "name": "Arjun",
+        "role": "engineer",
+        "kind": "person",
+        "text": "@desk4-migrator Yes, put signed_at in the body. Merchant SDKs ignore JSON fields they don't know, so old SDKs keep verifying X-Signature as today, and upgraded verifiers enforce the 5-minute window.",
+        "note": null,
+        "line": 47,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L47"
+      }
+    ],
+    "F1": [
+      {
+        "finding": null,
+        "at": "06:19:24Z",
+        "room": "f1-envelope",
+        "name": "Arjun",
+        "role": "engineer",
+        "kind": "person",
+        "text": "@desk4-migrator Nothing else unwraps these keys, but old envelopes in the vault must stay readable. Keep a legacy read path.",
+        "note": null,
+        "line": 62,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L62"
+      },
+      {
+        "finding": null,
+        "at": "06:30:21Z",
+        "room": "f1-envelope",
+        "name": "Reviewer",
+        "role": "Codex agent",
+        "kind": "agent",
+        "text": "@desk4-migrator CHANGES REQUESTED 1. `src/envelope.js:141-146` keeps RSA-OAEP for legacy reads, and the docs say to remove it after resealing, but the commit message only says “keep v1 RSA …",
+        "note": null,
+        "line": 74,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L74"
+      }
+    ],
+    "F3": [
+      {
+        "finding": null,
+        "at": "06:35:15Z",
+        "room": "f3-tls",
+        "name": "Arjun",
+        "role": "engineer",
+        "kind": "person",
+        "text": "@desk4-migrator It carries card authorisation data, which has to stay secret for at least 7 years. Nothing connects to local or staging over TLS 1.2 or P-256 only, so raise the minimum to TLS 1.3. Production TLS stays on …",
+        "note": null,
+        "line": 84,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L84"
+      },
+      {
+        "finding": null,
+        "at": "07:00:52Z",
+        "room": "f3-tls",
+        "name": "Security lead",
+        "role": "owner",
+        "kind": "person",
+        "text": "@desk4-shipper accept risk F3: production TLS terminates at the acquirer's edge gateway, outside our repo. Change request sent, review in 90 days.",
+        "note": null,
+        "line": 112,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L112"
+      }
+    ],
+    "F2": [
+      {
+        "finding": null,
+        "at": "07:44:40Z",
+        "room": "f2-session",
+        "name": "Arjun",
+        "role": "engineer",
+        "kind": "person",
+        "text": "@desk4-migrator Both sides of this exchange run our session.js: the acquirer's settlement client is built from this repo, so switch both to the hybrid together and they'll take it in their next SDK release. Settlement …",
+        "note": null,
+        "line": 163,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L163"
+      },
+      {
+        "finding": null,
+        "at": "07:55:12Z",
+        "room": "f2-session",
+        "name": "Reviewer",
+        "role": "Codex agent",
+        "kind": "agent",
+        "text": "CHANGES REQUESTED 1. `src/session.js:120` — `completeSession` accepts the same responder `state` repeatedly, and the room handoff confirms it is not prevented. Reusing an offer reuses both …",
+        "note": null,
+        "line": 175,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L175"
+      }
+    ],
+    "F4": [
+      {
+        "finding": null,
+        "at": "08:04:08Z",
+        "room": "f4-receipts",
+        "name": "Arjun",
+        "role": "engineer",
+        "kind": "person",
+        "text": "@desk4-migrator Only our support staff check these checksums, never customers or merchants, and receipts already issued must still verify. Use HMAC-SHA-256 for new receipts and keep a check for old SHA-1 ones until they …",
+        "note": null,
+        "line": 191,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L191"
+      },
+      {
+        "finding": null,
+        "at": "08:53:52Z",
+        "room": "f4-receipts",
+        "name": "Reviewer",
+        "role": "Codex agent",
+        "kind": "agent",
+        "text": "CHANGES REQUESTED 1. `src/receipts.js:52` — the required CBOM scan still reports F4 as `broken` (SHA-1), so F4 is neither gone nor in an accepted `legacy-read` state. Arjun’s compatibility …",
+        "note": null,
+        "line": 216,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L216"
+      },
+      {
+        "finding": null,
+        "at": "09:01:25Z",
+        "room": "f4-receipts",
+        "name": "Arjun",
+        "role": "engineer",
+        "kind": "person",
+        "text": "@desk4-migrator Change of plan for F4: drop the SHA-1 check completely. If a customer forwards an old receipt, support re-issues it as v2 from our records instead of checking the old checksum. That clears the reviewer's …",
+        "note": null,
+        "line": 217,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L217"
+      }
+    ],
+    "F6": [
+      {
+        "finding": null,
+        "at": "09:07:59Z",
+        "room": "f6-vault",
+        "name": "Arjun",
+        "role": "engineer",
+        "kind": "person",
+        "text": "@desk4-migrator Existing records must stay readable, but don't keep AES-128 in the new code: our DBA re-encrypts every stored record to AES-256-GCM tonight with a one-off job built from the current release, before this …",
+        "note": null,
+        "line": 231,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L231"
+      },
+      {
+        "finding": null,
+        "at": "09:27:17Z",
+        "room": "f6-vault",
+        "name": "Reviewer",
+        "role": "Codex agent",
+        "kind": "agent",
+        "text": "@desk4-migrator CHANGES REQUESTED 1. `infra/DEPLOY.md:43-45` — The branch removes the v1 decrypt path, but the required DBA migration is only documented as a deploy instruction. No test or …",
+        "note": null,
+        "line": 243,
+        "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L243"
+      }
+    ]
+  }
 }

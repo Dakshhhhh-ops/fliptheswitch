@@ -64,6 +64,43 @@ export const MOMENTS = [
   },
 ];
 
+// What people (and the reviewer) added to each finding, beyond what the
+// scanner suggested. `chars` cuts a long line at a word boundary.
+export const ADDED = {
+  F5: [
+    { at: '05:53:59', who: 'arjun', chars: 220 },
+    { at: '06:10:34', who: 'desk4-reviewer', chars: 190 },
+    { at: '06:11:46', who: 'arjun', chars: 220 },
+  ],
+  F1: [
+    { at: '06:19:24', who: 'arjun', chars: 220 },
+    { at: '06:30:21', who: 'desk4-reviewer', chars: 190 },
+  ],
+  F3: [
+    { at: '06:35:15', who: 'arjun', chars: 220 },
+    { at: '07:00:52', who: 'user', chars: 220 },
+  ],
+  F2: [
+    { at: '07:44:40', who: 'arjun', chars: 220 },
+    { at: '07:55:12', who: 'desk4-reviewer', chars: 190 },
+  ],
+  F4: [
+    { at: '08:04:08', who: 'arjun', chars: 220 },
+    { at: '08:53:52', who: 'desk4-reviewer', chars: 190 },
+    { at: '09:01:25', who: 'arjun', chars: 220 },
+  ],
+  F6: [
+    { at: '09:07:59', who: 'arjun', chars: 220 },
+    { at: '09:27:17', who: 'desk4-reviewer', chars: 190 },
+  ],
+};
+
+// The first `n` characters, cut at a word boundary, word for word.
+export function words(text, n) {
+  if (text.length <= n) return text;
+  return `${text.slice(0, text.lastIndexOf(' ', n)).trim()} …`;
+}
+
 const LINE = /^(\d\d:\d\d:\d\d)Z (?:HUMAN#\d+ (\S+) (\S+)|agent (\S+) (\S+)|GIT (\S+) (\S+)) ?:? ?(.*)$/;
 
 export function parseLog(text) {
@@ -83,6 +120,28 @@ export function sentences(text, n) {
   return kept.length < text.trim().length ? `${kept} …` : kept;
 }
 
+function pick(log, want) {
+  const hit = log.find((l) => l.at === want.at && l.who === want.who && (!want.match || l.text.includes(want.match)));
+  if (!hit) throw new Error(`No ${want.who} line at ${want.at}Z in ${LOG}`);
+  const who = PEOPLE[want.who];
+  let text = hit.text.replace(/^🎭\s*/, '');
+  if (want.upto && text.includes(want.upto)) text = `${text.slice(0, text.indexOf(want.upto))} …`;
+  else if (want.chars) text = words(text, want.chars);
+  else text = sentences(text, want.keep);
+  return {
+    finding: want.finding ?? null,
+    at: `${hit.at}Z`,
+    room: hit.room.startsWith('desk4-') ? hit.room.slice(6) : hit.room,
+    name: who.name,
+    role: who.role,
+    kind: who.kind,
+    text,
+    note: want.note ?? null,
+    line: hit.n,
+    href: `${SOURCE}#L${hit.n}`,
+  };
+}
+
 export function build(logText) {
   const log = parseLog(logText);
   return {
@@ -92,26 +151,9 @@ export function build(logText) {
       id: m.id,
       title: m.title,
       sub: m.sub,
-      lines: m.lines.map((want) => {
-        const hit = log.find((l) => l.at === want.at && l.who === want.who && (!want.match || l.text.includes(want.match)));
-        if (!hit) throw new Error(`No ${want.who} line at ${want.at}Z in ${LOG}`);
-        const who = PEOPLE[want.who];
-        let text = hit.text.replace(/^🎭\s*/, '');
-        if (want.upto && text.includes(want.upto)) text = `${text.slice(0, text.indexOf(want.upto))} …`;
-        return {
-          finding: want.finding ?? null,
-          at: `${hit.at}Z`,
-          room: hit.room.startsWith('desk4-') ? hit.room.slice(6) : hit.room,
-          name: who.name,
-          role: who.role,
-          kind: who.kind,
-          text: want.upto ? text : sentences(text, want.keep),
-          note: want.note ?? null,
-          line: hit.n,
-          href: `${SOURCE}#L${hit.n}`,
-        };
-      }),
+      lines: m.lines.map((want) => pick(log, want)),
     })),
+    added: Object.fromEntries(Object.entries(ADDED).map(([id, lines]) => [id, lines.map((want) => pick(log, want))])),
   };
 }
 
