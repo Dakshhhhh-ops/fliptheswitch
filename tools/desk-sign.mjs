@@ -15,6 +15,13 @@
 //       Doesn't push.
 //   show <git message file or ->
 //       Prints the signed fields in a message.
+//
+// Signer mode: with --signer http://127.0.0.1:<port> instead of --key, the
+// block is signed by tools/desk-signer.mjs, which holds the keys and checks
+// the request against Mattermost first. approve then also needs
+// --branch <pqc/...> --approval-post <post id of the APPROVED verdict>, and
+// ship and accept need --order-post <post id of the security lead's order>;
+// the signer takes ordered-by, order-at and order-text from that post.
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -33,7 +40,7 @@ function ident(repo, who) {
   return name ? [] : ['-c', `user.name=${who}`, '-c', `user.email=${who}@crypto-desk.local`];
 }
 
-const VALUED = ['--repo', '--key', '-m', '--room', '--role', '--agent', '--ordered-by', '--order-at', '--order-text'];
+const VALUED = ['--repo', '--key', '-m', '--room', '--role', '--agent', '--ordered-by', '--order-at', '--order-text', '--signer', '--branch', '--approval-post', '--order-post'];
 
 export function parseArgs(argv) {
   const opts = {};
@@ -45,11 +52,39 @@ export function parseArgs(argv) {
   return { pos, opts };
 }
 
+// Asks the signer for a block. Synchronous like the rest of this file: a
+// short child process makes the HTTP request.
+export function requestBlock(signer, kind, body) {
+  const script = [
+    'const [u, b] = process.argv.slice(1);',
+    "fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: b })",
+    '  .then(async (r) => process.stdout.write(JSON.stringify({ status: r.status, body: await r.text() })))',
+    '  .catch((e) => process.stdout.write(JSON.stringify({ status: 0, body: JSON.stringify({ error: e.message }) })));',
+  ].join('\n');
+  const url = `${signer.replace(/\/+$/, '')}/sign/${kind}`;
+  const r = spawnSync(process.execPath, ['-e', script, url, JSON.stringify(body)], { encoding: 'utf8' });
+  let res;
+  try {
+    res = JSON.parse(r.stdout);
+  } catch {
+    throw new Error(`the signer at ${signer} didn't answer: ${(r.stderr || '').trim()}`);
+  }
+  let parsed = {};
+  try {
+    parsed = JSON.parse(res.body);
+  } catch {}
+  if (res.status !== 200) throw new Error(`the signer refused: ${parsed.error ?? res.body}`);
+  return parsed.block;
+}
+
 const orderFields = (o) => ({ room: o.room, 'ordered-by': o['ordered-by'], 'order-at': o['order-at'], 'order-text': o['order-text'] });
 
-export function approve(sha, { repo, key, room, role = 'reviewer', agent }) {
+export function approve(sha, opts) {
+  const { repo, key, room, role = 'reviewer', agent } = opts;
   const full = git(repo, 'rev-parse', '--verify', `${sha}^{commit}`);
-  const block = signedBlock('approve', { commit: full, room, role, agent }, readFileSync(key, 'utf8'));
+  const block = opts.signer
+    ? requestBlock(opts.signer, 'approve', { commit: full, branch: opts.branch, room, role, agent, approvalPost: opts['approval-post'] })
+    : signedBlock('approve', { commit: full, room, role, agent }, readFileSync(key, 'utf8'));
   const tag = `desk-approve-${full.slice(0, 12)}`;
   const who = agent ?? 'desk-reviewer';
   spawnSync('git', ['-C', repo, 'tag', '-d', tag], { encoding: 'utf8' });
@@ -67,7 +102,9 @@ export function ship(id, branch, opts) {
   if (!m) throw new Error('ship needs -m "<one line>"');
   const base = git(repo, 'rev-parse', 'HEAD');
   const fix = git(repo, 'rev-parse', '--verify', `${branch}^{commit}`);
-  const block = signedBlock('ship', { finding: id, base, fix, ...orderFields(opts) }, readFileSync(key, 'utf8'));
+  const block = opts.signer
+    ? requestBlock(opts.signer, 'ship', { finding: id, base, fix, room: opts.room, orderPost: opts['order-post'] })
+    : signedBlock('ship', { finding: id, base, fix, ...orderFields(opts) }, readFileSync(key, 'utf8'));
   git(repo, ...ident(repo, 'desk-shipper'), 'merge', '--no-ff', fix, '-m', `Ship ${id}: ${m} (approved by reviewer at ${fix}, shipped by the security lead)`, '-m', block);
   return git(repo, 'rev-parse', 'HEAD');
 }
@@ -76,7 +113,9 @@ export function accept(id, opts) {
   const { repo, key, m } = opts;
   if (!m) throw new Error('accept needs -m "<reason>"');
   const parent = git(repo, 'rev-parse', 'HEAD');
-  const block = signedBlock('accept', { finding: id, parent, ...orderFields(opts) }, readFileSync(key, 'utf8'));
+  const block = opts.signer
+    ? requestBlock(opts.signer, 'accept', { finding: id, parent, room: opts.room, orderPost: opts['order-post'] })
+    : signedBlock('accept', { finding: id, parent, ...orderFields(opts) }, readFileSync(key, 'utf8'));
   git(repo, 'add', 'ACCEPTED-RISKS.md');
   git(repo, ...ident(repo, 'desk-shipper'), 'commit', '-m', `Accept risk ${id}: ${m}`, '-m', block);
   return git(repo, 'rev-parse', 'HEAD');
@@ -86,7 +125,10 @@ function main(argv) {
   const [cmd, ...rest] = argv;
   const { pos, opts } = parseArgs(rest);
   const need = (...ks) => {
-    for (const k of ks) if (!opts[k]) throw new Error(`${cmd} needs --${k}`);
+    for (const k of ks) {
+      if (k === 'key' && opts.signer) continue;
+      if (!opts[k]) throw new Error(`${cmd} needs --${k}${k === 'key' ? ' (or --signer)' : ''}`);
+    }
   };
   if (cmd === 'approve' && pos.length === 1) {
     need('repo', 'key');

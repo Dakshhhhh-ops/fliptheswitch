@@ -18,10 +18,45 @@ proves it.
 | The migrator doesn't merge and the scout doesn't edit code | instructions, backed by git | The instructions say so, and the hook refuses the push anyway | the gate tests above |
 | The reviewer reads the code, not the summary | instructions | It runs on a different provider. All four agents share one machine and folder | nothing automatic: read its review in the room |
 | Only the reviewer's key can approve, only the shipper's key can ship or accept a risk | **git**, by signature | `npm run setup` makes an ML-DSA-65 key for the reviewer and the shipper and registers their public halves in the origin. Then an approval must be an annotated tag signed by the reviewer's key (`tools/desk-sign.mjs approve`), and every ship and accepted risk must carry the shipper's signature, over exactly that finding, commit and parent. Each signature also records the Switch facts that allowed it: the room and role of the approval; who ordered the ship, when, and in what words. Certificates carry them, and `certificate.mjs verify` checks them against git | `test/signed-gate.test.mjs` (8 tests: unsigned or wrongly signed approvals, ships and risks refused; a valid signature moved onto another finding refused); `npm run judge` steps 4–6. Live runs 1 and 2 ran before signing, so they replay under the unsigned rules |
-| Which agent pushed | **partly** | The origin is a folder with no accounts. A push needs the right key, but on one machine every agent can read every key file, so the signature proves the key, not the process that used it. Separate machines, or an OS user per agent, make it per-agent; on a hosted repository, per-agent credentials and branch protection would too | a stated limit |
+| Which agent pushed | **partly** | The origin is a folder with no accounts. A push needs the right key, but on one machine every agent can read every key file, so the signature proves the key, not the process that used it. Separate machines, or an OS user per agent, make it per-agent; on a hosted repository, per-agent credentials and branch protection would too. [`tools/desk-signer.mjs`](../tools/desk-signer.mjs) takes the key files away from the agents and signs only against the order's Mattermost post ([below](#keys-out-of-the-agents-reach)) | a stated limit for runs 1–3; the signer is proved by `test/desk-signer.test.mjs`, not yet in a live run |
 
 `test/gate.test.mjs` and `npm run judge` push to a real bare repository with
 the hook installed.
+
+## Keys out of the agents' reach
+
+In live runs 1 to 3 the reviewer's and shipper's keys were files in
+`.origin/keys/`. Every agent runs as the same user in the same folder, so any
+of them could read `shipper.pem` and sign a ship nobody ordered. The
+signature then proved which key was used, not who asked for it, and the real
+guard was Switch's addressing.
+
+[`tools/desk-signer.mjs`](../tools/desk-signer.mjs) closes that gap. It is a
+small local service that loads both keys at start-up. With `--own-keys` it
+overwrites and deletes the key files, so the keys exist only in its memory.
+Agents ask it to sign over HTTP on 127.0.0.1 (`desk-sign.mjs ... --signer
+<url>`), naming the Mattermost post the request rests on. Before signing, the
+signer reads that post itself from Mattermost's API and checks it:
+
+| Request | Signed only if the post... |
+|---|---|
+| ship / accept risk F*n* | is in F*n*'s own room (`<team>-f<n>-...`), was written by the security lead, and says `ship F<n>` / `accept risk F<n>` for that finding. The `ordered-by`, `order-at` and `order-text` it signs come from the post, not from the request. With `--origin`, the fix must also have its `refs/approved/<sha>` in the origin |
+| approve | is in that finding's room, was written by the reviewer agent's bot account, and says `APPROVED <branch> @ <sha>` for the exact commit |
+
+Anything else gets HTTP 403 with the reason. The blocks are the ones
+`desk-sign.mjs` makes with a key file, so the gate and `npm run judge` check
+them unchanged. Without a key file, an agent can't forge a ship: Arjun's
+`ship F3`, a lead's order posted in another finding's room, an order for
+another finding, and a migrator posting `APPROVED` are all refused
+([`test/desk-signer.test.mjs`](../test/desk-signer.test.mjs), which also runs
+the signer as its own process and pushes what it signs through the real gate).
+
+**What it doesn't do.** On one machine, a process running as the same OS user
+can still read the signer's memory or its Mattermost token. This makes
+forging a signature much harder, not impossible. Production would keep each
+key in a KMS or HSM, or on a separate machine, that runs this same
+Mattermost check. **Not yet in a live Switch run:** runs 1 to 3 signed with
+key files, and the template still tells agents to use `--key`.
 
 ## Migration certificates
 
