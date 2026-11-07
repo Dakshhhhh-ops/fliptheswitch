@@ -24,7 +24,7 @@ export default function Added({ rows }) {
   return (
     <section className="section" id="added" ref={root}>
       <div className="section-head">
-        <span className="section-index">03 — What people added</span>
+        <span className="section-index">01 — What people added</span>
         <h2 className="section-title">
           What the scanner
           <br />

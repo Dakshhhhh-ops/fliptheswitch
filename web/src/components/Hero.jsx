@@ -59,12 +59,12 @@ export default function Hero({ counts, total, started }) {
               <Counter value={counts.shipped} pad={2} />
               <span>/{String(total).padStart(2, '0')}</span>
             </span>
-            <span className="hero-score-label">findings shipped</span>
+            <span className="hero-score-label">findings shipped in a live Switch run</span>
             <div className="ribbon" role="img" aria-label={STATES.map((s) => `${counts[s]} ${s}`).join(', ')}>
               {STATES.map((s) => (counts[s] ? <span key={s} className={`seg s-${slug(s)}`} style={{ flexGrow: counts[s] }} /> : null))}
             </div>
           </div>
-          <a className="scroll-cue" href="#qday" data-cursor="Scroll">
+          <a className="scroll-cue" href="#added" data-cursor="Scroll">
             <span>Scroll</span>
             <i aria-hidden="true" />
           </a>

@@ -41,9 +41,9 @@ export default function App() {
         <>
           <main>
             <Hero counts={counts} total={desk.rows.length} started={started} />
+            <Added rows={desk.rows} />
             <QDay />
             <Findings rows={desk.rows} />
-            <Added rows={desk.rows} />
             <Room />
             <Spectrum inventory={desk.inventory} />
           </main>

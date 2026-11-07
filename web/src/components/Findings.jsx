@@ -179,7 +179,7 @@ export default function Findings({ rows }) {
   return (
     <section className="section" id="findings" ref={root}>
       <div className="section-head">
-        <span className="section-index">02 — Findings</span>
+        <span className="section-index">03 — Findings</span>
         <h2 className="section-title">
           Six lines of code,
           <br />
