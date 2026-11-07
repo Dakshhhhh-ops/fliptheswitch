@@ -103,10 +103,95 @@ standalone X25519 in a file that also does the hybrid (the scanner takes it
 for the hybrid's classical half). `npm test` fails if precision drops,
 recall falls under 90%, or a new miss appears.
 
+Those labels are ours, so the next section checks the rules against
+something that isn't.
+
+## Checked by a parser
+
+`npm run scanner:crosscheck` parses the same files with
+[acorn](https://github.com/acornjs/acorn), a real JavaScript parser (MIT,
+vendored in [tools/vendor/](../tools/vendor/), so nothing is downloaded).
+[tools/cbom-ast.mjs](../tools/cbom-ast.mjs) walks the syntax tree and lists
+every call into a crypto API. It shares no code with the rules, and it knows
+what each name is bound to: `crypto.sign()` on `require('node:crypto')` is a
+crypto call, `jwt.sign()` is a jsonwebtoken call, and a function imported as
+`sign_` is still `sign`. Then:
+
+- **recall:** of the call sites the parser finds, how many the rules flag on
+  the same lines;
+- **weak recall:** the same, counting only call sites whose algorithm is
+  quantum-vulnerable or broken (named in the code, or implied by the API);
+- **precision:** of the rules' hits on calls, how many sit on a call the
+  parser finds. Hits on algorithm names written as strings (`'RS256'`,
+  `'ecdh-sha2-nistp256'`) are left out, because they are string literals by
+  construction.
+
+The real code is pinned: [mscdex/ssh2](https://github.com/mscdex/ssh2) at
+`a3a39d7`, [digitalbazaar/forge](https://github.com/digitalbazaar/forge) at
+`01119d6` and [auth0/node-jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)
+at `b924272`. `--fetch` clones them into `.cache/real/`.
+
+**The rules as they were, against the parser** (the independent result):
+
+| Code | Parser call sites | Recall | Weak recall | Precision |
+|---|---|---|---|---|
+| ssh2 (21 JS files) | 42 | 35/42, 83% | 12/13 | 35/38, 92% |
+| node-forge (54) | 44 | 35/44, 80% | 31/32 | 35/35, 100% |
+| jsonwebtoken (12) | 3 | 1/3 | 0/0 | 1/1 |
+| **Real code, total** | **89** | **71/89, 80%** | **43/45, 96%** | **71/74, 96%** |
+| demo-payments | 16 | 15/16 | 8/8 | 15/15 |
+
+What the parser found that the rules missed:
+
+- **Two quantum-vulnerable calls.** ssh2's `crypto.diffieHellman()` (which
+  only does DH, ECDH, X25519 and X448), and forge's `pbkdf2Sync()` with no
+  digest (old Node used SHA-1).
+- **Six calls with an algorithm chosen at runtime** that should have been
+  flagged for review: ssh2's `generateKeyPair_(...args)` (twice) and
+  `sign_(algo, ...)`/`verify_(algo, ...)`, imported under a new name, and
+  jsonwebtoken's `jws.sign`/`jws.verify`.
+- **Eight modern digests** missing from forge's inventory
+  (`forge.md.sha256/384/512.create()`).
+- Two `sign(null, ...)`/`verify(null, ...)` calls in ssh2, still missed (below).
+- **Three false positives**, all in ssh2: two method *declarations* named
+  `computeSecret(...) {`, and a call to ssh2's own `computeSecret` wrapper.
+
+**After fixing those rules:** real code 87/89 recall (98%), weak recall 45/45,
+precision 88/89 (99%). These numbers are no longer independent: the fixes
+were found with this check. The labelled benchmark is unchanged (precision
+100%, recall 94%), and so are demo-payments' six findings.
+
+The fixed rules are scanner version 2 (`SCANNER_VERSION` in
+[tools/cbom-scan.mjs](../tools/cbom-scan.mjs)). The live runs' signed
+migration certificates were issued with version 1, which records fewer lines
+in the migrated files (it didn't see `crypto.diffieHellman()`). So a
+certificate now names the version that issued it, and the audit re-runs that
+version: version 1 is kept, frozen, in
+[tools/scanner-versions/](../tools/scanner-versions/). A certificate without
+the field is version 1.
+
+What's left, and why:
+
+- `sign(null, ...)`/`verify(null, ...)` in ssh2's `constants.js` (a probe for
+  Ed25519 support): a `null` digest means EdDSA or ML-DSA, and nothing in that
+  file says which.
+- `crypto.scryptSync()` in demo-payments: a password KDF with no algorithm
+  to choose, and not on Mosca's clock.
+- The remaining false positive: the wrapper `this.computeSecret()` in ssh2,
+  which does call ECDH one level down.
+
+Limits of the check: acorn reads JavaScript, not TypeScript, so `.ts` files
+(all of panva/jose) are skipped and reported as such. The parser works one
+file at a time and resolves an algorithm only from a literal, a constant
+declared with one, or a constant object's property, like the rules. It's a
+second, independent reading of the same code, not a ground truth: a call
+both of them miss doesn't show up here.
+
 ## Limits
 
-The scanner reads JavaScript and TypeScript with fixed rules, not a parser.
-It is predictable, not complete. A constant in the same file is resolved, and
-any other algorithm picked at runtime is flagged for review rather than
-named. Values passed between files, and code inside a template literal's
-`${...}`, aren't followed.
+The scanner reads JavaScript and TypeScript with fixed rules. The parser
+check above measures them on real code, but they are predictable, not
+complete. A constant in the same file is resolved, and any other algorithm
+picked at runtime is flagged for review rather than named. Values passed
+between files, and code inside a template literal's `${...}`, aren't
+followed.

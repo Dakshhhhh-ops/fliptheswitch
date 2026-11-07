@@ -26,6 +26,12 @@ import { moscaLine, withMosca } from './mosca.mjs';
 //   broken:     already broken by ordinary computers.
 //   policy:     not broken, but below the CNSA 2.0 / org policy level.
 //   ok:         meets policy, including post-quantum algorithms.
+// Bumped when the rules change what they report. Migration certificates name
+// the version that issued them (tools/certificate.mjs). Version 1 is frozen in
+// tools/scanner-versions/; version 2 added the rules the parser check found
+// (docs/SCANNER.md, "Checked by a parser").
+export const SCANNER_VERSION = 2;
+
 export const ALGORITHMS = {
   'rsa-oaep':    { name: 'RSA-OAEP', primitive: 'pke', status: 'vulnerable', priority: 'P1', oid: '1.2.840.113549.1.1.7', nistQ: 0,
                    why: 'RSA is broken by Shor\'s algorithm. Anything wrapped with it today can be recorded now and unwrapped later.',
@@ -127,6 +133,12 @@ Object.assign(ALGORITHMS, {
   'cipher-unknown': { name: 'Cipher chosen at runtime', primitive: 'ae', status: 'review', priority: 'P3', nistQ: 0,
                    why: 'The cipher name comes from a value the scanner cannot resolve, so it may be weak.',
                    fix: 'Check where the value comes from, and allow only AES-256-GCM or ChaCha20-Poly1305.' },
+  'classical-kex': { name: 'Classical key agreement (DH, ECDH or X25519)', primitive: 'key-agree', status: 'vulnerable', priority: 'P1', nistQ: 0,
+                   why: 'crypto.diffieHellman() only does DH, ECDH, X25519 and X448, and Shor\'s algorithm breaks all of them. Recorded sessions can be decrypted later.',
+                   fix: 'A hybrid key exchange: X25519 plus ML-KEM-768 (FIPS 203).' },
+  'keytype-unknown': { name: 'Key type chosen at runtime', primitive: 'signature', status: 'review', priority: 'P3', nistQ: 0,
+                   why: 'The key or signature type comes from a value the scanner cannot resolve, so it may be RSA, ECDSA or another classical algorithm.',
+                   fix: 'Check where the value comes from, and plan ML-KEM or ML-DSA for the classical types it allows.' },
 });
 
 const HASHES = {
@@ -229,6 +241,16 @@ function hashHit(arg, ctx, func) {
   return key ? { key, func } : null;
 }
 
+// Is the call at `at` node:crypto's own function: `crypto.fn(`, or `fn(` imported
+// from node:crypto? Words like sign( and verify( are common method names.
+function cryptoCall(ctx, at, fn) {
+  const before = ctx.text.slice(Math.max(0, at - 40), at);
+  if (/(?:^|[^\w$])[\w$]*crypto\s*\.\s*$/i.test(before)) return true;
+  if (/\.\s*$/.test(before) || /\bfunction\s*\*?\s*$/.test(before)) return false;
+  const bound = new RegExp(`(?:import\\s*\\{[^}]*\\b${fn}\\b[^}]*\\}\\s*from|\\{[^}]*\\b${fn}\\b[^}]*\\}\\s*=\\s*require\\s*\\()`);
+  return bound.test(ctx.text) && ctx.importsCrypto;
+}
+
 // The key type behind a signature made with a digest name.
 function classicalSigKey(ctx) {
   if (ctx.hasEcKeys) return 'ecdsa';
@@ -249,7 +271,7 @@ const RULES = [
     hit: (m, ctx) => ({ key: ctx.hasSign ? 'ecdsa' : 'ecdh', curve: ctx.ecCurve, func: 'keygen' }) },
   { re: /\bcreateECDH\s*\(\s*(?:['"]([\w-]+)['"])?/g,
     hit: (m) => ({ key: 'ecdh', curve: m[1] ? CURVE_NAMES[m[1]] ?? m[1] : undefined, func: 'keygen' }) },
-  { re: /\bcomputeSecret\s*\(/g,
+  { re: /\.\s*computeSecret\s*\(/g, // a call, not a method declaration
     hit: (m, ctx) => (ctx.hasECDH ? { key: 'ecdh', curve: ctx.ecdhCurve, func: 'keyderive' } : null) },
   // crypto.sign(digest, data, key) and crypto.verify(...). A digest name means
   // RSA or ECDSA; null means Ed25519/Ed448 or ML-DSA.
@@ -261,6 +283,7 @@ const RULES = [
         if (ctx.hasEd) return { key: 'eddsa', func: m[1] };
         return null;
       }
+      if (v.unknown) return cryptoCall(ctx, m.index, m[1]) ? { key: 'keytype-unknown', func: m[1] } : null;
       const hash = v.value !== undefined ? hashKey(v.value) : null;
       if (!hash) return null;
       const key = classicalSigKey(ctx);
@@ -284,7 +307,13 @@ const RULES = [
     hit: (m, ctx, args) => hashHit(args[0], ctx, m[1] === 'createHash' ? 'digest' : 'tag') },
   // pbkdf2(password, salt, iterations, keylen, digest[, callback])
   { re: /\bpbkdf2(?:Sync)?\s*\(/g, call: true,
-    hit: (m, ctx, args) => (args.length >= 5 ? hashHit(args[4], ctx, 'keyderive') : null) },
+    hit: (m, ctx, args) => {
+      // No digest (pbkdf2Sync with 4 arguments, or a callback in 5th place):
+      // Node before 6 used SHA-1, and later versions throw.
+      const sync = m[0].includes('Sync');
+      if ((sync && args.length === 4) || (!sync && args.length === 5 && /^(function\b|\(|[\w$]+\s*=>)/.test(args[4]))) return { key: 'sha1', func: 'keyderive' };
+      return args.length >= 5 ? hashHit(args[4], ctx, 'keyderive') : null;
+    } },
   { re: /\bhkdf(?:Sync)?\s*\(/g, call: true,
     hit: (m, ctx, args) => hashHit(args[0], ctx, 'keyderive') },
   { re: /\b(createCipheriv|createDecipheriv)\s*\(/g, call: true,
@@ -303,12 +332,18 @@ const RULES = [
     hit: (m) => ({ key: m[1], func: 'keygen' }) },
   { re: /\b(encapsulate|decapsulate)\s*\(/g,
     hit: (m, ctx) => ({ key: ctx.mlKem ?? 'ml-kem-768', func: m[1] }) },
+  { re: /\bgenerateKeyPair(?:Sync)?\s*\(/g, call: true, // a key type the scanner can't resolve
+    hit: (m, ctx, args) => (argValue(args[0], ctx).unknown && cryptoCall(ctx, m.index, 'generateKeyPair(?:Sync)?') ? { key: 'keytype-unknown', func: 'keygen' } : null) },
+  { re: /\bjws\.(sign|verify|createSign|createVerify)\s*\(/g, // jws, under jsonwebtoken: the alg is a runtime value
+    hit: (m, ctx) => (/require\s*\(\s*['"]jws['"]|from\s*['"]jws['"]/.test(ctx.text) ? { key: 'keytype-unknown', func: /sign/i.test(m[1]) ? 'sign' : 'verify' } : null) },
+  { re: /\bdiffieHellman\s*\(/g, // crypto.diffieHellman({ privateKey, publicKey })
+    hit: (m, ctx) => (cryptoCall(ctx, m.index, 'diffieHellman') ? { key: ctx.mlKem ? 'x25519-hybrid' : 'classical-kex', func: 'keyderive' } : null) },
   { re: /\bgenerateKeyPair(?:Sync)?\s*\(\s*['"]x25519['"]/g,
     hit: (m, ctx) => ({ key: ctx.mlKem ? 'x25519-hybrid' : 'x25519', func: 'keygen' }) },
   // Popular libraries that do classical crypto without node:crypto.
   { re: /\bpki\.rsa\.(generateKeyPair|setPublicKey|setPrivateKey)\s*\(/g, // node-forge
     hit: (m, ctx) => ({ key: ctx.hasSign ? 'rsa-sig' : 'rsa-oaep', func: 'keygen' }) },
-  { re: /\bmd\.(sha1|md5)\.create\s*\(/g, // node-forge digests
+  { re: /\bmd\.(sha1|md5|sha256|sha384|sha512)\.create\s*\(/g, // node-forge digests
     hit: (m) => ({ key: m[1], func: 'digest' }) },
   { re: /\bnew\s+NodeRSA\s*\(/g, // node-rsa
     hit: (m, ctx) => ({ key: ctx.hasSign ? 'rsa-sig' : 'rsa-oaep', func: 'keygen' }) },
@@ -346,6 +381,7 @@ function fileFacts(text) {
     mlKem: text.match(/['"](ml-kem-\d+)['"]/)?.[1],
     mlDsa: text.match(/['"](ml-dsa-\d+)['"]/)?.[1],
     usesElliptic: /['"]elliptic['"]/.test(text),
+    importsCrypto: /\b(?:require\s*\(\s*|from\s*)['"](?:node:)?crypto['"]/.test(text),
   };
 }
 
@@ -356,7 +392,7 @@ const SKIP_DIRS = new Set(['test', 'tests', '__tests__', 'tap', 'spec', 'e2e', '
 // checkouts and .origin/ (skipped as a dot folder) the local git origin.
 const SKIP_ROOT_DIRS = new Set(['work']);
 
-function listSourceFiles(dir, root = true) {
+export function listSourceFiles(dir, root = true) {
   const out = [];
   for (const name of readdirSync(dir)) {
     if (name === 'node_modules' || name.startsWith('.')) continue;
@@ -370,9 +406,27 @@ function listSourceFiles(dir, root = true) {
   return out.sort();
 }
 
+// node:crypto functions renamed on the way in (`const { sign: sign_ } =
+// require('crypto')`) are called by their new name. Write the real name back
+// over each call, padded to the same length so every offset stays put.
+const RENAMABLE = /\b(sign|verify|generateKeyPair|generateKeyPairSync|diffieHellman|createHash|createHmac|createSign|createVerify|createCipheriv|createDecipheriv|createECDH|createDiffieHellman|publicEncrypt|privateDecrypt|privateEncrypt|publicDecrypt|pbkdf2|pbkdf2Sync|hkdf|hkdfSync)\s*:\s*([A-Za-z_$][\w$]*)/g;
+function unrename(text) {
+  let out = text;
+  for (const block of text.matchAll(/\{([^{}]*)\}\s*=\s*require\s*\(\s*['"](?:node:)?crypto['"]\s*\)/g)) {
+    for (const [, real, local] of block[1].matchAll(RENAMABLE)) {
+      if (local === real || local.length < real.length) continue;
+      const name = local.replace(/\$/g, '\\$');
+      out = out.replace(new RegExp(`(?<![\\w$.:])${name}(?=\\s*\\()`, 'g'), real.padEnd(local.length, ' '));
+    }
+  }
+  return out;
+}
+
 // Scan one file's source. `rel` is the path reported for it.
 export function scanSource(src, rel) {
-  const { text, strings } = clean(src);
+  const cleaned = clean(src);
+  const strings = cleaned.strings;
+  const text = unrename(cleaned.text);
   const ctx = fileFacts(text);
   const lineStarts = [0];
   for (let k = 0; k < src.length; k++) if (src[k] === '\n') lineStarts.push(k + 1);

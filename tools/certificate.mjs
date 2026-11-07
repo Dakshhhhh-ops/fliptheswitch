@@ -24,7 +24,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { findings, scan } from './cbom-scan.mjs';
+import { SCANNER_VERSION, findings, scan } from './cbom-scan.mjs';
+import { scan as scanV1 } from './scanner-versions/cbom-scan-1.mjs';
 import { withMosca } from './mosca.mjs';
 import { parseSigned } from './desk-signature.mjs';
 
@@ -64,10 +65,15 @@ export function publicKeyFrom(file) {
   return key.export({ type: 'spki', format: 'der' }).toString('base64');
 }
 
+// The scanner each certificate was issued with. A certificate with no
+// `scanner` field predates the field: version 1.
+const SCANNERS = { 1: scanV1, [SCANNER_VERSION]: scan };
+export const scannerFor = (cert) => SCANNERS[cert.scanner ?? 1];
+
 // The crypto the scanner sees in one file at the current checkout.
-export function cryptoIn(work, file) {
+export function cryptoIn(work, file, scanWith = scan) {
   const seen = new Map();
-  for (const h of scan(work)) {
+  for (const h of scanWith(work)) {
     if (h.file !== file) continue;
     const k = `${h.key}${h.curve ? `/${h.curve}` : ''}`;
     if (!seen.has(k)) seen.set(k, { key: h.key, curve: h.curve, lines: [] });
@@ -127,6 +133,7 @@ export function issue({ origin, id, key }) {
     const body = {
       type: 'crypto-desk/migration-certificate',
       version: 1,
+      scanner: SCANNER_VERSION,
       finding: { id, file: finding.file, lines: finding.lines, algorithm: finding.algorithm, status: finding.status, priority: finding.priority, mosca: finding.mosca.label },
       before: { commit: base, crypto: before },
       after: { commit: merge, crypto: after, stillFlagged: after.some((a) => a.key === finding.key) },
@@ -207,13 +214,15 @@ export function audit(cert, origin, { tests = false } = {}) {
       add(`The ${who} signed Switch facts match git`, canonical(got) === canonical(cert[part].switch), said);
     }
 
-    if (parents.length === 2) {
+    const scanWith = scannerFor(cert);
+    add('The certificate names a scanner version this desk has', Boolean(scanWith), `scanner ${cert.scanner ?? 1}`);
+    if (parents.length === 2 && scanWith) {
       const same = (a, b) => canonical(a) === canonical(b);
       git(['checkout', '-q', base], work);
-      const before = cryptoIn(work, cert.finding.file);
+      const before = cryptoIn(work, cert.finding.file, scanWith);
       add(`The scanner sees the same crypto in ${cert.finding.file} before`, same(before, cert.before.crypto), summarize(before));
       git(['checkout', '-q', merge], work);
-      const after = cryptoIn(work, cert.finding.file);
+      const after = cryptoIn(work, cert.finding.file, scanWith);
       add(`The scanner sees the same crypto in ${cert.finding.file} after`, same(after, cert.after.crypto), summarize(after));
       if (tests) {
         const t = runTests(work);

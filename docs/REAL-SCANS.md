@@ -11,7 +11,12 @@ an inventory is to see that surface before deciding what to migrate.
 
 ## [mscdex/ssh2](https://github.com/mscdex/ssh2) at `a3a39d7`
 
-SSH client and server. 12 crypto assets, 31 findings across 10 files.
+SSH client and server. 12 crypto assets, 31 findings across 10 files with
+scanner version 1 (the table below). Version 2, after the
+[parser check](SCANNER.md#checked-by-a-parser), finds 34: it adds a P1 for
+`crypto.diffieHellman()` in `lib/protocol/kex.js` (classical key agreement)
+and flags for review the key types `lib/keygen.js` and
+`lib/protocol/keyParser.js` choose at runtime. panva/jose is unchanged at 25.
 
 | Algorithm | Priority | Status | Files | Example |
 |---|---|---|---|---|
