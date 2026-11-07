@@ -21,6 +21,7 @@
     "board": "node tools/board.mjs",
     "web": "npm --prefix web install && npm --prefix web run build && npm --prefix web start",
     "web:dev": "npm --prefix web run dev",
-    "export": "npm --prefix web install && npm --prefix web run export"
+    "export": "npm --prefix web install && npm --prefix web run export",
+    "snapshot": "node scripts/snapshot.mjs"
   }
 }
