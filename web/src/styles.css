@@ -45,13 +45,6 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 }
 @keyframes grain { 0%,100% { transform: translate(0,0); } 20% { transform: translate(-3%,2%); } 40% { transform: translate(2%,-3%); } 60% { transform: translate(-2%,-1%); } 80% { transform: translate(3%,3%); } }
 
-/* Preloader */
-.preloader { position: fixed; inset: 0; z-index: 100; background: #050505; display: grid; place-items: center; clip-path: inset(0 0 0 0); }
-.pre-inner { display: grid; justify-items: center; gap: 18px; }
-.pre-label { font: 500 12px var(--mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
-.pre-num { font: 400 clamp(120px, 22vw, 300px)/0.8 var(--serif); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
-.pre-track { width: min(320px, 60vw); height: 1px; background: var(--line-2); overflow: hidden; }
-.pre-line { display: block; height: 100%; background: var(--shipped); transform: scaleX(0); transform-origin: left; }
 
 /* Cursor */
 .cursor-dot, .cursor-ring { position: fixed; left: 0; top: 0; z-index: 95; pointer-events: none; border-radius: 50%; display: none; }

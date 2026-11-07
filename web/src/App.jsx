@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Nav from './components/Nav.jsx';
 import Hero from './components/Hero.jsx';
 import QDay from './components/QDay.jsx';
@@ -11,7 +10,6 @@ import Replay from './components/Replay.jsx';
 import Room from './components/Room.jsx';
 import Spectrum from './components/Spectrum.jsx';
 import Receipt from './components/Receipt.jsx';
-import Preloader from './components/Preloader.jsx';
 import Cursor from './components/Cursor.jsx';
 import { countStates, useDesk } from './useDesk.js';
 import { useSmoothScroll } from './lib/motion.js';
@@ -30,13 +28,11 @@ function Empty({ error }) {
 
 export default function App() {
   const { desk, live, error } = useDesk();
-  const [started, setStarted] = useState(false);
   useSmoothScroll(Boolean(desk));
   const counts = desk ? countStates(desk.rows) : null;
 
   return (
     <>
-      <Preloader ready={Boolean(desk || error)} onDone={() => setStarted(true)} />
       <Cursor />
       <div className="grain" aria-hidden="true" />
       <Nav desk={desk} live={live} />
@@ -44,7 +40,7 @@ export default function App() {
       {desk && (
         <>
           <main>
-            <Hero counts={counts} total={desk.rows.length} started={started} />
+            <Hero counts={counts} total={desk.rows.length} started />
             <Flip />
             <Scan />
             <Added rows={desk.rows} />
