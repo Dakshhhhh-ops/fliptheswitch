@@ -3,9 +3,8 @@ import { Suspense, lazy, useLayoutEffect, useRef } from 'react';
 // three.js is the biggest dependency by far; load it after the first paint.
 // Until it arrives (or if WebGL is unavailable) a still dot grid stands in.
 const Lattice = lazy(() => import('./Lattice.jsx'));
-import { Counter, Lines } from './motion.jsx';
+import { Lines } from './motion.jsx';
 import { calm, gsap } from '../lib/motion.js';
-import { STATES, slug } from '../useDesk.js';
 
 export default function Hero({ counts, total, started }) {
   const root = useRef(null);
@@ -58,16 +57,6 @@ export default function Hero({ counts, total, started }) {
             <div className="hero-ctas">
               <a className="hero-cta" href="#flip">Flip the switch →</a>
               <a className="hero-cta-2" href="#break">or try to forge a ship</a>
-            </div>
-          </div>
-          <div className="hero-score">
-            <span className="hero-score-num">
-              <Counter value={counts.shipped} pad={2} />
-              <span>/{String(total).padStart(2, '0')}</span>
-            </span>
-            <span className="hero-score-label">findings shipped in a live Switch run</span>
-            <div className="ribbon" role="img" aria-label={STATES.map((s) => `${counts[s]} ${s}`).join(', ')}>
-              {STATES.map((s) => (counts[s] ? <span key={s} className={`seg s-${slug(s)}`} style={{ flexGrow: counts[s] }} /> : null))}
             </div>
           </div>
           <a className="scroll-cue" href="#flip" data-cursor="Scroll">
