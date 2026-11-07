@@ -174,8 +174,6 @@ More: [the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) (a hosted s
 
 ## Built for Flip the Switch
 
-- **In the build window:** all 86+ commits are by one author and dated
-  4–7 November 2026 (IST); `git log` shows it.
 - **Ours:** the template, agents' rules, scanner, git gate, signing,
   certificates, board, desk app, demo-payments and every live run. MIT
   licensed.
