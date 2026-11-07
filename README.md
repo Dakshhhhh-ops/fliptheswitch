@@ -44,6 +44,11 @@ on a set we labelled ourselves ([details](docs/SCANNER.md#how-accurate-it-is)).
 
 ### What's new here
 
+**Names below:** F1–F6 are the six problems in the demo app: F1 card keys
+(RSA), F2 partner session keys (ECDH), F3 TLS, F4 receipt checksums (SHA-1),
+F5 webhook signatures (ECDSA), F6 stored customer records (AES-128). Arjun is
+the engineer; `desk4` is live run 3's name for its agents and rooms.
+
 - **People change the fix, not just approve it.** "About 40 merchants still verify ECDSA" turned F5 into dual-signing ([log](docs/live-run-3/chat-log.md?plain=1#L31)); support re-issuing old receipts let SHA-1 go from F4 ([log](docs/live-run-3/chat-log.md?plain=1#L217)).
 - **Ranked by how late you already are.** Mosca's rule: if the data must stay secret longer than the years left before a quantum computer, minus the migration, the finding is late today.
 - **Signed with the crypto it migrates to.** Every approval, ship and certificate carries an ML-DSA-65 signature, and git refuses one without it.
@@ -56,8 +61,8 @@ server in [three live runs](#the-live-runs).
 
 | Remove this Switch feature | And this breaks | Seen in a live run |
 |---|---|---|
-| `owner` addressing on the shipper | Anyone in the room can order a merge | Arjun's "ship F3" refused by Switch ([screenshot](docs/live-run-3/refusal-ship.png)) |
-| `owner-agents` addressing on the reviewer | The engineer can ask for an approval | Arjun's "approve it" refused; the migrator's hand-off got through ([screenshot](docs/live-run-3/refusal-reviewer.png)) |
+| Shipper obeys only its owner (`owner`) | Anyone in the room can order a merge | Arjun's "ship F3" refused by Switch ([screenshot](docs/live-run-3/refusal-ship.png)) |
+| Reviewer takes requests only from the owner and the desk's agents (`owner-agents`) | The engineer can ask for an approval | Arjun's "approve it" refused; the migrator's hand-off got through ([screenshot](docs/live-run-3/refusal-reviewer.png)) |
 | Exclusive `reviewer` room role | Any agent can claim it reviewed | Switch's `400` to a second claimant ([screenshot](docs/live-run/role-lock.png)); F6 couldn't ship on a reviewer without the role |
 | Room documents | Any agent can rewrite the board | Switch's `403` to the migrator ([screenshot](docs/live-run-2/inventory-lock-and-board.png)) |
 | Agents creating rooms (`create_room`, `link_rooms`) | One channel for every finding | The scout opened all six rooms itself |
@@ -83,7 +88,6 @@ desk4-f5-webhooks, the fix just pushed:
 06:05:03  desk4-reviewer        @arjun I only take instructions from my owner, and this chat
           (posted by Switch)    account isn't linked to a Switch user yet [...]
 06:05:23  desk4-reviewer        assumed the `reviewer` role      <- the migrator got through
-06:10:34  desk4-reviewer        CHANGES REQUESTED 1. both headers sign only the body [...]
 
 desk4-f3-tls, after the reviewer's signed APPROVED:
 06:47:19  arjun (engineer)      @desk4-shipper ship F3
@@ -103,16 +107,12 @@ instead; Switch's own tests pin both as `allowed is False`
 <img src="docs/live-run-3/refusal-reviewer.png" width="49%" alt="Switch refusing the engineer's request that the reviewer approve">
 <img src="docs/live-run-3/reviewer-addressing-console.png" width="49%" alt="Switch Console: the reviewer's 'Who can talk to your agent' is 'Me and my agents', owner-agents">
 </p>
-
-Left: the refusal in Mattermost. Right: the setting behind it in Switch
-Console, "Who can talk to your agent: Me and my agents".
-
 ## The live runs
 
 Run end to end in Switch three times, nothing scripted. The latest:
 **[live run 3](docs/live-run-3/README.md)** (`desk4`, 7 November 2026), the
-first with the reviewer on `owner-agents` and every approval and ship signed,
-with a timestamped log of every message and push. **Shipped 5 of 6**, plus
+first where only the desk may ask the reviewer and every approval and ship is
+signed, with a timestamped log of every message and push. **Shipped 5 of 6**, plus
 F3's production TLS as an accepted risk; F6 is written and in review.
 [Run 2](docs/live-run-2/README.md) and [run 1](docs/live-run/README.md) are
 there too.
@@ -132,7 +132,6 @@ The run wasn't smooth: four messages were sent again because Switch started
 no agent for them, the server crashed once under low memory, and the Codex
 reviewer stalled three times. All of it is in the
 [run's write-up](docs/live-run-3/README.md#what-went-wrong-and-what-it-cost).
-Check it from git: `node tools/replay.mjs docs/live-run-3/origin.bundle`.
 
 ## How it works
 
@@ -168,10 +167,7 @@ flowchart TB
 Every command, every message to send, and what to do if it gets stuck:
 [docs/RUN-SHEET.md](docs/RUN-SHEET.md).
 
-More: [the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) (a hosted snapshot) ·
-[the scanner and CI gate](docs/SCANNER.md) ·
-[what it found in ssh2 and jose](docs/REAL-SCANS.md) ·
-[the live run, step by step](docs/RUN-SHEET.md)
+More: [the scanner and its CI gate](docs/SCANNER.md).
 
 ## Built for Flip the Switch
 
