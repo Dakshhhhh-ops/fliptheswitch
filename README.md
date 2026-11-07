@@ -62,6 +62,16 @@ migrates you to, so its audit trail survives Q-Day too.
 
 ## Why Switch is central
 
+Switch in live run 3, cut from the demo video:
+
+| Arjun asks the reviewer to approve; Switch refuses him | One message to switch-buddy-admin starts the desk; the agents open their own rooms |
+|---|---|
+| ![Switch refuses the engineer](docs/img/switch/switch-refusal.gif) | ![The agents open their own rooms](docs/img/switch/switch-rooms.gif) |
+| **The shipper's signed merge, after the reviewer's ML-DSA-65 approval** | **Take Switch away, and each control is gone** |
+| ![The signed ship](docs/img/switch/switch-ship.gif) | ![Take Switch away](docs/img/switch/switch-take-away.gif) |
+
+![The Switch template: owner addressing on the shipper, owner-agents on the reviewer](docs/img/switch/switch-template.png)
+
 Switch decides **who** may act; git decides **what** may land. Remove a Switch
 feature and the workflow loses a control:
 
