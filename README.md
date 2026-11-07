@@ -30,16 +30,16 @@ The scanner and the git gate run without Switch. The desk doesn't: every
 rule about **who** may do what lives in Switch, and runs on a real Switch
 server in [three live runs](#the-live-runs).
 
-| Remove this Switch feature | And this breaks | Where it is | Seen in a live run |
-|---|---|---|---|
-| Addressing policy `owner` on the shipper | Anyone in the room can tell the shipper to merge. Today Switch answers them itself, before the shipper runs | `addressing: owner` in the [template](template/crypto-desk.template.yaml) | Arjun's "ship F3" refused in runs 2 and 3 ([screenshot](docs/live-run-3/refusal-ship.png)) |
-| Addressing policy `owner-agents` on the reviewer | The engineer can ask the reviewer to approve. Today only the security lead and the desk's own agents can address it | `addressing: owner-agents` in the template | Run 3: Arjun's "approve it" refused, while the migrator's hand-off in the same second got through ([screenshot](docs/live-run-3/refusal-reviewer.png)) |
-| Exclusive room role | Any agent can claim it reviewed. Today there is one `reviewer` per finding's room | The scout's `create_room` defines `reviewer` with `exclusive: true` | A second agent's `assume_role("reviewer")` got Switch's `400` ([screenshot](docs/live-run/role-lock.png)) |
-| Room documents | Any agent can rewrite the board. Today only the scout, which created the "Crypto inventory", can edit it | The scout's `create_room_document` | The migrator's edit got Switch's `403` ([screenshot](docs/live-run-2/inventory-lock-and-board.png)) |
-| Agents creating rooms (`create_room`, `link_rooms`) | One shared channel for every finding, or a person making rooms. Today the scout opens a private room per finding, with the engineer in it | The scout's instructions | The scout opened the F5, F1 and F3 rooms itself |
-| Targeted messages (`send_targeted_message`, `target_roles`) | Hand-offs by polling chat. Today the migrator hands off to whoever holds the reviewer role, and the shipper tells the scout | The migrator's and shipper's instructions | Every hand-off and ship notice ([log](docs/live-run-3/chat-log.md)) |
-| Different providers in one room | The author marks its own work. Today Claude Code writes and Codex reviews | `provider` and `review_provider` in the template | Codex requested changes on F1 in every run, and on F5 in run 3 ([screenshot](docs/live-run-3/changes-requested.png)) |
-| Template | Four agents and their rules set up by hand, per team. Today one form creates them, the intake room and the kickoff | [template/crypto-desk.template.yaml](template/crypto-desk.template.yaml) | Run from a chat message to Switch's buddy agent |
+| Remove this Switch feature | And this breaks | Seen in a live run |
+|---|---|---|
+| `owner` addressing on the shipper | Anyone in the room can order a merge | Arjun's "ship F3" refused by Switch ([screenshot](docs/live-run-3/refusal-ship.png)) |
+| `owner-agents` addressing on the reviewer | The engineer can ask for an approval | Arjun's "approve it" refused; the migrator's hand-off got through ([screenshot](docs/live-run-3/refusal-reviewer.png)) |
+| Exclusive `reviewer` room role | Any agent can claim it reviewed | Switch's `400` to a second claimant ([screenshot](docs/live-run/role-lock.png)); F6 couldn't ship on a reviewer without the role |
+| Room documents | Any agent can rewrite the board | Switch's `403` to the migrator ([screenshot](docs/live-run-2/inventory-lock-and-board.png)) |
+| Agents creating rooms (`create_room`, `link_rooms`) | One channel for every finding | The scout opened all six rooms itself |
+| Targeted messages and roles | Hand-offs by polling chat | Every hand-off and ship notice ([log](docs/live-run-3/chat-log.md)) |
+| Different providers in one room | The author marks its own work | Codex requested changes on F1, F2, F4, F5 and F6 ([screenshot](docs/live-run-3/changes-requested.png)) |
+| [Template](template/crypto-desk.template.yaml) | Four agents set up by hand | Started from one chat message to Switch's buddy agent |
 
 Switch decides **who** may order a ship or ask for a verdict. Git decides
 **what** a ship may contain: the origin's gate only lets main take a merge of
@@ -70,24 +70,20 @@ desk4-f3-tls, after the reviewer's signed APPROVED:
                                 room e6e3…, ordered-by user, order-text "ship F3"
 ```
 
-Both refusals are Switch's own reply for an addressing policy
-(`ADDRESSING_UNCLAIMED_MESSAGE` in Switch's
-[addressing.py](https://github.com/sandbox-quantum/switch/blob/main/core/switch_core/delivery/addressing.py)):
-`owner-agents` on the reviewer, `owner` on the shipper.
-
-**"Isn't linked" is a refusal, not a failure to recognise him.** Arjun's chat
-account isn't linked to any Switch user, so it matches nobody, and the policy
-admits only the owner. Linking it wouldn't let him in: Switch would refuse
-him with different words, "You're not permitted to direct messages to me in
-this room". Switch's own tests pin both cases for an owner-only policy:
-`test_unclaimed_sender_gets_link_your_account_wording` and
-`test_other_user_denied_with_generic_wording`, both `allowed is False`
+Both refusals are Switch's own reply for an addressing policy (`owner-agents`
+on the reviewer, `owner` on the shipper). **"Isn't linked" is a refusal, not a
+failure to recognise Arjun:** his account matches nobody, and only the owner
+is admitted. Linked, he'd get "You're not permitted to direct messages to me"
+instead; Switch's own tests pin both as `allowed is False`
 ([test_addressing_enforcement.py](https://github.com/sandbox-quantum/switch/blob/main/core/tests/switch_core/delivery/test_addressing_enforcement.py)).
-Not shown live: the second wording needs a second Switch user linked to
-Arjun's account, which is done in Switch Console by that user; the
-[run sheet](docs/RUN-SHEET.md) has the steps.
 
-![Switch refusing the engineer's request that the reviewer approve](docs/live-run-3/refusal-reviewer.png)
+<p>
+<img src="docs/live-run-3/refusal-reviewer.png" width="49%" alt="Switch refusing the engineer's request that the reviewer approve">
+<img src="docs/live-run-3/reviewer-addressing-console.png" width="49%" alt="Switch Console: the reviewer's 'Who can talk to your agent' is 'Me and my agents', owner-agents">
+</p>
+
+Left: the refusal in Mattermost. Right: the setting behind it in Switch
+Console, "Who can talk to your agent: Me and my agents".
 
 ## The live runs
 
@@ -103,19 +99,18 @@ there too.
 
 | Finding | What happened |
 |---|---|
-| **F5** webhooks, ECDSA | Arjun: "40 merchants still verify ECDSA", so the fix dual-signs with ECDSA and ML-DSA-65. Codex **requested changes**: the repo says webhook signatures are valid for 5 minutes, and nothing signed a time. The migrator asked Arjun, signed a timestamp, and shipped as `4769ce0` |
-| **F1** card keys, RSA-OAEP | Hybrid X25519 + ML-KEM-768, RSA kept only to read old envelopes. Codex **requested changes** (no end date for RSA in the commit). Shipped as `a0f015b` |
-| **F3** TLS | Staging moved to TLS 1.3 with hybrid key exchange (`525a4a3`). Production is on the acquirer's gateway: a change request, and a signed accepted risk with a review date (`695ea59`) |
-| **F2** session keys, ECDH | Both sides of the exchange run this repo's code, so both move to hybrid X25519 + ML-KEM-768. Codex **requested changes**: a reused responder state would expose every session. Made single-use, shipped as `77492d6` |
-| **F4** receipts, SHA-1 | Keyed HMAC-SHA-256. Codex **requested changes** while a SHA-1 check stayed for old receipts; Arjun had support re-issue them instead, and SHA-1 went. Shipped as `b1fedca` |
-| **F6** records, AES-128 | AES-256-GCM, with a tested gate that blocks deploy until every stored record is re-encrypted (`b8180e4`). **Not shipped**: Codex hit its usage limit before re-reviewing, and a stand-in reviewer couldn't take the exclusive `reviewer` role Codex still held, so nothing signed it |
-| **Refusals** | Switch refused Arjun's "approve it" and his "ship F3". The shipper refused the security lead's "ship F5" sent before the verdict. The role lock kept F6 from shipping on an unsigned review |
-| **What went wrong** | Switch delivered no agent session for four messages, so each was sent again; the Switch server crashed once under low memory; the Codex reviewer stalled three times ([details](docs/live-run-3/README.md#what-went-wrong-and-what-it-cost)) |
+| **F5** webhooks, ECDSA | Dual-signed ECDSA + ML-DSA-65 ("40 merchants still verify ECDSA"). Codex **requested changes**: nothing signed a time for the 5-minute replay window. Shipped `4769ce0` |
+| **F1** card keys, RSA-OAEP | Hybrid X25519 + ML-KEM-768, RSA read-only for old envelopes. Codex **requested changes**: no end date for RSA. Shipped `a0f015b` |
+| **F3** TLS | Staging on TLS 1.3 with hybrid key exchange (`525a4a3`). Production is the acquirer's: a signed accepted risk (`695ea59`) |
+| **F2** session keys, ECDH | Hybrid on both sides. Codex **requested changes**: a reusable responder state. Made single-use, shipped `77492d6` |
+| **F4** receipts, SHA-1 | Keyed HMAC-SHA-256. Codex **requested changes** while SHA-1 stayed for old receipts; it went. Shipped `b1fedca` |
+| **F6** records, AES-128 | AES-256-GCM with a tested deploy gate (`b8180e4`). **Not shipped**: Codex hit its usage limit, and the stand-in reviewer couldn't take the role Codex still held, so nothing signed it |
 
-Check it from git: `node tools/replay.mjs docs/live-run-3/origin.bundle` and
-`node tools/certificate.mjs verify docs/live-run-3/F1.cert.json --tests`.
-`npm run snapshot -- --run docs/live-run-3` redraws the board image above
-from the same git.
+The run wasn't smooth: four messages were sent again because Switch started
+no agent for them, the server crashed once under low memory, and the Codex
+reviewer stalled three times. All of it is in the
+[run's write-up](docs/live-run-3/README.md#what-went-wrong-and-what-it-cost).
+Check it from git: `node tools/replay.mjs docs/live-run-3/origin.bundle`.
 
 ## How it works
 
@@ -139,19 +134,10 @@ flowchart TB
   ship -- "shipped at sha" --> scout
 ```
 
-1. The security lead runs the template. Switch creates the four agents and
-   the intake room.
-2. The scout scans, writes a CycloneDX CBOM and a **Crypto inventory**
-   document, and opens a private room for each finding to work.
-3. In each room the migrator posts a plan, the engineer adds what the code
-   doesn't show, and the migrator pushes a branch with tests.
-4. The agent holding the room's exclusive **reviewer** role checks out that
-   commit, runs the tests and the scanner, and approves or requests changes.
-   An approval is a signed `refs/approved/<sha>` mark in git, for that exact
-   commit.
-5. The security lead tells the shipper "ship" or "accept risk". The shipper
-   merges, issues an ML-DSA-signed certificate, and tells the scout, which
-   rescans and moves the board.
+The scout scans and opens a room per finding; the migrator fixes it with the
+engineer; the reviewer approves an exact commit with a signed git mark; the
+security lead orders the ship; the shipper merges, signs, issues an ML-DSA
+certificate, and the scout moves the board.
 
 ## Run it yourself
 
@@ -175,22 +161,21 @@ npm run desk:watch     # logs every message and push, and says when an agent is 
 npm run desk:package   # keeps the run as docs/live-run-N and verifies it
 ```
 
-## Repository
-
-```
-template/      the Switch template (and a backup that declares the rooms)
-tools/         scanner and its benchmark, Mosca's rule, signing, certificates, board, live-run replay
-scripts/       judge, doctor, desk:up/watch/package, snapshot, the git gate, origin setup
-web/           the desk app: React UI on a Node API that reads the agents' git
-demo-payments/ the payments service being migrated, with six planted problems
-docs/          three live runs, enforcement, scanner, desk app, real-world scans
-test/          the tests above, plus demo-payments' own; CI runs them on Linux, Windows and macOS
-```
-
 More: [the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) (a hosted snapshot) ·
 [the scanner and CI gate](docs/SCANNER.md) ·
 [what it found in ssh2 and jose](docs/REAL-SCANS.md) ·
 [the live run, step by step](docs/RUN-SHEET.md)
+
+## Built for Flip the Switch
+
+- **In the build window:** all 86+ commits are by one author and dated
+  4–7 November 2026 (IST); `git log` shows it.
+- **Ours:** the template, agents' rules, scanner, git gate, signing,
+  certificates, board, desk app, demo-payments and every live run. MIT
+  licensed.
+- **Not ours:** [Switch](https://github.com/sandbox-quantum/switch) (v0.40.1,
+  run unmodified through Switch Console, with its bundled Mattermost), Node's
+  built-in `node:crypto`, and the desk app's React and Vite.
 
 ## Limits
 
