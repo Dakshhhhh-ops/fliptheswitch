@@ -1,11 +1,11 @@
 # Live run 3: desk4, 2026-11-07
 
-**Shipped 3/6 (F3 with a risk on record) · Accepted risk 0 · In review 0 · Open 3**
+**Shipped 5/6 (F3 with a risk on record) · In review 1 (F6) · Open 0**
 
 The first run with the reviewer on `owner-agents` addressing, and with every
 approval, ship and accepted risk signed by the agent's own ML-DSA-65 key. The
-scout's last board line in the intake room: **Shipped 3/6 · Accepted risk 1 ·
-Open 3**. Times below are UTC (IST is +5:30). Every message and push:
+scout's board in the intake room after F4: **Shipped 5/6 · Accepted risk 1 ·
+In progress 1**. Times below are UTC (IST is +5:30). Every message and push:
 [chat-log.md](chat-log.md).
 
 ## What Switch refused
@@ -73,16 +73,56 @@ The machine was short of memory during the run (about 1.3 GB free, with the
 previous run's agents still running), which may explain the dropped feed and
 the slow reviews.
 
+## Part two: F2, F4 and F6 (afternoon)
+
+After the first three, the security lead sent `@desk4-scout Open F2, F4 and
+F6 and work them in that order`. The scout opened the three rooms, and when
+the message arrived twice, said so and opened nothing twice.
+
+- **F2** partner session keys, ECDH P-256 (`77492d6`). Arjun: both sides of
+  the exchange run this repo's `session.js`, so both move together. Hybrid
+  X25519 + ML-KEM-768 with HKDF-SHA-256. Codex **requested changes**: the
+  responder state could be reused across sessions, so one leaked state would
+  expose every session. The migrator made it single-use; Codex approved.
+- **F4** receipt checksums, SHA-1 (`b1fedca`). First fix: keyed HMAC-SHA-256
+  with a SHA-1 path kept for old receipts. Codex **requested changes**: the
+  scan still found SHA-1, and only RSA is allowed a legacy read path. Arjun
+  changed the constraint (support re-issues old receipts from records), the
+  migrator removed SHA-1, and Codex approved.
+- **F6** customer records, AES-128-GCM: **in review, not shipped.** The fix
+  writes AES-256-GCM only, after the DBA re-encrypts stored records. Codex
+  **requested changes** (nothing enforced "deploy only after zero old
+  records"), and the migrator added a tested deploy gate (`b8180e4`). Codex
+  then hit its usage limit and couldn't review again. A stand-in reviewer on
+  Claude Code approved it in the room, but couldn't take the exclusive
+  `reviewer` role, which the out-of-quota Codex agent still held, so it pushed
+  no signed approval and the shipper had nothing to ship. Switch's role lock
+  and the git gate both held.
+
+What went wrong in part two, in addition to the above:
+
+- **The Switch server crashed** while the machine was short of memory
+  (under 1 GB free). Switch Console was restarted; rooms, history and the git
+  origin were intact.
+- **The Codex reviewer stalled or froze three times.** Each needed the lead
+  to nudge it, close its old session (`npm run desk:tidy`), or have Switch's
+  buddy agent restart it.
+- **Two more messages reached no agent**: Arjun's first F6 answer (the
+  migrator later said "I couldn't find an earlier constraint in this room")
+  and one review hand-off. **Twice the reviewer's CHANGES REQUESTED didn't
+  name the migrator**, so the lead pointed the migrator at it.
+- **Codex's usage limit** ended its part in the run.
+
 ## Findings
 
 | Finding | State | On main |
 |---|---|---|
 | F1 RSA-OAEP (2048) | shipped | `a0f015b` |
-| F2 ECDH (P-256) | open | - |
+| F2 ECDH (P-256) | shipped | `77492d6` |
 | F3 TLS classical key exchange (prime256v1) | shipped, risk on record | `525a4a3` |
-| F4 SHA-1 | open | - |
+| F4 SHA-1 | shipped | `b1fedca` |
 | F5 ECDSA (P-256) | shipped | `4769ce0` |
-| F6 AES-128-GCM | open | - |
+| F6 AES-128-GCM | in review | branch `pqc/f6-vault` |
 
 ## What people sent
 
@@ -103,11 +143,30 @@ the slow reviews.
 | 06:47 | user | f3-tls | @desk4-shipper ship F3 |
 | 06:52 | user | f3-tls | @desk4-shipper ship F3 |
 | 07:00 | user | f3-tls | @desk4-shipper accept risk F3: production TLS terminates at the acquirer's edge gateway, outside our repo. Change request sent, review in 90 days. |
+| 07:41 | user | intake | @desk4-scout Open F2, F4 and F6 and work them in that order. |
+| 07:42 | user | intake | @desk4-scout Open F2, F4 and F6 and work them in that order. |
+| 07:44 | arjun | f2-session | @desk4-migrator Both sides of this exchange run our session.js: the acquirer's settlement client is built from this repo, so switch both to the hybrid together  |
+| 07:53 | user | f2-session | @desk4-reviewer The machine is free now, please review F2 again. |
+| 07:57 | user | f2-session | @desk4-migrator The reviewer requested changes on F2 in its thread above: completeSession must reject a reused responder state. Please fix it and hand off again |
+| 08:00 | user | f2-session | @desk4-shipper ship F2 |
+| 08:04 | arjun | f4-receipts | @desk4-migrator Only our support staff check these checksums, never customers or merchants, and receipts already issued must still verify. Use HMAC-SHA-256 for  |
+| 08:25 | user | f4-receipts | @desk4-reviewer Your shell may have hung. Please run the F4 review again and post your verdict. |
+| 08:34 | user | f4-receipts | @desk4-reviewer Please run the F4 review again and post your verdict. |
+| 08:41 | user | f4-receipts | @desk4-reviewer The server restarted. Please run the F4 review again and post your verdict. |
+| 09:01 | arjun | f4-receipts | @desk4-migrator Change of plan for F4: drop the SHA-1 check completely. If a customer forwards an old receipt, support re-issues it as v2 from our records inste |
+| 09:05 | user | f4-receipts | @desk4-shipper ship F4 |
+| 09:07 | arjun | f6-vault | @desk4-migrator Existing records must stay readable, but don't keep AES-128 in the new code: our DBA re-encrypts every stored record to AES-256-GCM tonight with |
+| 09:16 | arjun | f6-vault | @desk4-migrator Your plan is fine with my constraint above: v2 AES-256-GCM only, no AES-128 read path, because the DBA re-encrypts old records. Go ahead. |
+| 09:17 | arjun | f6-vault | @desk4-migrator Yes: the DBA's job runs from the current release, using today's vault.js, so it doesn't depend on your change. We only deploy this after the DBA |
+| 09:37 | user | f6-vault | @desk4-reviewer F6 round 2 is ready: pqc/f6-vault at b8180e4. Please review it and post your verdict. |
+| 09:48 | user | f6-vault | !invite-agent @desk4-reviewer-claude |
+| 09:48 | user | f6-vault | @desk4-reviewer-claude The Codex reviewer hit its usage limit. Take the reviewer role in this room and review F6 round 2: pqc/f6-vault at b8180e4. Post your ver |
 
 ## Screenshots
 
 Cropped to the Mattermost window.
 
+- [reviewer-addressing-console.png](reviewer-addressing-console.png): Switch Console showing the reviewer's addressing, "Me and my agents", which is `owner-agents`
 - [refusal-reviewer.png](refusal-reviewer.png): Arjun asks the reviewer to approve F5; Switch refuses for it
 - [refusal-ship.png](refusal-ship.png): Arjun orders F3 shipped; Switch refuses for the shipper
 - [not-shipping-no-verdict.png](not-shipping-no-verdict.png): the shipper refuses the security lead's early "ship F5"
@@ -127,7 +186,9 @@ are in [live run 2](../live-run-2/inventory-lock-and-board.png) and
 git clone docs/live-run-3/origin.bundle run && git -C run log --graph --all --format="%h %an %s"
 node tools/replay.mjs docs/live-run-3/origin.bundle
 node tools/certificate.mjs verify docs/live-run-3/F1.cert.json --tests
+node tools/certificate.mjs verify docs/live-run-3/F2.cert.json --tests
 node tools/certificate.mjs verify docs/live-run-3/F3.cert.json --tests
+node tools/certificate.mjs verify docs/live-run-3/F4.cert.json --tests
 node tools/certificate.mjs verify docs/live-run-3/F5.cert.json --tests
 ```
 

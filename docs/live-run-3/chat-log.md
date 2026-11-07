@@ -3,7 +3,6 @@
 Written by `npm run desk:watch` during the run: every chat message in the desk4 rooms (each cut to 300 characters) and every change to a ref on the origin, with the UTC time it was seen. Messages from people are numbered `HUMAN#n`.
 
 ```
-05:43:58Z watching desk4; log in C:\Users\daksh\OneDrive\Desktop\flipswitch\crypto-desk\work\desk4-run-log.md
 05:43:58Z GIT refs/heads/main 0ecdc2f demo-payments before migration
 05:48:39Z agent desk4-intake desk4-scout: Hey there! Tag @desk4-scout if you need me.
 05:48:40Z agent desk4-intake desk4-migrator: Hello! Tag @desk4-migrator to loop me in.
@@ -116,4 +115,142 @@ Written by `npm run desk:watch` during the run: every chat message in the desk4 
 07:01:49Z agent desk4-f3-tls desk4-shipper: @desk4-scout F3 accepted risk: production TLS terminates at the acquirer's edge gateway, outside our repo. Change request sent
 07:02:43Z agent desk4-intake desk4-scout: 📄 updated room document “Crypto inventory”.
 07:02:43Z agent desk4-intake desk4-scout: Shipped 3/6 · Accepted risk 1 · In progress 0 · Open 3 F3 production TLS (acquirer's gateway) recorded as accepted risk at 695ea59, review by 2027-02-05; F3 also stays shipped for local/staging. Rescan of main unchanged. F2, F4, F6 still wait on the security lead.
+07:03:08Z agent desk4-intake desk4-scout: Note: connecting here cut off another session of mine that was attending this room. The inventory above is current, but if you asked that session something, ask again.
+07:41:43Z agent desk4-f1-envelope desk4-migrator: **Worked for 49s. 8 tool calls.**
+07:41:43Z agent desk4-f1-envelope desk4-migrator: **Worked for 2m 28s. 11 tool calls.** ✓ 10 done · ✗ 1 failed
+07:41:43Z agent desk4-f1-envelope desk4-reviewer: **Worked for 4m 7s. 10 tool calls.** ✓ 9 done · ✗ 1 failed
+07:41:43Z agent desk4-f1-envelope desk4-reviewer: **Worked for 1m 50s. 12 tool calls.**
+07:41:43Z agent desk4-f1-envelope desk4-migrator: **Worked for 39s. 3 tool calls.**
+07:41:43Z agent desk4-f1-envelope desk4-reviewer: **Worked for 1m 22s. 8 tool calls.**
+07:41:43Z agent desk4-f1-envelope desk4-shipper: **Worked for 1m 26s. 13 tool calls.**
+07:41:43Z agent desk4-f1-envelope desk4-scout: **Worked for 1m 21s. 13 tool calls.**
+07:41:44Z agent desk4-f3-tls desk4-migrator: **Worked for 2m 39s. 15 tool calls.**
+07:41:44Z agent desk4-f3-tls desk4-migrator: **Worked for 2m 34s. 1 tool call.**
+07:41:44Z agent desk4-f3-tls desk4-reviewer: **Worked for 9m 21s. 23 tool calls.** ✓ 21 done · ✗ 2 failed
+07:41:44Z agent desk4-f3-tls desk4-shipper: **Worked for 1m 44s. 12 tool calls.**
+07:41:44Z agent desk4-f3-tls desk4-scout: **Worked for 1m 37s. 14 tool calls.**
+07:41:44Z agent desk4-f3-tls desk4-shipper: **Worked for 53s. 6 tool calls.** ✓ 5 done · ✗ 1 failed
+07:41:44Z agent desk4-f3-tls desk4-scout: **Worked for 1m 18s. 14 tool calls.**
+07:41:44Z agent desk4-f5-webhooks desk4-migrator: **Worked for 1m 10s. 7 tool calls.**
+07:41:44Z agent desk4-f5-webhooks desk4-migrator: **Worked for 3m 51s. 13 tool calls.** ✓ 12 done · ✗ 1 failed
+07:41:44Z agent desk4-f5-webhooks desk4-reviewer: **Worked for 5m 31s. 12 tool calls.**
+07:41:44Z agent desk4-f5-webhooks desk4-shipper: **Worked for 1m 2s. 1 tool call.**
+07:41:44Z agent desk4-f5-webhooks desk4-migrator: **Worked for 32s. 3 tool calls.**
+07:41:44Z agent desk4-f5-webhooks desk4-migrator: **Worked for 1m 18s. 7 tool calls.**
+07:41:44Z agent desk4-f5-webhooks desk4-reviewer: **Worked for 1m 18s. 9 tool calls.**
+07:41:44Z agent desk4-f5-webhooks desk4-shipper: **Worked for 1m 20s. 11 tool calls.**
+07:41:44Z agent desk4-f5-webhooks desk4-scout: **Worked for 1m 32s. 15 tool calls.**
+07:41:45Z agent desk4-intake desk4-scout: **Worked for 3m 30s. 24 tool calls.** ✓ 23 done · ✗ 1 failed
+07:41:45Z HUMAN#16 desk4-intake user: @desk4-scout Open F2, F4 and F6 and work them in that order.
+07:41:45Z agent desk4-intake desk4-scout: On it: opening rooms for F2, F4 and F6, then starting F2.
+07:42:24Z agent desk4-f2-session desk4-scout: Hey! I'm on standby — @desk4-scout to get started.
+07:42:24Z agent desk4-f2-session desk4-migrator: Hey there! Tag @desk4-migrator if you need me.
+07:42:46Z agent desk4-f2-session desk4-reviewer: Hello! Tag @desk4-reviewer to loop me in.
+07:42:46Z agent desk4-f2-session desk4-shipper: Hi! Mention @desk4-shipper to get my attention.
+07:42:48Z HUMAN#17 desk4-intake user: @desk4-scout Open F2, F4 and F6 and work them in that order.
+07:43:07Z agent desk4-f4-receipts desk4-scout: Hello! I'm ready — just tag @desk4-scout when you need me.
+07:43:07Z agent desk4-f4-receipts desk4-migrator: Hi! Mention @desk4-migrator to get my attention.
+07:43:07Z agent desk4-f4-receipts desk4-reviewer: Hey! Ping @desk4-reviewer and I'll jump in.
+07:43:07Z agent desk4-f4-receipts desk4-shipper: Hey! Ping @desk4-shipper and I'll jump in.
+07:43:28Z agent desk4-f6-vault desk4-scout: Hi! I'm here to help — mention @desk4-scout anytime.
+07:43:28Z agent desk4-f6-vault desk4-migrator: Hey! Ping @desk4-migrator and I'll jump in.
+07:43:28Z agent desk4-f6-vault desk4-reviewer: Hey! I'm on standby — @desk4-reviewer to get started.
+07:43:28Z agent desk4-f6-vault desk4-shipper: Hi there! Just @desk4-shipper me when you're ready.
+07:43:49Z agent desk4-f2-session desk4-scout: @desk4-migrator @arjun Starting F2 (partner session keys, ECDH P-256, src/session.js:7,13). Mosca: Already late by 1 year (from infra/DEPLOY.md:22, settlement files kept 7 years). Arjun, is there any constraint the code doesn't show, in particular whether the acquirer's side of this key agreement mu
+07:43:57Z agent desk4-intake desk4-scout: 📄 updated room document “Crypto inventory”.
+07:44:21Z agent desk4-intake desk4-scout: Shipped 3/6 · Accepted risk 1 · In progress 1 · Open 2 Rooms opened for F2, F4 and F6. F2 (session ECDH, already late by 1 year) has started; F4 then F6 follow when it closes.
+07:44:21Z agent desk4-intake desk4-scout: Already done, so I haven't opened anything twice. Rooms for F2, F4 and F6 are open and linked here, and F2 is in progress (waiting on arjun's constraints). F4 then F6 follow when F2 closes. Shipped 3/6 · Accepted risk 1 · In progress 1 · Open 2
+07:44:40Z HUMAN#18 desk4-f2-session arjun: @desk4-migrator Both sides of this exchange run our session.js: the acquirer's settlement client is built from this repo, so switch both to the hybrid together and they'll take it in their next SDK release. Settlement files are decrypted on arrival, so there are no old files to keep readable.
+07:44:40Z agent desk4-f2-session desk4-migrator: F2 plan (pqc/f2-session): 1. Change: replace P-256 ECDH with a hybrid handshake. Each side sends an X25519 key plus an ML-KEM-768 encapsulation key. The initiator encapsulates to the responder's ML-KEM key and sends the ciphertext. Both sides derive the session key with HKDF-SHA-256 over (X25519 sec
+07:45:02Z agent desk4-f2-session desk4-migrator: Plan change: there's no P-256 fallback and no legacy read path. Both sides move to the v2 hybrid handshake together, and anything that isn't v2 is rejected. Starting now.
+07:46:25Z GIT refs/heads/pqc/f2-session 40123bf F2: hybrid X25519 + ML-KEM-768 partner session keys with HKDF-SHA-256, P-256 ECDH removed
+07:46:26Z agent desk4-f2-session desk4-migrator: F2 status: the hybrid handshake is done and all 50 tests pass. I'm updating the deployment notes, then I'll commit and hand off for review.
+07:46:48Z agent desk4-f2-session desk4-migrator: @reviewer F2 is ready for review: branch pqc/f2-session, commit 40123bf90b44748762374818082b83e1a0b2ecbf. ``` infra/DEPLOY.md | 7 ++- src/session.js | 144 ++++++++++++++++++++++++++++++++++++++++++++++---- test/payments.test.js | 113 ++++++++++++++++++++++++++++++++++++--- 3 files changed, 246 inser
+07:46:48Z agent desk4-f2-session switch-admin: ⚠️ @desk4-migrator no agent currently holds the **reviewer** role — your message may go unanswered. Run `!roles` to see availability, or have an agent assume it.
+07:46:48Z agent desk4-f2-session desk4-migrator: @desk4-reviewer The reviewer role has no holder, so I'm sending this to you by name. F2 is ready for review: branch pqc/f2-session, commit 40123bf90b44748762374818082b83e1a0b2ecbf. The diff stat, test result (50 of 50 pass), design and review notes are in my message just above.
+07:47:20Z agent desk4-f2-session desk4-reviewer: 🎭 assumed the `reviewer` role.
+07:47:25Z agent desk4-f3-tls desk4-reviewer: 🎭 released the `reviewer` role.
+07:52:25Z agent desk4-f2-session desk4-reviewer: I can't review F2 yet: three shell attempts (PowerShell and cmd) have all hung for over a minute, so I could not create/access the required reviewer checkout or run the checks. This appears to be a machine/shell issue, not a verdict on the change. Please hold the branch; I have not approved it.
+07:53:06Z HUMAN#19 desk4-f2-session user: @desk4-reviewer The machine is free now, please review F2 again.
+07:55:12Z agent desk4-f2-session desk4-reviewer: CHANGES REQUESTED 1. `src/session.js:120` — `completeSession` accepts the same responder `state` repeatedly, and the room handoff confirms it is not prevented. Reusing an offer reuses both responder private keys across sessions; a later compromise of that state exposes every session established with
+07:57:35Z HUMAN#20 desk4-f2-session user: @desk4-migrator The reviewer requested changes on F2 in its thread above: completeSession must reject a reused responder state. Please fix it and hand off again.
+07:57:55Z agent desk4-f2-session desk4-migrator: On it. I'm making the F2 responder state single-use.
+07:58:53Z GIT refs/heads/pqc/f2-session f805236 F2: make the session responder state single-use (review round 1)
+07:58:54Z agent desk4-f2-session desk4-migrator: @reviewer F2 round 1 is fixed and ready for a fresh review: branch pqc/f2-session, new commit f80523611e6c9724394e3073a8d710d93f66e28f. ``` infra/DEPLOY.md | 7 ++- src/session.js | 160 ++++++++++++++++++++++++++++++++++++++++++++++---- test/payments.test.js | 138 ++++++++++++++++++++++++++++++++++++
+08:00:13Z GIT refs/approved/f80523611e6c9724394e3073a8d710d93f66e28f 452cb3b Approve f80523611e6c9724394e3073a8d710d93f66e28f
+08:00:15Z agent desk4-f2-session desk4-reviewer: APPROVED pqc/f2-session @ f805236 Hybrid X25519 + ML-KEM-768 secrets feed HKDF-SHA-256 with the versioned handshake transcript. Responder private state is now one-use; replay and failed/copy-state cases are covered by tests. All 53 tests pass, and the F2 finding is absent from the scan.
+08:00:15Z agent desk4-f2-session desk4-reviewer: @user F2 is approved for exact commit f80523611e6c9724394e3073a8d710d93f66e28f and signed on the origin. It is ready for your decision.
+08:00:36Z HUMAN#21 desk4-f2-session user: @desk4-shipper ship F2
+08:01:40Z agent desk4-f2-session desk4-shipper: On it. desk4-reviewer holds the reviewer role and approved pqc/f2-session @ f805236. The origin head and the approval ref match, so I'm merging and running the tests now.
+08:01:59Z GIT refs/heads/main 77492d6 Ship F2: F2: partner settlement session keys moved to hybrid X25519 + ML-KEM-768 with HKDF-SHA-256, P-256 ECDH removed, single-use responder state (approved by reviewer at f80523611e6c9724394e3073a8d710d93f66e28f, shipped by the security lead)
+08:02:23Z agent desk4-f2-session desk4-shipper: F2 shipped. Merge 77492d6ddfc1f2a5516342a90709579f426af37d is on main: approved commit f805236 merged onto 695ea59, signed, and all 53 tests pass. desk4-reviewer held the reviewer role when it approved. Certificate: work/F2.cert.json (ML-DSA-65). Verify result: valid on every check. The scan shows s
+08:02:23Z agent desk4-f2-session desk4-shipper: @desk4-scout F2 shipped at 77492d6ddfc1f2a5516342a90709579f426af37d
+08:03:46Z agent desk4-f4-receipts desk4-scout: @desk4-migrator @arjun Starting F4 (receipt tamper checksum, SHA-1, src/receipts.js:17). Mosca: Late now, broken today, no quantum computer needed. Arjun, is there any constraint the code doesn't show? For example, are old receipt checksums stored somewhere that must still verify, and does anyone ou
+08:03:48Z agent desk4-intake desk4-scout: 📄 updated room document “Crypto inventory”.
+08:03:48Z agent desk4-intake desk4-scout: Shipped 4/6 · Accepted risk 1 · In progress 1 · Open 1 F2 shipped (77492d6): session keys now use hybrid X25519 + ML-KEM-768, and P-256 ECDH is gone from the scan. F4 (SHA-1 receipts) has started; F6 is next.
+08:04:08Z HUMAN#22 desk4-f4-receipts arjun: @desk4-migrator Only our support staff check these checksums, never customers or merchants, and receipts already issued must still verify. Use HMAC-SHA-256 for new receipts and keep a check for old SHA-1 ones until they age out.
+08:04:29Z agent desk4-f4-receipts desk4-migrator: F4 plan (pqc/f4-receipts): 1. checksum() emits a versioned tag `v2.<HMAC-SHA-256 hex>` keyed by a server secret (RECEIPT_CHECKSUM_KEY). A bare SHA-256 would not stop tampering: whoever edits a forwarded receipt can just recompute it. The HMAC is what proves we issued it. 2. isUntampered() checks v2 
+08:04:49Z agent desk4-f4-receipts desk4-migrator: Plan change: new receipts get `v2.` HMAC-SHA-256, and bare SHA-1 checksums keep verifying through a flagged legacy path. I'll add RECEIPT_CHECKSUM_KEY as a new env var, since no existing secret was named. The sunset date stays open until we know how long receipts are kept. Branching now.
+08:06:28Z GIT refs/heads/pqc/f4-receipts 968f183 F4: receipt checksums move from SHA-1 to versioned HMAC-SHA-256 (v2), legacy SHA-1 read path kept and flagged
+08:06:31Z agent desk4-f4-receipts desk4-migrator: @reviewer F4 is ready for review. - **Branch:** pqc/f4-receipts - **Commit:** 968f18300fc343dc1ae96713b90a70ceec047514 - **Diff stat:** src/receipts.js +74/-5 (approx.), test/payments.test.js +79. 2 files, 148 insertions, 5 deletions. - **Tests:** npm test, 62/62 pass (53 before, 9 new F4 tests). De
+08:06:53Z agent desk4-f4-receipts switch-admin: ⚠️ @desk4-migrator no agent currently holds the **reviewer** role — your message may go unanswered. Run `!roles` to see availability, or have an agent assume it.
+08:06:53Z agent desk4-f4-receipts desk4-migrator: @desk4-reviewer F4 is ready for review. I'm sending this to you by name because no one holds the reviewer role. Details are in my message just above. - **Branch:** pqc/f4-receipts - **Commit:** 968f18300fc343dc1ae96713b90a70ceec047514 - **Diff stat:** src/receipts.js | 74, test/payments.test.js | 79
+08:07:14Z agent desk4-f2-session desk4-reviewer: 🎭 released the `reviewer` role.
+08:07:17Z agent desk4-f4-receipts desk4-reviewer: 🎭 assumed the `reviewer` role.
+08:25:47Z HUMAN#23 desk4-f4-receipts user: @desk4-reviewer Your shell may have hung. Please run the F4 review again and post your verdict.
+08:34:49Z HUMAN#24 desk4-f4-receipts user: @desk4-reviewer Please run the F4 review again and post your verdict.
+08:41:14Z agent desk4-f2-session desk4-migrator: **Worked for 57s. 7 tool calls.**
+08:41:14Z agent desk4-f2-session desk4-migrator: **Worked for 2m 16s. 11 tool calls.**
+08:41:14Z agent desk4-f2-session desk4-reviewer: **Worked for 5m 25s. 7 tool calls.** ✓ 6 done · ✗ 1 failed
+08:41:14Z agent desk4-f2-session desk4-reviewer: **Worked for 2m 11s. 10 tool calls.**
+08:41:14Z agent desk4-f2-session desk4-migrator: **Worked for 1m 26s. 7 tool calls.**
+08:41:14Z agent desk4-f2-session desk4-reviewer: **Worked for 1m 22s. 11 tool calls.**
+08:41:14Z agent desk4-f2-session desk4-shipper: **Worked for 1m 45s. 13 tool calls.**
+08:41:14Z agent desk4-f2-session desk4-scout: **Worked for 1m 31s. 16 tool calls.**
+08:41:15Z agent desk4-f4-receipts desk4-migrator: **Worked for 49s. 5 tool calls.**
+08:41:15Z agent desk4-f4-receipts desk4-migrator: **Worked for 2m 30s. 12 tool calls.** ✓ 11 done · ✗ 1 failed
+08:41:16Z agent desk4-intake desk4-scout: **Worked for 2m 40s. 16 tool calls.**
+08:41:16Z agent desk4-intake desk4-scout: **Worked for 1m 33s. 1 tool call.**
+08:41:34Z HUMAN#25 desk4-f4-receipts user: @desk4-reviewer The server restarted. Please run the F4 review again and post your verdict.
+08:51:52Z agent desk4-f4-receipts desk4-reviewer: @user ⚠️ The agent host is offline. This request cannot continue until it reconnects.
+08:53:52Z agent desk4-f4-receipts desk4-reviewer: CHANGES REQUESTED 1. `src/receipts.js:52` — the required CBOM scan still reports F4 as `broken` (SHA-1), so F4 is neither gone nor in an accepted `legacy-read` state. Arjun’s compatibility requirement is covered by the frozen legacy fixture, and the tests show new tags use v2 HMAC, but the scan stil
+09:01:25Z HUMAN#26 desk4-f4-receipts arjun: @desk4-migrator Change of plan for F4: drop the SHA-1 check completely. If a customer forwards an old receipt, support re-issues it as v2 from our records instead of checking the old checksum. That clears the reviewer's point.
+09:02:04Z agent desk4-f4-receipts desk4-migrator: Plan change for round 1: I'm removing SHA-1 completely. A bare 40-hex checksum will now be rejected without being hashed, and flagged `legacy: true` so support knows to re-issue the receipt as v2 from our records. upgradeChecksum goes away. That covers both of the reviewer's items. I'll rerun the sc
+09:02:40Z GIT refs/heads/pqc/f4-receipts 9f9a9f2 F4: drop the SHA-1 verifier; old v1 checksums are rejected and flagged for re-issue as v2 (review round 1)
+09:03:02Z agent desk4-f4-receipts desk4-migrator: @reviewer F4 round 1 fixes are pushed for re-review. - **Branch:** pqc/f4-receipts - **Commit:** 9f9a9f233fc196924b105c50b3b50957049b1b2e - **Diff stat vs main:** src/receipts.js | 62, test/payments.test.js | 77. 2 files, 133 insertions(+), 6 deletions(-). - **Tests:** npm test, 62/62 pass. - **Scan
+09:04:17Z GIT refs/approved/9f9a9f233fc196924b105c50b3b50957049b1b2e 6f674d4 Approve 9f9a9f233fc196924b105c50b3b50957049b1b2e
+09:04:39Z agent desk4-f4-receipts desk4-reviewer: @user APPROVED pqc/f4-receipts @ 9f9a9f2 New receipt tags use keyed HMAC-SHA-256 with constant-time comparison and fail closed on missing keys or malformed tags. The SHA-1 verifier is removed; old-format checksums are rejected and flagged for re-issue from records, matching Arjun’s updated constrain
+09:05:00Z HUMAN#27 desk4-f4-receipts user: @desk4-shipper ship F4
+09:05:39Z agent desk4-f4-receipts desk4-shipper: On it: shipping F4. desk4-reviewer holds the reviewer role, its APPROVED verdict for pqc/f4-receipts @ 9f9a9f2 matches the branch head on origin, and the approval ref is in place. Merging and testing now.
+09:05:57Z GIT refs/heads/main b1fedca Ship F4: F4: receipt checksums moved from SHA-1 to keyed HMAC-SHA-256 (v2), SHA-1 verifier removed, old checksums rejected for re-issue from records (approved by reviewer at 9f9a9f233fc196924b105c50b3b50957049b1b2e, shipped by the security lead)
+09:06:20Z agent desk4-f4-receipts desk4-shipper: F4 shipped. Merge b1fedca432db12973ea1efff4634c32815f6df68 is on main. It merges the approved commit 9f9a9f2, which desk4-reviewer approved while holding the reviewer role. All 62 tests passed and origin accepted the push. Certificate: work/F4.cert.json (ML-DSA-65). Verify result: valid. The signatu
+09:06:20Z agent desk4-f4-receipts desk4-shipper: @desk4-scout F4 shipped at b1fedca432db12973ea1efff4634c32815f6df68
+09:06:59Z agent desk4-f4-receipts desk4-scout: Got it. A rescan of main at b1fedca no longer reports F4. Updating the inventory in intake now.
+09:07:19Z agent desk4-f6-vault desk4-scout: @desk4-migrator @arjun Starting F6: customer records at rest use AES-128-GCM in src/vault.js:14,21. Mosca: not on Mosca's clock, since Grover only halves its strength. Arjun, is there any constraint the code doesn't show? For example, how existing records get re-encrypted, where the vault key comes 
+09:07:20Z agent desk4-intake desk4-scout: Shipped 5/6 · Accepted risk 1 · In progress 1 · Open 0 F4 shipped (b1fedca). Receipts now use keyed HMAC-SHA-256 and the rescan no longer finds SHA-1. F6 (AES-128-GCM vault) has started and is the last one.
+09:07:59Z HUMAN#28 desk4-f6-vault arjun: @desk4-migrator Existing records must stay readable, but don't keep AES-128 in the new code: our DBA re-encrypts every stored record to AES-256-GCM tonight with a one-off job built from the current release, before this ships. The new vault only needs to read and write the v2 AES-256-GCM format.
+09:07:59Z agent desk4-f6-vault desk4-migrator: Plan for F6 (branch pqc/f6-vault): 1. New records are written as `v2.<iv>.<tag>.<ct>`, encrypted with AES-256-GCM. The key is 32 bytes from scrypt over the same service secret, with a new v2 salt so it is separate from the old key. Each record gets a random 12-byte IV, and the format version is boun
+09:16:47Z HUMAN#29 desk4-f6-vault arjun: @desk4-migrator Your plan is fine with my constraint above: v2 AES-256-GCM only, no AES-128 read path, because the DBA re-encrypts old records. Go ahead.
+09:17:06Z agent desk4-f6-vault desk4-migrator: Arjun, I couldn't find an earlier constraint in this room, so this message is the first I've seen of it. Before I drop the AES-128 read path I need one answer: will every stored record already be v2 when this ships, and what is the DBA using to re-encrypt? Removing the read path also removes the onl
+09:17:48Z HUMAN#30 desk4-f6-vault arjun: @desk4-migrator Yes: the DBA's job runs from the current release, using today's vault.js, so it doesn't depend on your change. We only deploy this after the DBA confirms zero v1 records are left. Ship v2 only.
+09:18:07Z agent desk4-f6-vault desk4-migrator: Got it. Plan change: v2 only (AES-256-GCM). I'm dropping the AES-128 read path and `reencryptRecord`, and `decryptRecord` will reject old records with a clear error. Building it now. One gap to close outside this change: today's vault.js can only write AES-128 records. The DBA's job can decrypt old 
+09:19:07Z GIT refs/heads/pqc/f6-vault aa5a4a3 F6: seal customer records with AES-256-GCM (v2 format, no AES-128 read path)
+09:19:32Z agent desk4-f6-vault desk4-migrator: @reviewer F6 is ready for review: branch `pqc/f6-vault`, commit `aa5a4a3b70507e5c544fbca0fe90d40fbccf312b`. ``` infra/DEPLOY.md | 6 ++++++ src/vault.js | 45 +++++++++++++++++++++++++++++++++++++------- test/payments.test.js | 52 ++++++++++++++++++++++++++++++++++++++++++++++++++- 3 files changed, 95
+09:19:32Z agent desk4-f6-vault switch-admin: ⚠️ @desk4-migrator no agent currently holds the **reviewer** role — your message may go unanswered. Run `!roles` to see availability, or have an agent assume it.
+09:19:32Z agent desk4-f6-vault desk4-migrator: @desk4-reviewer Nobody holds the reviewer role yet, so I'm sending this to you by name. Please review F6: branch `pqc/f6-vault`, commit `aa5a4a3b70507e5c544fbca0fe90d40fbccf312b`. The diffstat, test result and design notes are in my previous message.
+09:19:53Z agent desk4-f4-receipts desk4-reviewer: 🎭 released the `reviewer` role.
+09:19:55Z agent desk4-f6-vault desk4-reviewer: 🎭 assumed the `reviewer` role.
+09:27:17Z agent desk4-f6-vault desk4-reviewer: @desk4-migrator CHANGES REQUESTED 1. `infra/DEPLOY.md:43-45` — The branch removes the v1 decrypt path, but the required DBA migration is only documented as a deploy instruction. No test or automated release gate proves the stated constraint that deploy happens only after zero pre-v2 records remain. 
+09:27:17Z agent desk4-f6-vault desk4-migrator: On it. I'm adding a tested pre-deploy check that fails while any stored record is still in the old format.
+09:30:47Z GIT refs/heads/pqc/f6-vault b8180e4 F6: add tested deploy gate that blocks until every customer record is v2
+09:30:51Z agent desk4-f6-vault desk4-migrator: @reviewer Round 2 for F6: branch `pqc/f6-vault`, commit `b8180e43f287e22abaaf5d08597a242e49f5f851`. ``` infra/DEPLOY.md | 9 ++++ package.json | 3 +- src/vault-migration-gate.js | 30 +++++++++++ src/vault.js | 80 +++++++++++++++++++++++++++--- test/payments.test.js | 118 +++++++++++++++++++++++++++++
+09:37:12Z HUMAN#31 desk4-f6-vault user: @desk4-reviewer F6 round 2 is ready: pqc/f6-vault at b8180e4. Please review it and post your verdict.
+09:37:32Z agent desk4-f6-vault desk4-reviewer: I finished without replying. The turn failed: You’ve hit your usage limit. To continue using Codex and get access to GPT-5.3-Codex, start a free trial of Plus today (https://chatgpt.com/explore/plus), or try again at Nov 17th, 2026 8:58 PM.
+09:37:32Z agent desk4-f6-vault desk4-reviewer: @user ⚠️ The agent could not complete this request. Open Switch Console for details.
+09:48:30Z HUMAN#32 desk4-f6-vault user: !invite-agent @desk4-reviewer-claude
+09:48:30Z agent desk4-f6-vault desk4-reviewer-claude: Hey! I'm on standby — @desk4-reviewer-claude to get started.
+09:48:30Z agent desk4-f6-vault switch-admin: Added **desk4-reviewer-claude** to this room.
+09:48:30Z HUMAN#33 desk4-f6-vault user: @desk4-reviewer-claude The Codex reviewer hit its usage limit. Take the reviewer role in this room and review F6 round 2: pqc/f6-vault at b8180e4. Post your verdict.
+09:55:10Z agent desk4-f6-vault desk4-reviewer-claude: Reviewing F6 round 2 now. The Codex reviewer still holds the reviewer role lease, so I couldn't take the role. My verdict will be advisory until that lease is released or handed to me.
+09:55:34Z agent desk4-f6-vault desk4-reviewer-claude: F6 round 2 (`pqc/f6-vault` at b8180e4): **APPROVED**. Round 1's item 1 is resolved. I checked it myself: - I cloned the branch from origin and the SHA matches b8180e43. - `npm test` passes all 72 on Node 24.14. - The cbom scan no longer reports F6. - The round-1 code is unchanged: AES-256-GCM, a 32-
 ```

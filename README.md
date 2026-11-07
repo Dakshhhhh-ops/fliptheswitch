@@ -17,9 +17,9 @@ Needs only Node 24.7+ and git.
 git clone https://github.com/Dakshhhhh-ops/fliptheswitch && cd fliptheswitch
 npm install     # nothing to fetch: the desk has no dependencies
 npm run scan    # the six planted problems in demo-payments/, ranked by Mosca's rule, and a CycloneDX CBOM
-npm run judge   # 32 checks in about a minute: every shortcut to main refused by the git gate, then all three live Switch runs re-verified from the agents' git
+npm run judge   # 34 checks in about a minute: every shortcut to main refused by the git gate, then all three live Switch runs re-verified from the agents' git
 npm run board   # board.html: each finding's state, read from git (all open on a fresh clone)
-npm test        # 90 tests, plus demo-payments' 8: scanner, gate, signatures, certificates, board, templates, live-run replays
+npm test        # 93 tests, plus demo-payments' 8: scanner, gate, signatures, certificates, board, templates, live-run replays
 ```
 
 **Full run on real Switch:** [run it yourself](#run-it-yourself), about an hour, most of it watching the agents.
@@ -94,7 +94,8 @@ Arjun's account, which is done in Switch Console by that user; the
 Run end to end in Switch three times, nothing scripted. The latest:
 **[live run 3](docs/live-run-3/README.md)** (`desk4`, 7 November 2026), the
 first with the reviewer on `owner-agents` and every approval and ship signed,
-with a timestamped log of every message and push.
+with a timestamped log of every message and push. **Shipped 5 of 6**, plus
+F3's production TLS as an accepted risk; F6 is written and in review.
 [Run 2](docs/live-run-2/README.md) and [run 1](docs/live-run/README.md) are
 there too.
 
@@ -105,8 +106,11 @@ there too.
 | **F5** webhooks, ECDSA | Arjun: "40 merchants still verify ECDSA", so the fix dual-signs with ECDSA and ML-DSA-65. Codex **requested changes**: the repo says webhook signatures are valid for 5 minutes, and nothing signed a time. The migrator asked Arjun, signed a timestamp, and shipped as `4769ce0` |
 | **F1** card keys, RSA-OAEP | Hybrid X25519 + ML-KEM-768, RSA kept only to read old envelopes. Codex **requested changes** (no end date for RSA in the commit). Shipped as `a0f015b` |
 | **F3** TLS | Staging moved to TLS 1.3 with hybrid key exchange (`525a4a3`). Production is on the acquirer's gateway: a change request, and a signed accepted risk with a review date (`695ea59`) |
-| **Refusals** | Switch refused Arjun's "approve it" and his "ship F3". The shipper refused the security lead's "ship F5" sent before the verdict |
-| **What went wrong** | Switch didn't deliver two messages to an agent, so each was sent again, and the Codex reviewer stalled once until an old session of its own was stopped ([details](docs/live-run-3/README.md#what-went-wrong-and-what-it-cost)) |
+| **F2** session keys, ECDH | Both sides of the exchange run this repo's code, so both move to hybrid X25519 + ML-KEM-768. Codex **requested changes**: a reused responder state would expose every session. Made single-use, shipped as `77492d6` |
+| **F4** receipts, SHA-1 | Keyed HMAC-SHA-256. Codex **requested changes** while a SHA-1 check stayed for old receipts; Arjun had support re-issue them instead, and SHA-1 went. Shipped as `b1fedca` |
+| **F6** records, AES-128 | AES-256-GCM, with a tested gate that blocks deploy until every stored record is re-encrypted (`b8180e4`). **Not shipped**: Codex hit its usage limit before re-reviewing, and a stand-in reviewer couldn't take the exclusive `reviewer` role Codex still held, so nothing signed it |
+| **Refusals** | Switch refused Arjun's "approve it" and his "ship F3". The shipper refused the security lead's "ship F5" sent before the verdict. The role lock kept F6 from shipping on an unsigned review |
+| **What went wrong** | Switch delivered no agent session for four messages, so each was sent again; the Switch server crashed once under low memory; the Codex reviewer stalled three times ([details](docs/live-run-3/README.md#what-went-wrong-and-what-it-cost)) |
 
 Check it from git: `node tools/replay.mjs docs/live-run-3/origin.bundle` and
 `node tools/certificate.mjs verify docs/live-run-3/F1.cert.json --tests`.
