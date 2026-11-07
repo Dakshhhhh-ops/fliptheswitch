@@ -589,3 +589,21 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px s
 .fl-proof-pair code { font: 13px/1.5 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
 .fl-proof-src a { color: var(--ink); text-underline-offset: 3px; }
 @media (max-width: 760px) { .fl-proof-pair { grid-template-columns: minmax(0, 1fr); } .fl-proof { padding: 16px; } }
+
+/* Facts no scanner could find */
+.fc-list { list-style: none; margin: 0 auto; padding: 0; max-width: var(--max); border-top: 1px solid var(--line); }
+.fc-row { display: grid; grid-template-columns: 150px repeat(3, minmax(0, 1fr)); gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.fc-id { font: 400 30px/1 var(--serif); color: var(--ink); }
+.fc-id small { display: block; margin-top: 6px; font: 500 11px/1.4 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.fc-col { min-width: 0; }
+.fc-label { display: block; margin-bottom: 6px; font: 500 11px/1.4 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+.fc-says { color: var(--accepted); font: 400 20px/1.3 var(--serif); text-decoration: none; }
+.fc-without { margin: 0; color: var(--ink-2); font-size: 15px; }
+.fc-changed { color: var(--shipped); font-size: 15px; text-decoration: none; }
+.fc-says:hover, .fc-changed:hover, .fc-says:focus-visible, .fc-changed:focus-visible { text-decoration: underline; }
+.fc-dog { max-width: var(--max); margin: 32px auto 0; padding: 18px 22px; border: 1px solid var(--line-2); border-radius: 14px; color: var(--ink-2); font-size: 17px; }
+.fc-dog strong { color: var(--ink); }
+.fc-dog a { color: var(--shipped); }
+.nav-repo { margin-left: auto; font: 500 13px var(--sans); color: var(--ink-2); text-decoration: none; padding: 8px 14px; border: 1px solid var(--line-2); border-radius: 999px; }
+.nav-repo:hover, .nav-repo:focus-visible { color: var(--ink); border-color: var(--ink); }
+@media (max-width: 960px) { .fc-row { grid-template-columns: 1fr; gap: 10px; } }

@@ -44,26 +44,21 @@ export default function Hero({ counts, total, started }) {
         </Suspense>
       </div>
       <div className="hero-inner">
-        <p className="hero-eyebrow">Post-quantum migration · AI agents and people, in team chat</p>
+        <p className="hero-eyebrow">Negotiated migration to post-quantum crypto · built on Switch</p>
         <h1 className="hero-title">
           <Lines lines={['Your', 'encryption', <>has an <em>expiry</em></>, <em key="d">date.</em>]} />
         </h1>
         <div className="hero-foot">
           <div className="hero-lede-box">
             <p className="hero-lede">
-              Quantum computers will one day break today's encryption. This project finds the old encryption in an app and replaces
-              it with AI agents and the people who own the code, in team chat. Switch makes sure only the right person can approve
-              and release each fix.
+              Scanners find broken crypto. They can't know that 40 merchants still depend on it. Crypto Migration Desk negotiates
+              the fix with the people who know, in team chat, and the approval itself is signed with post-quantum crypto.
             </p>
             <div className="hero-ctas">
-              <a className="hero-cta" href="#how">How it works ↓</a>
-              <a className="hero-cta-2" href="#/scan">or scan your own code →</a>
+              <a className="hero-cta" href="#facts">What only people knew ↓</a>
+              <a className="hero-cta-2" href="#/verify">or try to forge a signed ship →</a>
             </div>
           </div>
-          <a className="scroll-cue" href="#how" data-cursor="Scroll">
-            <span>Scroll</span>
-            <i aria-hidden="true" />
-          </a>
         </div>
       </div>
     </section>

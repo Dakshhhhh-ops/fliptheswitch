@@ -10,9 +10,9 @@ import Replay from './components/Replay.jsx';
 import Room from './components/Room.jsx';
 import Spectrum from './components/Spectrum.jsx';
 import Receipt from './components/Receipt.jsx';
-import Cursor from './components/Cursor.jsx';
 import { NextPage, PageCards } from './components/Pages.jsx';
 import { Glossary, Guide, HowItWorks } from './components/Help.jsx';
+import Facts from './components/Facts.jsx';
 import { countStates, useDesk } from './useDesk.js';
 import { useSmoothScroll } from './lib/motion.js';
 import { useRoute } from './lib/route.js';
@@ -84,6 +84,7 @@ function Page({ page, desk, counts }) {
       return (
         <>
           <Hero counts={counts} total={desk.rows.length} started />
+          <Facts />
           <HowItWorks />
           <Flip />
           <PageCards />
@@ -101,8 +102,6 @@ export default function App() {
 
   return (
     <>
-      <Cursor />
-      <div className="grain" aria-hidden="true" />
       <Nav desk={desk} live={live} page={page} />
       {error && !desk && <Empty error={error} />}
       {desk && (
