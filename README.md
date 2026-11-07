@@ -40,14 +40,14 @@ npm install     # nothing to fetch
 npm run scan    # the six planted problems in demo-payments/, ranked by Mosca's rule, and a CycloneDX CBOM
 npm run judge   # verify every claim in this README in about a minute: 34 checks against the git gate and all three live runs
 node tools/board.mjs --origin docs/live-run-3/origin.bundle   # board.html: live run 3's real board, read from the agents' git
-npm test        # 103 tests, plus demo-payments' 8
+npm test        # 128 tests, plus demo-payments' 8
 ```
 
 `demo-payments/` is planted on purpose, so every run starts from the same six
-problems and can be compared and replayed. The scanner also runs on real
-code: [ssh2](docs/REAL-SCANS.md) (31 findings in 10 files) and
-[jose](docs/REAL-SCANS.md) (25 in 7). Its 100% precision and 94% recall are
-on a set we labelled ourselves ([details](docs/SCANNER.md#how-accurate-it-is)).
+problems and can be compared and replayed. On real code, an independent
+parser (acorn) found 89 crypto calls in ssh2, node-forge and jsonwebtoken; the
+rules caught 43 of the 45 weak ones ([details](docs/SCANNER.md#checked-by-a-parser),
+[real scans](docs/REAL-SCANS.md)).
 
 **Full Switch run:** [about an hour](#run-it-yourself).
 
@@ -140,7 +140,6 @@ reviewer stalled three times. All of it is in the
 Every command, every message to send, and what to do if it gets stuck:
 [docs/RUN-SHEET.md](docs/RUN-SHEET.md).
 
-More: [the scanner and its CI gate](docs/SCANNER.md).
 
 ## Built for Flip the Switch
 
@@ -153,11 +152,14 @@ More: [the scanner and its CI gate](docs/SCANNER.md).
 
 ## Limits
 
-- The scanner uses fixed rules for JavaScript and TypeScript, not a parser:
-  predictable and measured, not complete.
-- The ML-DSA signature binds Switch's facts (room, role, who ordered, the
-  order's text) to an exact commit, so later changes show up in an audit. On
-  one machine every agent can read every key file, so it detects tampering
-  rather than preventing it; production would keep each key in a KMS or HSM.
-- On Windows, Switch Console can't grant a GitHub connection, so the agents
-  push to a local origin instead of opening pull requests.
+- The scanner is fixed rules, [checked by a parser](docs/SCANNER.md#checked-by-a-parser)
+  on real JavaScript, not TypeScript.
+- In the live runs, any agent could read the key files, so a signature
+  detected tampering rather than preventing it. [desk-signer](tools/desk-signer.mjs)
+  now holds the keys in memory and signs only what the order's Mattermost post
+  backs ([tests](test/desk-signer.test.mjs)). It hasn't run live; production
+  would use a KMS or HSM.
+- Switch Console on Windows can't grant GitHub, so the agents pushed to a local
+  origin. Run 3's git is [on GitHub as pull requests](https://github.com/Dakshhhhh-ops/demo-payments-desk/pulls?q=is%3Apr),
+  with the gate as a check ([details](docs/GITHUB.md)). github.com has no
+  pre-receive hooks, so there it reports a bad commit instead of refusing it.
