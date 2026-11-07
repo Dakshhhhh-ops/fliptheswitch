@@ -1,4 +1,5 @@
 import { Suspense, lazy, useLayoutEffect, useRef } from 'react';
+import { startTour } from './Tour.jsx';
 
 // three.js is the biggest dependency by far; load it after the first paint.
 // Until it arrives (or if WebGL is unavailable) a still dot grid stands in.
@@ -55,8 +56,8 @@ export default function Hero({ counts, total, started }) {
               the fix with the people who know, in team chat, and the approval itself is signed with post-quantum crypto.
             </p>
             <div className="hero-ctas">
-              <a className="hero-cta" href="#facts">What only people knew ↓</a>
-              <a className="hero-cta-2" href="#/verify">or try to forge a signed ship →</a>
+              <button type="button" className="hero-cta" onClick={startTour}>▶ Take the 1-minute tour</button>
+              <a className="hero-cta-2" href="#facts">or read what only people knew ↓</a>
             </div>
           </div>
         </div>

@@ -26,7 +26,7 @@ test('every line in the room is word for word from the log line it links to', ()
 });
 
 test('the room shows the three moments: people change the fix, Switch refuses, the role lock holds', () => {
-  assert.deepEqual(room.moments.map((m) => m.id), ['people', 'refusal', 'role']);
+  assert.deepEqual(room.moments.map((m) => m.id), ['people', 'argue', 'refusal', 'role']);
   assert.equal(room.label, 'From live run 3, 7 Nov 2026');
 });
 

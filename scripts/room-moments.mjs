@@ -45,6 +45,19 @@ export const MOMENTS = [
     ],
   },
   {
+    id: 'argue',
+    title: 'People and agents push back',
+    sub: 'Not a one-way hand-off. The reviewer blocked the migrator, the engineer changed the rule, and on F6 the migrator questioned the engineer\x27s plan.',
+    lines: [
+      { at: '08:04:49', who: 'desk4-migrator', chars: 170, finding: 'F4' },
+      { at: '08:53:52', who: 'desk4-reviewer', chars: 170, finding: 'F4' },
+      { at: '09:01:25', who: 'arjun', chars: 200, finding: 'F4' },
+      { at: '09:02:04', who: 'desk4-migrator', chars: 120, finding: 'F4' },
+      { at: '09:18:07', who: 'desk4-migrator', chars: 300, finding: 'F6', note: 'the agent flags a gap in the person\x27s plan' },
+      { at: '09:27:17', who: 'desk4-reviewer', chars: 200, finding: 'F6' },
+    ],
+  },
+  {
     id: 'refusal',
     title: 'Switch refuses, in the same second',
     sub: 'The engineer asks the reviewer to approve. Switch answers for the reviewer; the migrator\'s hand-off gets through.',

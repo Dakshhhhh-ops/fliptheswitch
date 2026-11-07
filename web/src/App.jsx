@@ -13,6 +13,7 @@ import Receipt from './components/Receipt.jsx';
 import { NextPage, PageCards } from './components/Pages.jsx';
 import { Glossary, Guide, HowItWorks } from './components/Help.jsx';
 import Facts from './components/Facts.jsx';
+import Tour from './components/Tour.jsx';
 import { countStates, useDesk } from './useDesk.js';
 import { useSmoothScroll } from './lib/motion.js';
 import { useRoute } from './lib/route.js';
@@ -102,6 +103,7 @@ export default function App() {
 
   return (
     <>
+      <Tour />
       <Nav desk={desk} live={live} page={page} />
       {error && !desk && <Empty error={error} />}
       {desk && (

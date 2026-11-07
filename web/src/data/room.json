@@ -82,6 +82,85 @@
       ]
     },
     {
+      "id": "argue",
+      "title": "People and agents push back",
+      "sub": "Not a one-way hand-off. The reviewer blocked the migrator, the engineer changed the rule, and on F6 the migrator questioned the engineer's plan.",
+      "lines": [
+        {
+          "finding": "F4",
+          "at": "08:04:49Z",
+          "room": "f4-receipts",
+          "name": "Migrator",
+          "role": "agent",
+          "kind": "agent",
+          "text": "Plan change: new receipts get `v2.` HMAC-SHA-256, and bare SHA-1 checksums keep verifying through a flagged legacy path. I'll add RECEIPT_CHECKSUM_KEY as a new env var, …",
+          "note": null,
+          "line": 193,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L193"
+        },
+        {
+          "finding": "F4",
+          "at": "08:53:52Z",
+          "room": "f4-receipts",
+          "name": "Reviewer",
+          "role": "Codex agent",
+          "kind": "agent",
+          "text": "CHANGES REQUESTED 1. `src/receipts.js:52` — the required CBOM scan still reports F4 as `broken` (SHA-1), so F4 is neither gone nor in an accepted `legacy-read` state. …",
+          "note": null,
+          "line": 216,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L216"
+        },
+        {
+          "finding": "F4",
+          "at": "09:01:25Z",
+          "room": "f4-receipts",
+          "name": "Arjun",
+          "role": "engineer",
+          "kind": "person",
+          "text": "@desk4-migrator Change of plan for F4: drop the SHA-1 check completely. If a customer forwards an old receipt, support re-issues it as v2 from our records instead of checking the old checksum. That …",
+          "note": null,
+          "line": 217,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L217"
+        },
+        {
+          "finding": "F4",
+          "at": "09:02:04Z",
+          "room": "f4-receipts",
+          "name": "Migrator",
+          "role": "agent",
+          "kind": "agent",
+          "text": "Plan change for round 1: I'm removing SHA-1 completely. A bare 40-hex checksum will now be rejected without being …",
+          "note": null,
+          "line": 218,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L218"
+        },
+        {
+          "finding": "F6",
+          "at": "09:18:07Z",
+          "room": "f6-vault",
+          "name": "Migrator",
+          "role": "agent",
+          "kind": "agent",
+          "text": "Got it. Plan change: v2 only (AES-256-GCM). I'm dropping the AES-128 read path and `reencryptRecord`, and `decryptRecord` will reject old records with a clear error. Building it now. One gap to close outside this change: today's vault.js can only write AES-128 records. The DBA's job can decrypt old ",
+          "note": "the agent flags a gap in the person's plan",
+          "line": 236,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L236"
+        },
+        {
+          "finding": "F6",
+          "at": "09:27:17Z",
+          "room": "f6-vault",
+          "name": "Reviewer",
+          "role": "Codex agent",
+          "kind": "agent",
+          "text": "@desk4-migrator CHANGES REQUESTED 1. `infra/DEPLOY.md:43-45` — The branch removes the v1 decrypt path, but the required DBA migration is only documented as a deploy instruction. No test or automated …",
+          "note": null,
+          "line": 243,
+          "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L243"
+        }
+      ]
+    },
+    {
       "id": "refusal",
       "title": "Switch refuses, in the same second",
       "sub": "The engineer asks the reviewer to approve. Switch answers for the reviewer; the migrator's hand-off gets through.",
