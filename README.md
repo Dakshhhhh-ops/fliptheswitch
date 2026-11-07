@@ -4,14 +4,22 @@
 
 **The scanner knows what's broken. Only people know what's safe to change. A desk of agents works it out with them in team chat, and [Switch](https://github.com/sandbox-quantum/switch) decides who may approve and who may ship.**
 
-It's a change desk, and post-quantum migration is its hardest first job: data
-sent today can be recorded now and decrypted once a large quantum computer
-exists. Scan-and-auto-fix is unsafe here, because no scanner sees who still
-depends on the old crypto. In live run 3, the engineer's answers made the
-migrator change its plan on **4 of the 6 fixes** (F5, F2, F4, F6;
-[log](docs/live-run-3/chat-log.md)).
+### Why this isn't another scanner
 
-**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) and scroll to Q-Day:** real ciphertext sealed at export, the RSA copy opening as a quantum computer would allow, and the hybrid copy staying sealed.
+Data sent today can be recorded now and decrypted once a large quantum
+computer exists, so old encryption has to go. A scanner can find it. It
+can't know that forty merchants still check the old signature, that support
+can re-issue old receipts instead, or that a server belongs to another
+company. Those facts are in people's heads, so an automatic fix would break
+something.
+
+Here, agents take each problem to the engineer who owns the code, in its own
+chat room. The engineer's answers change the fix: in our latest run they
+changed four of the six ([log](docs/live-run-3/chat-log.md)). A second agent,
+on a different model, checks the work. Only the security lead can make it
+ship, and Switch, which runs the agents, turns everyone else away.
+
+**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/):** "What people added" puts each scanner suggestion beside what people said and what shipped; scroll to Q-Day to see recorded ciphertext open as a quantum computer would allow, while the hybrid copy stays sealed.
 
 ### Quick look: no Switch, no Docker, about 2 minutes
 
@@ -21,10 +29,16 @@ Needs only Node 24.7+ and git.
 git clone https://github.com/Dakshhhhh-ops/fliptheswitch && cd fliptheswitch
 npm install     # nothing to fetch: the desk has no dependencies
 npm run scan    # the six planted problems in demo-payments/, ranked by Mosca's rule, and a CycloneDX CBOM
-npm run judge   # 34 checks in about a minute: every shortcut to main refused by the git gate, then all three live Switch runs re-verified from the agents' git
+npm run judge   # verify every claim in this README in about a minute: 34 checks against the git gate and all three live runs
 npm run board   # board.html: each finding's state, read from git (all open on a fresh clone)
-npm test        # 96 tests, plus demo-payments' 8: scanner, gate, signatures, certificates, board, templates, live-run replays
+npm test        # 97 tests, plus demo-payments' 8
 ```
+
+`demo-payments/` is planted on purpose, so every run starts from the same six
+problems and can be compared and replayed. The scanner also runs on real
+code: [ssh2](docs/REAL-SCANS.md) (31 findings in 10 files) and
+[jose](docs/REAL-SCANS.md) (25 in 7). Its 100% precision and 94% recall are
+on a set we labelled ourselves ([details](docs/SCANNER.md#how-accurate-it-is)).
 
 **Full run on real Switch:** [run it yourself](#run-it-yourself), about an hour.
 
@@ -80,10 +94,8 @@ desk4-f3-tls, after the reviewer's signed APPROVED:
                                 room e6e3…, ordered-by user, order-text "ship F3"
 ```
 
-Both refusals are Switch's own reply for an addressing policy (`owner-agents`
-on the reviewer, `owner` on the shipper). **"Isn't linked" is a refusal, not a
-failure to recognise Arjun:** his account matches nobody, and only the owner
-is admitted. Linked, he'd get "You're not permitted to direct messages to me"
+Both refusals are Switch's own reply for an addressing policy. **"Isn't
+linked" is still a refusal:** linked, Arjun would get "You're not permitted"
 instead; Switch's own tests pin both as `allowed is False`
 ([test_addressing_enforcement.py](https://github.com/sandbox-quantum/switch/blob/main/core/tests/switch_core/delivery/test_addressing_enforcement.py)).
 
@@ -114,7 +126,7 @@ there too.
 | **F3** TLS | Staging on TLS 1.3 with hybrid key exchange (`525a4a3`). Production is the acquirer's: a signed accepted risk (`695ea59`) |
 | **F2** session keys, ECDH | Hybrid on both sides. Codex **requested changes**: a reusable responder state. Made single-use, shipped `77492d6` |
 | **F4** receipts, SHA-1 | Keyed HMAC-SHA-256. Codex **requested changes** while SHA-1 stayed for old receipts; it went. Shipped `b1fedca` |
-| **F6** records, AES-128 | AES-256-GCM with a tested deploy gate (`b8180e4`). **Not shipped**: Codex hit its usage limit, and the stand-in reviewer couldn't take the role Codex still held, so nothing signed it |
+| **F6** records, AES-128 | AES-256-GCM with a tested deploy gate (`b8180e4`). **Not shipped**: Codex hit its usage limit, and the stand-in reviewer couldn't take the role Codex still held, so nothing signed it. Next: when Codex's limit resets (17 November) it re-reviews `b8180e4` and the lead orders the ship |
 
 The run wasn't smooth: four messages were sent again because Switch started
 no agent for them, the server crashed once under low memory, and the Codex
@@ -143,12 +155,6 @@ flowchart TB
   lead -- "ship / accept risk" --> ship
   ship -- "shipped at sha" --> scout
 ```
-
-The scout scans and opens a room per finding; the migrator fixes it with the
-engineer; the reviewer approves an exact commit with a signed git mark; the
-security lead orders the ship; the shipper merges, signs, issues an ML-DSA
-certificate, and the scout moves the board.
-
 ## Run it yourself
 
 **Requirements**
@@ -159,16 +165,8 @@ certificate, and the scout moves the board.
 - [ ] Claude Code, signed in. Codex signed in, optional: without it, set both providers to `claude`
 - [ ] Your Mattermost account linked to your Switch user (Home → Messaging apps), so the shipper knows it's you
 
-`npm run doctor` checks each with a fix for what's missing. Every message to
-send, and what to do if it gets stuck: [docs/RUN-SHEET.md](docs/RUN-SHEET.md).
-
-```sh
-npm run doctor         # what this machine has and what's missing, with the fix for each
-npm run desk:up        # origin and signing keys, a fresh team prefix, the engineer's account, templates;
-                       # prints the one message that starts the desk
-npm run desk:watch     # logs every message and push, and says when an agent is waiting on you
-npm run desk:package   # keeps the run as docs/live-run-N and verifies it
-```
+Every command, every message to send, and what to do if it gets stuck:
+[docs/RUN-SHEET.md](docs/RUN-SHEET.md).
 
 More: [the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) (a hosted snapshot) ·
 [the scanner and CI gate](docs/SCANNER.md) ·
@@ -187,11 +185,13 @@ More: [the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) (a hosted s
 ## Limits
 
 - The scanner uses fixed rules for JavaScript and TypeScript, not a parser:
-  predictable and measured, not complete ([details](docs/SCANNER.md#how-accurate-it-is)).
-- The origin is a local folder with no accounts. Approvals and ships are
-  signed with the reviewer's and shipper's keys, and the gate checks them,
-  but on one machine every agent can read every key file: the signature
-  proves which key, not which process.
+  predictable and measured, not complete.
+- Switch says **who** may ask the reviewer or order a ship. The ML-DSA
+  signature binds Switch's facts (room, role, who ordered, the order's text)
+  to an exact commit, so any later change to main or to an approval shows up
+  in an audit. On one machine every agent can read every key file, so it
+  detects tampering rather than preventing it; production would keep each
+  agent's key in its own KMS or HSM.
 - On Windows, Switch Console can't grant a GitHub connection, so the agents
   push to a local origin instead of opening pull requests.
 - Switch has no scheduled messages yet, so accepted-risk review dates are

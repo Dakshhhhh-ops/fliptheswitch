@@ -101,3 +101,13 @@ npm test               # now checks the new run too
 
 Add your screenshots to the new folder, and fill in its README with what
 happened. Then `npm run desk:up` is ready for the next run.
+
+## Other tools
+
+```sh
+npm run doctor                                   # what this machine has for a live run, with the fix for anything missing
+npm run desk:tidy -- --dry-run                   # list agents and Codex sessions left over from earlier runs; drop --dry-run to stop them
+npm run desk:package -- --out docs/live-run-N    # add more of the same run to an existing folder, keeping its README and screenshots
+npm run snapshot -- --run docs/live-run-N        # redraw that run's board image (docs/img) from its git
+npm run export                                   # a static copy of the desk app for any file host (see docs/DESK-APP.md)
+```
