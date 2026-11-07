@@ -538,3 +538,41 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px s
 .pg-next span { font: 500 12px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 .pg-next b { font: 400 clamp(40px, 6vw, 84px)/1 var(--serif); letter-spacing: -0.03em; font-weight: 400; transition: color .3s; }
 .pg-next a:hover b, .pg-next a:focus-visible b { color: var(--shipped); }
+
+/* Plain-language help */
+.section-sub b { color: var(--ink); font-weight: 600; }
+.hw-steps { list-style: none; margin: 0 auto; padding: 0; max-width: var(--max); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; counter-reset: none; }
+.hw-step { display: grid; gap: 8px; align-content: start; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-2); padding: 20px 22px 22px; min-width: 0; }
+.hw-step b { font: 400 26px/1.1 var(--serif); letter-spacing: -0.01em; font-weight: 400; }
+.hw-step span:last-child { color: var(--ink-2); font-size: 14px; }
+.hw-n { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--shipped); color: #0a0a0b; font: 600 14px var(--mono); }
+.hw-cast-title { max-width: var(--max); margin: 48px auto 14px; font: 500 12px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.hw-cast { list-style: none; margin: 0 auto; padding: 0; max-width: var(--max); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 32px; }
+.hw-cast li { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 2px; padding: 14px 0; border-top: 1px solid var(--line); min-width: 0; }
+.hw-cast b { font-size: 16px; }
+.hw-role { justify-self: end; font: 500 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--review); align-self: center; }
+.hw-cast li > span:last-child { grid-column: 1 / -1; color: var(--ink-2); font-size: 14px; }
+.hw-note { max-width: var(--max); margin: 22px auto 0; color: var(--muted); font-size: 14px; }
+@media (max-width: 1100px) { .hw-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hw-cast { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .hw-steps, .hw-cast { grid-template-columns: minmax(0, 1fr); } }
+
+.gd { padding-bottom: 0; }
+.gd + .section, .gd + .qday { padding-top: clamp(48px, 6vw, 80px); }
+.gd-box { position: relative; max-width: var(--max); margin: 0 auto; border: 1px solid color-mix(in srgb, var(--shipped) 45%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--shipped) 5%, var(--bg-2)); padding: 18px 22px 18px; }
+.gd-title { margin: 0 0 10px; font: 500 12px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--shipped); }
+.gd-title span { color: var(--muted); }
+.gd-box ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; color: var(--ink); font-size: 15px; }
+.gd-box li::marker { color: var(--shipped); font: 600 14px var(--mono); }
+.gd-help { position: absolute; top: 16px; right: 20px; font: 500 12px var(--mono); color: var(--ink-2); text-underline-offset: 4px; }
+@media (max-width: 640px) { .gd-help { position: static; display: inline-block; margin-top: 12px; } .gd-box { padding: 16px; } }
+
+.fl-rule { text-transform: none; letter-spacing: 0; font: 500 16px/1.4 var(--sans); color: var(--ink); margin-bottom: 4px; }
+.fl-rule span { font: 500 12px var(--mono); color: var(--muted); }
+.fl-law { margin: 0 0 12px; font: 500 11px/1.4 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+.gl-list { max-width: var(--max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 32px; }
+.gl-list > div { padding: 16px 0; border-top: 1px solid var(--line); min-width: 0; }
+.gl-list dt { font-weight: 600; margin-bottom: 4px; }
+.gl-list dd { margin: 0; color: var(--ink-2); font-size: 14px; }
+@media (max-width: 1100px) { .gl-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .gl-list { grid-template-columns: minmax(0, 1fr); } }

@@ -51,7 +51,7 @@ export default function Spectrum({ inventory }) {
           <br />
           <em>stands.</em>
         </h2>
-        <p className="section-sub">Each crypto asset in the CycloneDX CBOM, placed by its NIST quantum security level. Switch commits to watch them move.</p>
+        <p className="section-sub">Every piece of encryption in the app, from its CBOM (an ingredients list for crypto), placed by its NIST quantum security level: the higher, the safer.</p>
       </div>
 
       <div className="sp-bar">

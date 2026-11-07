@@ -50,14 +50,15 @@ export default function Attack() {
       <div className="section-head">
         <span className="section-index">Try to break it</span>
         <h2 className="section-title">
-          Forge a ship.
+          Fake a release.
           <br />
           <em>It won't take.</em>
         </h2>
         <p className="section-sub">
-          The real signed {record.kind === 'ship' ? 'ship' : 'approval'} for F5 from live run 3's{' '}
-          <a href={attack.source} target="_blank" rel="noreferrer">git</a>, checked with ML-DSA-65 in your browser on every edit.
-          The origin's git gate runs the same check and refuses a push that fails it.
+          Every approval and release carries a digital signature (ML-DSA-65, a post-quantum standard). This is the real signed{' '}
+          {record.kind === 'ship' ? 'release' : 'approval'} of F5 from run 3's{' '}
+          <a href={attack.source} target="_blank" rel="noreferrer">git</a>. Your browser checks it on every edit, the same check
+          the code server runs before it accepts anything.
         </p>
       </div>
 
@@ -65,7 +66,7 @@ export default function Attack() {
         <div className="toggle" role="group" aria-label="Which signed record">
           {attack.signed.map((s, i) => (
             <button key={s.kind} type="button" aria-pressed={pick === i} className={pick === i ? 'active' : ''} onClick={() => choose(i)}>
-              {s.kind === 'ship' ? 'The ship' : 'The approval'}
+              {s.kind === 'ship' ? 'The release' : 'The approval'}
             </button>
           ))}
         </div>

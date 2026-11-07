@@ -12,6 +12,7 @@ import Spectrum from './components/Spectrum.jsx';
 import Receipt from './components/Receipt.jsx';
 import Cursor from './components/Cursor.jsx';
 import { NextPage, PageCards } from './components/Pages.jsx';
+import { Glossary, Guide, HowItWorks } from './components/Help.jsx';
 import { countStates, useDesk } from './useDesk.js';
 import { useSmoothScroll } from './lib/motion.js';
 import { useRoute } from './lib/route.js';
@@ -31,10 +32,24 @@ function Empty({ error }) {
 function Page({ page, desk, counts }) {
   switch (page) {
     case 'scan':
-      return <Scan />;
+      return (
+        <>
+          <Guide time="1 minute" steps={[
+            'Keep the sample code, or paste your own JavaScript or TypeScript.',
+            'Press Scan (or Ctrl+Enter). It runs in your browser; nothing is uploaded.',
+            'Change “Data must stay secret for” and watch how urgent each problem becomes.',
+          ]} />
+          <Scan />
+        </>
+      );
     case 'run':
       return (
         <>
+          <Guide time="3 minutes" steps={[
+            'Read three real messages from the run: a person changing a fix, a release, and an accepted risk.',
+            'Press Play on the replay to watch four hours of the run in under a minute. Drag the bar to jump around.',
+            'Scroll on to compare what the scanner suggested with what people changed.',
+          ]} />
           <Room />
           <Replay />
           <Added rows={desk.rows} />
@@ -43,6 +58,11 @@ function Page({ page, desk, counts }) {
     case 'verify':
       return (
         <>
+          <Guide time="1 minute" steps={[
+            'Every approval and release in the run was digitally signed. Below is the real signed release of F5.',
+            'Click a button like “Say the engineer ordered it”, or edit any line yourself.',
+            'The check turns red: the signature no longer matches. “Restore the original” turns it green again.',
+          ]} />
           <Attack />
           <Receipt desk={desk} counts={counts} />
         </>
@@ -50,6 +70,11 @@ function Page({ page, desk, counts }) {
     case 'inventory':
       return (
         <>
+          <Guide time="2 minutes" steps={[
+            'See the six problems in the demo app, most urgent first. Click one to see its code before and after the fix.',
+            'Scroll through “Recorded today, opened on Q-Day” to see why recorded data is already at risk.',
+            'At the bottom: every piece of encryption in the app, placed by how safe it is.',
+          ]} />
           <Findings rows={desk.rows} />
           <QDay />
           <Spectrum inventory={desk.inventory} />
@@ -59,8 +84,10 @@ function Page({ page, desk, counts }) {
       return (
         <>
           <Hero counts={counts} total={desk.rows.length} started />
+          <HowItWorks />
           <Flip />
           <PageCards />
+          <Glossary />
         </>
       );
   }

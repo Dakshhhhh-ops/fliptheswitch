@@ -185,7 +185,7 @@ export default function Findings({ rows }) {
           <br />
           <em>ranked by how late.</em>
         </h2>
-        <p className="section-sub">Under each, Mosca's rule: how long the data must stay secret, plus the migration, against the years left before Q-Day. A finding being worked has its own Switch room with the engineer who owns the code. Hover for the line itself; open one to compare it with main.</p>
+        <p className="section-sub">The six problems in the demo app, most urgent first. Urgency uses Mosca's rule: how long the data must stay secret plus how long the fix takes, against the years left before a quantum computer. Click one to see its code before and after.</p>
       </div>
 
       <ol className="fx-list" onMouseMove={(e) => pos.current && (pos.current.x(e.clientX + 24), pos.current.y(e.clientY - 120))} onMouseLeave={() => setHover(null)}

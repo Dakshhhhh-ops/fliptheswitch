@@ -85,7 +85,7 @@ export default function Replay() {
           <em>played back.</em>
         </h2>
         <p className="section-sub">
-          It opens just after Switch refused the engineer. Every message and git push from live run 3, in order and at its real time, from the run's{' '}
+          <b>Press Play</b> to watch it in under a minute. It opens just after Switch refused the engineer. Every message and git push from live run 3, in order and at its real time, from the run's{' '}
           <a href={replay.source} target="_blank" rel="noreferrer">chat log</a>. Not a video edit: the board below moves only on
           what git recorded.
         </p>

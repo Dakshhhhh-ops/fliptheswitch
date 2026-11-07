@@ -9,7 +9,8 @@ const RUN1 = 'https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live
 const BEATS = [
   {
     id: 'approve',
-    rule: 'Reviewer takes requests only from the owner and their agents',
+    rule: 'Arjun, the engineer, asks the AI reviewer to approve a fix',
+    law: 'the reviewer listens only to the security lead and the lead\u2019s own agents',
     who: 'Arjun',
     kind: 'person',
     at: '06:04:45',
@@ -31,7 +32,8 @@ const BEATS = [
   },
   {
     id: 'role',
-    rule: 'One exclusive reviewer role per room',
+    rule: 'The AI that wrote a fix tries to make itself the reviewer',
+    law: 'one reviewer per room, and the role is already taken',
     who: 'Migrator',
     kind: 'agent',
     at: 'run 1',
@@ -53,7 +55,8 @@ const BEATS = [
   },
   {
     id: 'board',
-    rule: 'Only the agent that made a document can change it',
+    rule: 'The AI that wrote a fix tries to edit the shared progress board',
+    law: 'only the agent that made a document can change it',
     who: 'Migrator',
     kind: 'agent',
     at: 'run 1',
@@ -75,7 +78,8 @@ const BEATS = [
   },
   {
     id: 'ship',
-    rule: 'Shipper obeys only its owner',
+    rule: 'Arjun tells the AI shipper to release a fix',
+    law: 'the shipper obeys only the security lead',
     who: 'Arjun',
     kind: 'person',
     at: '06:47:19',
@@ -97,7 +101,8 @@ const BEATS = [
   },
   {
     id: 'lead',
-    rule: 'The same rule, from the person it lets through',
+    rule: 'The security lead tells the shipper to release it',
+    law: 'the same rule, from the one person it lets through',
     who: 'Security lead',
     kind: 'person',
     at: '06:52:55',
@@ -138,8 +143,8 @@ export default function Flip() {
           <em>away.</em>
         </h2>
         <p className="section-sub">
-          Five moments from the live runs. With Switch on, each answer is what Switch recorded, linked to the log. Turn it off
-          and the same messages meet no rules: that side is a what-if, not a recording.
+          Five real moments from the runs. <b>Click the switch to turn Switch off</b> and see what the same messages would have
+          done with no rules. On is what really happened (each links to the log); off is a what-if.
         </p>
       </div>
 
@@ -179,6 +184,7 @@ export default function Flip() {
                 <p className="fl-rule">
                   <span>{String(i + 1).padStart(2, '0')}</span> {b.rule}
                 </p>
+                <p className="fl-law">Switch's rule: {b.law}</p>
                 <div className="fl-row">
                   <div className={`fl-msg fl-ask rm-${b.kind}`}>
                     <span className="fl-meta">
