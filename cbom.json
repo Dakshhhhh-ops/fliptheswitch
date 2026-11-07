@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:2aa04457-c90a-45fb-8de7-5908715582bc",
+  "serialNumber": "urn:uuid:43bd8447-74ea-4788-8177-b7205ca8a904",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-05T20:53:19.892Z",
+    "timestamp": "2026-11-07T10:28:00.340Z",
     "tools": {
       "components": [
         {
@@ -32,7 +32,8 @@
           "executionEnvironment": "software-plain-ram",
           "implementationPlatform": "generic",
           "cryptoFunctions": [
-            "keygen"
+            "keygen",
+            "other"
           ],
           "nistQuantumSecurityLevel": 0
         },
@@ -42,13 +43,38 @@
         "occurrences": [
           {
             "location": "src/envelope.js",
-            "line": 37,
+            "line": 38,
             "additionalContext": "const x25519 = generateKeyPairSync('x25519');"
           },
           {
             "location": "src/envelope.js",
-            "line": 96,
+            "line": 81,
             "additionalContext": "const ephemeral = generateKeyPairSync('x25519');"
+          },
+          {
+            "location": "src/envelope.js",
+            "line": 118,
+            "additionalContext": "if (ephemeralKey.asymmetricKeyType !== 'x25519') {"
+          },
+          {
+            "location": "src/session.js",
+            "line": 82,
+            "additionalContext": "const x25519 = generateKeyPairSync('x25519');"
+          },
+          {
+            "location": "src/session.js",
+            "line": 102,
+            "additionalContext": "const peerX25519 = importPublic(offer.x25519, 'x25519', 'x25519');"
+          },
+          {
+            "location": "src/session.js",
+            "line": 105,
+            "additionalContext": "const ephemeral = generateKeyPairSync('x25519');"
+          },
+          {
+            "location": "src/session.js",
+            "line": 138,
+            "additionalContext": "const peerX25519 = importPublic(reply.x25519, 'x25519', 'x25519');"
           }
         ]
       },
@@ -72,7 +98,8 @@
           "cryptoFunctions": [
             "keygen",
             "encapsulate",
-            "decapsulate"
+            "decapsulate",
+            "other"
           ],
           "nistQuantumSecurityLevel": 3
         },
@@ -82,18 +109,38 @@
         "occurrences": [
           {
             "location": "src/envelope.js",
-            "line": 38,
+            "line": 39,
             "additionalContext": "const mlkem = generateKeyPairSync('ml-kem-768');"
           },
           {
             "location": "src/envelope.js",
-            "line": 98,
+            "line": 83,
             "additionalContext": "const { sharedKey: mlkemSecret, ciphertext: kemCiphertext } = encapsulate(vaultPublicKey.mlkem);"
           },
           {
             "location": "src/envelope.js",
-            "line": 132,
+            "line": 123,
             "additionalContext": "const mlkemSecret = decapsulate(vaultPrivateKey.mlkem, kemCiphertext);"
+          },
+          {
+            "location": "src/session.js",
+            "line": 83,
+            "additionalContext": "const mlkem = generateKeyPairSync('ml-kem-768');"
+          },
+          {
+            "location": "src/session.js",
+            "line": 103,
+            "additionalContext": "const peerMlkem = importPublic(offer.mlkem, 'ml-kem-768', 'mlkem');"
+          },
+          {
+            "location": "src/session.js",
+            "line": 107,
+            "additionalContext": "const { sharedKey: mlkemSecret, ciphertext: kemCiphertext } = encapsulate(peerMlkem.key);"
+          },
+          {
+            "location": "src/session.js",
+            "line": 146,
+            "additionalContext": "const mlkemSecret = decapsulate(secrets.mlkem, kemCiphertext);"
           }
         ]
       },
@@ -101,50 +148,6 @@
         {
           "name": "crypto-desk:status",
           "value": "ok"
-        }
-      ]
-    },
-    {
-      "type": "cryptographic-asset",
-      "bom-ref": "crypto/rsa-oaep/2048",
-      "name": "RSA-OAEP",
-      "cryptoProperties": {
-        "assetType": "algorithm",
-        "algorithmProperties": {
-          "primitive": "pke",
-          "executionEnvironment": "software-plain-ram",
-          "implementationPlatform": "generic",
-          "cryptoFunctions": [
-            "keygen",
-            "decrypt"
-          ],
-          "nistQuantumSecurityLevel": 0,
-          "parameterSetIdentifier": "2048"
-        },
-        "oid": "1.2.840.113549.1.1.7"
-      },
-      "evidence": {
-        "occurrences": [
-          {
-            "location": "src/envelope.js",
-            "line": 48,
-            "additionalContext": "return generateKeyPairSync('rsa', { modulusLength: 2048 });"
-          },
-          {
-            "location": "src/envelope.js",
-            "line": 147,
-            "additionalContext": "const dataKey = privateDecrypt("
-          }
-        ]
-      },
-      "properties": [
-        {
-          "name": "crypto-desk:status",
-          "value": "vulnerable"
-        },
-        {
-          "name": "crypto-desk:priority",
-          "value": "P1"
         }
       ]
     },
@@ -159,8 +162,9 @@
           "executionEnvironment": "software-plain-ram",
           "implementationPlatform": "generic",
           "cryptoFunctions": [
+            "digest",
             "keyderive",
-            "digest"
+            "tag"
           ],
           "nistQuantumSecurityLevel": 2
         },
@@ -170,13 +174,28 @@
         "occurrences": [
           {
             "location": "src/envelope.js",
+            "line": 62,
+            "additionalContext": "const salt = createHash('sha256')"
+          },
+          {
+            "location": "src/envelope.js",
             "line": 68,
-            "additionalContext": "return Buffer.from(hkdfSync('sha256', Buffer.concat(parts), Buffer.alloc(0), KEK_INFO, 32));"
+            "additionalContext": "return Buffer.from(hkdfSync('sha256', ikm, salt, HKDF_INFO, 32));"
+          },
+          {
+            "location": "src/receipts.js",
+            "line": 47,
+            "additionalContext": "return createHmac('sha256', key).update(DOMAIN).update(canonical(receipt)).digest('hex');"
           },
           {
             "location": "src/session.js",
-            "line": 14,
-            "additionalContext": "return createHash('sha256').update(secret).digest();"
+            "line": 69,
+            "additionalContext": "const salt = createHash('sha256')"
+          },
+          {
+            "location": "src/session.js",
+            "line": 77,
+            "additionalContext": "return Buffer.from(hkdfSync('sha256', ikm, salt, HKDF_INFO, 32));"
           }
         ]
       },
@@ -209,13 +228,18 @@
         "occurrences": [
           {
             "location": "src/envelope.js",
-            "line": 73,
-            "additionalContext": "const cipher = createCipheriv('aes-256-gcm', key, iv);"
+            "line": 95,
+            "additionalContext": "const cipher = createCipheriv('aes-256-gcm', dataKey, iv);"
           },
           {
             "location": "src/envelope.js",
-            "line": 80,
-            "additionalContext": "const decipher = createDecipheriv('aes-256-gcm', key, iv);"
+            "line": 132,
+            "additionalContext": "const decipher = createDecipheriv('aes-256-gcm', dataKey, Buffer.from(envelope.iv, 'base64'));"
+          },
+          {
+            "location": "src/envelope.js",
+            "line": 150,
+            "additionalContext": "const decipher = createDecipheriv('aes-256-gcm', dataKey, Buffer.from(envelope.iv, 'base64'));"
           }
         ]
       },
@@ -228,71 +252,27 @@
     },
     {
       "type": "cryptographic-asset",
-      "bom-ref": "crypto/sha1",
-      "name": "SHA-1",
+      "bom-ref": "crypto/rsa-oaep",
+      "name": "RSA-OAEP",
       "cryptoProperties": {
         "assetType": "algorithm",
         "algorithmProperties": {
-          "primitive": "hash",
+          "primitive": "pke",
           "executionEnvironment": "software-plain-ram",
           "implementationPlatform": "generic",
           "cryptoFunctions": [
-            "digest"
+            "decrypt"
           ],
           "nistQuantumSecurityLevel": 0
         },
-        "oid": "1.3.14.3.2.26"
+        "oid": "1.2.840.113549.1.1.7"
       },
       "evidence": {
         "occurrences": [
           {
-            "location": "src/receipts.js",
-            "line": 17,
-            "additionalContext": "return createHash('sha1').update(canonical(receipt)).digest('hex');"
-          }
-        ]
-      },
-      "properties": [
-        {
-          "name": "crypto-desk:status",
-          "value": "broken"
-        },
-        {
-          "name": "crypto-desk:priority",
-          "value": "P2"
-        }
-      ]
-    },
-    {
-      "type": "cryptographic-asset",
-      "bom-ref": "crypto/ecdh/p-256",
-      "name": "ECDH",
-      "cryptoProperties": {
-        "assetType": "algorithm",
-        "algorithmProperties": {
-          "primitive": "key-agree",
-          "executionEnvironment": "software-plain-ram",
-          "implementationPlatform": "generic",
-          "cryptoFunctions": [
-            "keygen",
-            "keyderive"
-          ],
-          "nistQuantumSecurityLevel": 0,
-          "curve": "P-256"
-        },
-        "oid": "1.2.840.10045.2.1"
-      },
-      "evidence": {
-        "occurrences": [
-          {
-            "location": "src/session.js",
-            "line": 7,
-            "additionalContext": "const ecdh = createECDH('prime256v1');"
-          },
-          {
-            "location": "src/session.js",
-            "line": 13,
-            "additionalContext": "const secret = party.ecdh.computeSecret(peerPublicKey);"
+            "location": "src/envelope.js",
+            "line": 146,
+            "additionalContext": "const dataKey = privateDecrypt("
           }
         ]
       },
@@ -309,8 +289,8 @@
     },
     {
       "type": "cryptographic-asset",
-      "bom-ref": "crypto/tls-classical/prime256v1",
-      "name": "TLS classical key exchange",
+      "bom-ref": "crypto/tls-hybrid/x25519mlkem768:x25519",
+      "name": "TLS hybrid key exchange",
       "cryptoProperties": {
         "assetType": "algorithm",
         "algorithmProperties": {
@@ -320,30 +300,26 @@
           "cryptoFunctions": [
             "keyderive"
           ],
-          "nistQuantumSecurityLevel": 0
+          "nistQuantumSecurityLevel": 3
         }
       },
       "evidence": {
         "occurrences": [
           {
             "location": "src/tls.js",
-            "line": 6,
-            "additionalContext": "ecdhCurve: 'prime256v1',"
+            "line": 13,
+            "additionalContext": "ecdhCurve: 'X25519MLKEM768:X25519',"
           }
         ]
       },
       "properties": [
         {
           "name": "crypto-desk:status",
-          "value": "vulnerable"
-        },
-        {
-          "name": "crypto-desk:priority",
-          "value": "P1"
+          "value": "ok"
         },
         {
           "name": "crypto-desk:tls-groups",
-          "value": "prime256v1"
+          "value": "X25519MLKEM768:X25519"
         }
       ]
     },
@@ -402,8 +378,7 @@
           "implementationPlatform": "generic",
           "cryptoFunctions": [
             "keygen",
-            "sign",
-            "verify"
+            "sign"
           ],
           "nistQuantumSecurityLevel": 0,
           "curve": "P-256"
@@ -414,18 +389,13 @@
         "occurrences": [
           {
             "location": "src/webhooks.js",
-            "line": 21,
+            "line": 30,
             "additionalContext": "const ecdsa = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });"
           },
           {
             "location": "src/webhooks.js",
-            "line": 31,
-            "additionalContext": "const headers = { [ECDSA_HEADER]: sign('sha256', data, privateKey).toString('base64') };"
-          },
-          {
-            "location": "src/webhooks.js",
-            "line": 52,
-            "additionalContext": "const ecdsaOk = verifySafely(() => verify('sha256', data, publicKey, ecdsaSig));"
+            "line": 43,
+            "additionalContext": "[ECDSA_HEADER]: sign('sha256', bytes, privateKey).toString('base64'),"
           }
         ]
       },
@@ -452,8 +422,7 @@
           "implementationPlatform": "generic",
           "cryptoFunctions": [
             "keygen",
-            "sign",
-            "verify"
+            "sign"
           ],
           "nistQuantumSecurityLevel": 3
         },
@@ -463,18 +432,13 @@
         "occurrences": [
           {
             "location": "src/webhooks.js",
-            "line": 22,
-            "additionalContext": "const mldsa = generateKeyPairSync('ml-dsa-65');"
+            "line": 31,
+            "additionalContext": "const mlDsa = generateKeyPairSync('ml-dsa-65');"
           },
           {
             "location": "src/webhooks.js",
-            "line": 33,
-            "additionalContext": "headers[MLDSA_HEADER] = sign(null, data, mldsaPrivateKey).toString('base64');"
-          },
-          {
-            "location": "src/webhooks.js",
-            "line": 57,
-            "additionalContext": "const mldsaOk = verifySafely(() => verify(null, data, mldsaPublicKey, mldsaSig));"
+            "line": 46,
+            "additionalContext": "headers[ML_DSA_HEADER] = sign(null, bytes, mlDsaPrivateKey).toString('base64');"
           }
         ]
       },
