@@ -131,7 +131,7 @@ export default function Flip() {
   return (
     <section className={`section fl ${on ? 'fl-on' : 'fl-off'}`} id="flip">
       <div className="section-head">
-        <span className="section-index">01 — Flip the switch</span>
+        <span className="section-index">Flip the switch</span>
         <h2 className="section-title">
           Take Switch
           <br />

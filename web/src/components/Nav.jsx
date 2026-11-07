@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react';
 import { Ago } from './motion.jsx';
 import { isStatic, magnetic } from '../lib/motion.js';
 import { SNAPSHOT } from '../lib/snapshot.js';
+import { PAGES, href } from '../lib/route.js';
 
-export default function Nav({ desk, live }) {
+export default function Nav({ desk, live, page }) {
   const links = useRef(null);
   useEffect(() => {
     const offs = [...links.current.querySelectorAll('a')].map((a) => magnetic(a, 0.35));
@@ -12,23 +13,18 @@ export default function Nav({ desk, live }) {
   const snapshot = SNAPSHOT || isStatic();
   return (
     <header className="nav">
-      <a className="brand" href="#top" aria-label="Crypto Migration Desk, top">
+      <a className="brand" href="#/" aria-label="Crypto Migration Desk, top">
         <span className="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 32 32"><path d="M9 16h14M16 9v14" /></svg>
         </span>
         <span className="brand-name">Crypto Migration Desk</span>
       </a>
       <nav className="nav-links" ref={links} aria-label="Sections">
-        <a href="#flip">Flip</a>
-        <a href="#scan">Scan</a>
-        <a href="#added">People</a>
-        <a href="#break">Break it</a>
-        <a className="nav-more" href="#room">In the room</a>
-        <a href="#replay">Replay</a>
-        <a className="nav-more" href="#qday">Q-Day</a>
-        <a href="#findings">Findings</a>
-        <a className="nav-more" href="#spectrum">Inventory</a>
-        <a className="nav-more" href="#receipt">Receipt</a>
+        {PAGES.filter((p) => p.id).map((p) => (
+          <a key={p.id} href={href(p.id)} aria-current={page === p.id ? 'page' : undefined}>
+            {p.label}
+          </a>
+        ))}
       </nav>
       <div className={`live ${live ? 'on' : ''}`} role="status">
         <span className="live-dot" aria-hidden="true" />

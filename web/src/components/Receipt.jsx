@@ -41,7 +41,7 @@ export default function Receipt({ desk, counts }) {
   return (
     <footer className="receipt" id="receipt" ref={root}>
       <div className="receipt-copy">
-        <span className="section-index">10 — Receipt</span>
+        <span className="section-index">Receipt</span>
         <h2 className="section-title">
           People decide.
           <br />

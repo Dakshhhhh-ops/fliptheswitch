@@ -56,7 +56,7 @@ export default function Hero({ counts, total, started }) {
             </p>
             <div className="hero-ctas">
               <a className="hero-cta" href="#flip">Flip the switch →</a>
-              <a className="hero-cta-2" href="#break">or try to forge a ship</a>
+              <a className="hero-cta-2" href="#/verify">or try to forge a ship</a>
             </div>
           </div>
           <a className="scroll-cue" href="#flip" data-cursor="Scroll">

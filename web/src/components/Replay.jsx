@@ -78,7 +78,7 @@ export default function Replay() {
   return (
     <section className="section" id="replay">
       <div className="section-head">
-        <span className="section-index">06 — Replay</span>
+        <span className="section-index">Replay</span>
         <h2 className="section-title">
           Four hours,
           <br />
@@ -122,7 +122,7 @@ export default function Replay() {
           {t >= END && (
             <li className="rp-end">
               End of the run: {shippedCount} of 6 shipped, F3's production TLS an accepted risk, and F6 in review because the
-              reviewer ran out of quota before it could re-check. The <a href="#break">signed ships</a> are in git.
+              reviewer ran out of quota before it could re-check. The <a href="#/verify">signed ships</a> are in git.
             </li>
           )}
           {recent.map((e) => (

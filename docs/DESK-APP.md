@@ -8,6 +8,9 @@ board line it posts after every change
 The **desk app** is the cross-check, with the same numbers read straight from
 git, so anyone can confirm the chat matches the code.
 [A snapshot of it is hosted here.](https://dakshhhhh-ops.github.io/fliptheswitch/)
+It has five pages in the URL hash (`#/`, `#/scan`, `#/run`, `#/verify`,
+`#/inventory`; see `web/src/lib/route.js`), and old section links such as
+`#break` open the page that holds them.
 
 ```sh
 npm run web        # installs, builds and serves it on http://127.0.0.1:4317

@@ -81,7 +81,7 @@ export default function Scan() {
   return (
     <section className="section" id="scan">
       <div className="section-head">
-        <span className="section-index">02 — Scan your code</span>
+        <span className="section-index">Scan your code</span>
         <h2 className="section-title">
           Paste yours.
           <br />

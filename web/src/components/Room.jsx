@@ -31,7 +31,7 @@ export default function Room() {
   return (
     <section className="section" id="room" ref={root}>
       <div className="section-head">
-        <span className="section-index">05 — In the room</span>
+        <span className="section-index">In the room</span>
         <h2 className="section-title">
           People decide
           <br />

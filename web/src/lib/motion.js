@@ -25,6 +25,13 @@ export function lockScroll(on) {
   else smooth?.start();
 }
 
+// Jumps to the top (0) or an element, through Lenis when it runs.
+export function jumpTo(target) {
+  if (smooth) smooth.scrollTo(target, { immediate: target === 0, offset: target === 0 ? 0 : -60 });
+  else if (target === 0) window.scrollTo(0, 0);
+  else target.scrollIntoView();
+}
+
 // Smooth scrolling that ScrollTrigger reads, so pinned sections stay in step.
 export function useSmoothScroll(enabled) {
   useEffect(() => {
@@ -38,6 +45,7 @@ export function useSmoothScroll(enabled) {
     const onClick = (e) => {
       const a = e.target.closest('a[href^="#"]');
       if (!a) return;
+      if (a.getAttribute('href').startsWith('#/')) return;
       const target = document.querySelector(a.getAttribute('href'));
       if (target) {
         e.preventDefault();

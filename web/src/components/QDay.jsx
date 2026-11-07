@@ -82,7 +82,7 @@ export default function QDay() {
   return (
     <section className="qday" id="qday" ref={root}>
       <div className="qd-head">
-        <span className="section-index">07 — Harvest now, decrypt later</span>
+        <span className="section-index">Harvest now, decrypt later</span>
         <h2 className="section-title">
           Recorded today.
           <br />
