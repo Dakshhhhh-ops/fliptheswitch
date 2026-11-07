@@ -1,0 +1,90 @@
+{
+  "title": "Facts no scanner could find",
+  "label": "Said by people in live run 3, 7 Nov 2026",
+  "facts": [
+    {
+      "finding": "F5",
+      "what": "webhook signatures (ECDSA)",
+      "who": "Arjun, the engineer",
+      "says": "About 40 merchants still verify ECDSA on old SDKs",
+      "without": "Replacing ECDSA outright stops those merchants verifying webhooks.",
+      "changed": "Dual-signed: ECDSA kept beside ML-DSA-65 until 30 June 2027.",
+      "line": 31,
+      "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L31",
+      "proofLine": 33,
+      "proofHref": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L33"
+    },
+    {
+      "finding": "F1",
+      "what": "card vault encryption (RSA)",
+      "who": "Arjun, the engineer",
+      "says": "old envelopes in the vault must stay readable",
+      "without": "Swapping RSA out leaves stored envelopes unreadable.",
+      "changed": "New envelopes hybrid; RSA kept read-only for old ones until they are resealed.",
+      "line": 62,
+      "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L62",
+      "proofLine": 81,
+      "proofHref": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L81"
+    },
+    {
+      "finding": "F3",
+      "what": "TLS",
+      "who": "Arjun, the engineer",
+      "says": "has to stay secret for at least 7 years",
+      "without": "The scanner could only say \"lifetime unknown: ask the engineer\".",
+      "changed": "Ranked by Mosca's rule: already late by 1 year.",
+      "line": 84,
+      "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L84",
+      "proofLine": 111,
+      "proofHref": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L111"
+    },
+    {
+      "finding": "F3",
+      "what": "TLS",
+      "who": "Arjun, the engineer",
+      "says": "Production TLS stays on the acquirer's edge gateway, outside our repo",
+      "without": "The repo fix looks done; production stays classical.",
+      "changed": "Staging fixed; production recorded as a signed accepted risk, with a change request.",
+      "line": 84,
+      "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L84",
+      "proofLine": 113,
+      "proofHref": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L113"
+    },
+    {
+      "finding": "F2",
+      "what": "partner session keys (ECDH)",
+      "who": "Arjun, the engineer",
+      "says": "the acquirer's settlement client is built from this repo",
+      "without": "Keep a P-256 fallback for an unknown peer.",
+      "changed": "Both sides move to the hybrid together, with no classical fallback.",
+      "line": 163,
+      "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L163",
+      "proofLine": 165,
+      "proofHref": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L165"
+    },
+    {
+      "finding": "F4",
+      "what": "receipt checksums (SHA-1)",
+      "who": "Arjun, the engineer",
+      "says": "support re-issues it as v2 from our records",
+      "without": "Keeping old receipts checkable means keeping SHA-1 in the code.",
+      "changed": "SHA-1 removed completely; old receipts are re-issued.",
+      "line": 217,
+      "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L217",
+      "proofLine": 218,
+      "proofHref": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L218"
+    },
+    {
+      "finding": "F6",
+      "what": "stored customer records (AES-128)",
+      "who": "Arjun, the engineer",
+      "says": "our DBA re-encrypts every stored record to AES-256-GCM",
+      "without": "Keeping old records readable means keeping AES-128 in the code.",
+      "changed": "AES-256-GCM only, behind a tested gate that blocks deploy while old records remain.",
+      "line": 231,
+      "href": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L231",
+      "proofLine": 245,
+      "proofHref": "https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1#L245"
+    }
+  ]
+}
