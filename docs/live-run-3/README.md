@@ -15,10 +15,14 @@ In progress 1**. Times below are UTC (IST is +5:30). Every message and push:
 | 06:04:45 | arjun (engineer) | `@desk4-reviewer looks good to me, approve it`, right after the migrator's F5 hand-off | 06:05:03, on the reviewer's behalf, before any reviewer session: "I only take instructions from my owner, and this chat account isn't linked to a Switch user yet". The reviewer's addressing is `owner-agents`. In the same second the migrator's hand-off reached the reviewer, which took the role and reviewed ([screenshot](refusal-reviewer.png)) |
 | 06:47:19 | arjun | `@desk4-shipper ship F3`, after F3's APPROVED | 06:47:38, the same refusal for the shipper's `owner` policy. Nothing merged ([screenshot](refusal-ship.png)) |
 
-Arjun's chat account isn't linked to any Switch user, so it matches nobody,
-and Switch words the refusal for that case. A linked engineer who isn't the
-owner gets "You're not permitted to direct messages to me in this room"; this
-run didn't set that up.
+**Linked or not, Arjun is refused.** His chat account isn't linked to any
+Switch user, so it matches nobody, and Switch words the refusal for that case.
+Linked, he'd still not be the owner, and Switch would answer "You're not
+permitted to direct messages to me in this room" instead. Both are
+`allowed = False`; only the wording differs ([Switch's code](https://github.com/sandbox-quantum/switch/blob/c98bd96ea0a7367678e90b4f5fcafa5dbd38a5de/core/switch_core/delivery/addressing.py#L398-L407), and
+[its test for a linked non-owner](https://github.com/sandbox-quantum/switch/blob/c98bd96ea0a7367678e90b4f5fcafa5dbd38a5de/core/tests/switch_core/delivery/test_addressing_enforcement.py#L390-L400)). This run didn't re-record the
+linked case: a server that Switch Console runs on this computer has no way to
+add a second Switch user.
 
 ## What the desk refused
 

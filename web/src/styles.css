@@ -576,3 +576,16 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px s
 .gl-list dd { margin: 0; color: var(--ink-2); font-size: 14px; }
 @media (max-width: 1100px) { .gl-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .gl-list { grid-template-columns: minmax(0, 1fr); } }
+
+/* Flip: the linked / not linked proof */
+.fl-why { font-size: 13px; color: var(--ink); }
+.fl-why a { color: var(--shipped); text-underline-offset: 3px; }
+.fl-proof { margin-top: 18px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--bg-2); padding: 18px 20px; display: grid; gap: 10px; }
+.fl-proof p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.fl-proof b { color: var(--ink); }
+.fl-proof-q { font: 400 26px/1.15 var(--serif) !important; color: var(--ink) !important; }
+.fl-proof-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.fl-proof-pair > div { display: grid; gap: 6px; border-left: 2px solid var(--shipped); padding-left: 12px; min-width: 0; }
+.fl-proof-pair code { font: 13px/1.5 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.fl-proof-src a { color: var(--ink); text-underline-offset: 3px; }
+@media (max-width: 760px) { .fl-proof-pair { grid-template-columns: minmax(0, 1fr); } .fl-proof { padding: 16px; } }

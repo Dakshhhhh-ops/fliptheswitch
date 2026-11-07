@@ -13,7 +13,7 @@ export const PAGES = [
 ];
 
 const SECTION_PAGE = {
-  top: '', how: '', flip: '', words: '',
+  top: '', how: '', flip: '', linked: '', words: '',
   scan: 'scan',
   room: 'run', replay: 'run', added: 'run',
   break: 'verify', receipt: 'verify',

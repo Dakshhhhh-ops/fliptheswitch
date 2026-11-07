@@ -7,8 +7,11 @@ takes about an hour, most of it watching the agents work. This is how
 ## Optional: make the engineer a real Switch user, 3 minutes
 
 Without this, the engineer's chat account belongs to no Switch user, and
-Switch refuses it for that reason ("isn't linked"). To show Switch refusing
-a *known* person who simply isn't the owner:
+Switch refuses it for that reason ("isn't linked"). That is still a refusal:
+linked, the engineer would get "You're not permitted" instead, and both are
+`allowed = False` in Switch. To show the linked case you need a Switch server
+with its web app (the Docker one); a server Switch Console runs natively on
+this computer can't add a second user. Then:
 
 1. In Switch's web app (your server's address, `/users`, as admin), create a
    second user for the engineer.

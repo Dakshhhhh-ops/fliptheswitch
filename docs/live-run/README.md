@@ -41,7 +41,7 @@ Shipped 2/6 · Accepted risk 1.
 
 | | Screenshot |
 |---|---|
-| Arjun: `@Shipper ship F1`. Switch answers at once ("I only take instructions from my owner, and this chat account isn't linked to a Switch user yet"), with no "Starting a session" first, so no agent ran. The reason is the unlinked account; a linked non-owner being refused is not shown | [refusal-ship.png](refusal-ship.png) (thread on the right) |
+| Arjun: `@Shipper ship F1`. Switch answers at once ("I only take instructions from my owner, and this chat account isn't linked to a Switch user yet"), with no "Starting a session" first, so no agent ran. Arjun isn't the owner. Linked or not, that's a refusal: a linked non-owner gets "You're not permitted…" instead, also `allowed = False` ([Switch's test](https://github.com/sandbox-quantum/switch/blob/c98bd96ea0a7367678e90b4f5fcafa5dbd38a5de/core/tests/switch_core/delivery/test_addressing_enforcement.py#L390-L400)) | [refusal-ship.png](refusal-ship.png) (thread on the right) |
 | Arjun: `@Shipper accept risk: …` in the F3 room. Same refusal: only the security lead can accept a risk | [refusal-accept-risk.png](refusal-accept-risk.png) |
 | The security lead's `ship F1`, while no agent held the room's `reviewer` role. The shipper refused, following its instructions: the approval didn't come from the reviewer of record. Switch makes the role exclusive; the shipper does the checking | [one-reviewer-of-record.png](one-reviewer-of-record.png) |
 | After the run: the reviewer took the `reviewer` role in the F3 room, then the migrator tried `assume_role("reviewer")`. Switch answered `400: {"detail":"Role 'reviewer' is exclusive and currently held by another agent"}` | [role-lock.png](role-lock.png) |

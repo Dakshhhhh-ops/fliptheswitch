@@ -21,6 +21,7 @@ const BEATS = [
       text: "@arjun I only take instructions from my owner, and this chat account isn't linked to a Switch user yet.",
       href: `${LOG3}#L38`,
       tag: 'Refused',
+      why: true,
       after: 'The real review went ahead and asked for a replay window before approving.',
     },
     off: {
@@ -90,6 +91,7 @@ const BEATS = [
       text: "@arjun I only take instructions from my owner, and this chat account isn't linked to a Switch user yet.",
       href: `${LOG3}#L102`,
       tag: 'Refused',
+      why: true,
       after: 'Nothing merged. No shipper session even ran.',
     },
     off: {
@@ -204,6 +206,11 @@ export default function Flip() {
                       )}
                     </span>
                     <code>{out.text}</code>
+                    {on && out.why && (
+                      <span className="fl-why">
+                        Why: Arjun isn't the security lead. <a href="#linked">Linked or not, the answer is no.</a>
+                      </span>
+                    )}
                     <span className="fl-after">{out.after}</span>
                   </div>
                 </div>
@@ -211,6 +218,29 @@ export default function Flip() {
             );
           })}
         </ol>
+
+        <div className="fl-proof" id="linked">
+          <p className="fl-proof-q">Was Arjun refused only because his chat account wasn't linked?</p>
+          <p>
+            No. Switch has two replies for anyone who isn't the owner, and <b>both are a refusal</b>. Linking an account
+            tells Switch who you are; it doesn't make you the security lead.
+          </p>
+          <div className="fl-proof-pair">
+            <div>
+              <span className="fl-meta"><b>Not linked</b> what Arjun got, recorded</span>
+              <code>I only take instructions from my owner, and this chat account isn't linked to a Switch user yet…</code>
+            </div>
+            <div>
+              <span className="fl-meta"><b>Linked, not the owner</b> Switch's other reply</span>
+              <code>You're not permitted to direct messages to me in this room — my operator has restricted who can address me here.</code>
+            </div>
+          </div>
+          <p className="fl-proof-src">
+            Both return <code>allowed = False</code>; only the wording differs.{' '}
+            <a href="https://github.com/sandbox-quantum/switch/blob/c98bd96ea0a7367678e90b4f5fcafa5dbd38a5de/core/switch_core/delivery/addressing.py#L398-L407" target="_blank" rel="noreferrer">Switch's code ↗</a> ·{' '}
+            <a href="https://github.com/sandbox-quantum/switch/blob/c98bd96ea0a7367678e90b4f5fcafa5dbd38a5de/core/tests/switch_core/delivery/test_addressing_enforcement.py#L390-L400" target="_blank" rel="noreferrer">Switch's own test for a linked non-owner ↗</a>
+          </p>
+        </div>
 
         <div className="fl-sum" aria-live="polite">
           {on ? (
