@@ -1,0 +1,12 @@
+{
+  "name": "Crypto Migration Desk: verify the live runs",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "24" }
+  },
+  "postCreateCommand": "node --version && git config --global --get user.name >/dev/null || git config --global user.name 'Codespace reviewer'; git config --global --get user.email >/dev/null || git config --global user.email 'reviewer@codespace.local'",
+  "postAttachCommand": "echo; echo 'Crypto Migration Desk. Run:  npm run judge   (re-checks every claim in the README from git, about a minute)'; echo",
+  "customizations": {
+    "codespaces": { "openFiles": ["README.md"] }
+  }
+}

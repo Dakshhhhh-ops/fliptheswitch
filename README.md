@@ -25,6 +25,8 @@ ship, and Switch, which runs the agents, turns everyone else away.
 
 ### Quick look: only Node 24.7+ and git, about 2 minutes
 
+Nothing installed? [Open it in a Codespace](https://codespaces.new/Dakshhhhh-ops/fliptheswitch?quickstart=1) and run `npm run judge`.
+
 ```sh
 git clone https://github.com/Dakshhhhh-ops/fliptheswitch && cd fliptheswitch
 npm install     # nothing to fetch: the desk has no dependencies
@@ -40,7 +42,7 @@ code: [ssh2](docs/REAL-SCANS.md) (31 findings in 10 files) and
 [jose](docs/REAL-SCANS.md) (25 in 7). Its 100% precision and 94% recall are
 on a set we labelled ourselves ([details](docs/SCANNER.md#how-accurate-it-is)).
 
-**Full run on real Switch:** [run it yourself](#run-it-yourself), about an hour.
+**Full run on real Switch:** [about an hour](#run-it-yourself).
 
 ### What's new here
 
@@ -50,7 +52,7 @@ on a set we labelled ourselves ([details](docs/SCANNER.md#how-accurate-it-is)).
 | **F2** | partner session keys (ECDH) | **F5** | webhook signatures (ECDSA) |
 | **F3** | TLS | **F6** | stored customer records (AES-128) |
 
-Arjun is the engineer; names starting `desk4` are live run 3's agents and rooms.
+Arjun is the engineer; `desk4` names are live run 3's agents and rooms.
 
 - **People change the fix, not just approve it.** Support re-issuing old receipts let SHA-1 go from F4 ([log](docs/live-run-3/chat-log.md?plain=1#L217)); F5 below.
 - **Ranked by how late you already are** (Mosca's rule): data that must stay secret longer than the years left before a quantum computer, minus the migration, is late today.
@@ -133,7 +135,7 @@ risk. [Run 2](docs/live-run-2/README.md) and [run 1](docs/live-run/README.md) to
 | **F1** card keys, RSA | Hybrid KEM, RSA read-only for old envelopes. Codex asked for RSA's end date. `a0f015b` |
 | **F3** TLS | Staging on hybrid TLS 1.3 (`525a4a3`); production is the acquirer's, an accepted risk (`695ea59`) |
 | **F2** session keys, ECDH | Hybrid on both sides. Codex caught a reusable key state. `77492d6` |
-| **F4** receipts, SHA-1 | Keyed HMAC-SHA-256; SHA-1 removed after Codex and Arjun. `b1fedca` |
+| **F4** receipts, SHA-1 | Keyed HMAC-SHA-256, SHA-1 removed. `b1fedca` |
 | **F6** records, AES-128 | AES-256-GCM with a tested deploy gate (`b8180e4`). **Not shipped**: Codex hit its usage limit while holding the reviewer role. Next: it re-reviews when the limit resets (17 November), then the lead ships |
 
 The run wasn't smooth: four messages were sent again because Switch started

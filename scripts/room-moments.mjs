@@ -16,13 +16,15 @@ export const OUT = join(DESK, 'web', 'src', 'data', 'room.json');
 const SOURCE = 'https://github.com/Dakshhhhh-ops/fliptheswitch/blob/main/docs/live-run-3/chat-log.md?plain=1';
 
 // Who is who, in the words the page shows.
-const PEOPLE = {
+export const PEOPLE = {
   arjun: { name: 'Arjun', role: 'engineer', kind: 'person' },
   user: { name: 'Security lead', role: 'owner', kind: 'person' },
   'desk4-migrator': { name: 'Migrator', role: 'agent', kind: 'agent' },
   'desk4-reviewer': { name: 'Reviewer', role: 'Codex agent', kind: 'agent' },
   'desk4-reviewer-claude': { name: 'Stand-in reviewer', role: 'agent', kind: 'agent' },
   'desk4-shipper': { name: 'Shipper', role: 'agent', kind: 'agent' },
+  'desk4-scout': { name: 'Scout', role: 'agent', kind: 'agent' },
+  'switch-admin': { name: 'Switch', role: 'platform', kind: 'switch' },
   GIT: { name: 'git', role: 'origin', kind: 'git' },
 };
 
