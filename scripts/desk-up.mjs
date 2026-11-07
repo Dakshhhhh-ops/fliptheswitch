@@ -2,7 +2,7 @@
 // npm run desk:up: get this machine ready for a live run in Switch.
 //
 //   npm run desk:up [-- --team desk4] [--engineer arjun] [--claude-only]
-//                   [--stop-stale-codex] [--force]
+//                   [--keep-stale-codex] [--force]
 //
 // It does every step of a run that doesn't need a person:
 //   1. checks Switch, Mattermost, Docker, git and Node (npm run doctor)
@@ -12,8 +12,9 @@
 //   4. creates the engineer's Mattermost account if it's missing
 //   5. puts the desk's templates in the Switch buddy agent's folder, so one
 //      chat message starts the desk
-//   6. finds Codex sessions left over from an earlier run (they stalled the
-//      reviewer's shell in live run 2), and stops them with --stop-stale-codex
+//   6. stops Codex agent sessions left over from an earlier run (older than six
+//      hours): in live run 2 they stalled the reviewer's shell. --keep-stale-codex
+//      lists them instead
 //   7. writes .desk-run.json for desk:watch and desk:package
 // Then it prints the one message to send, and what's left for you.
 import { randomBytes } from 'node:crypto';
@@ -130,12 +131,12 @@ async function main(argv) {
   else {
     const stale = codexSessions().filter(([, minutes]) => minutes > STALE_CODEX_MINUTES);
     if (!stale.length) say('  ✔ No Codex sessions left over from an earlier run');
-    else if (has('--stop-stale-codex')) {
+    else if (!has('--keep-stale-codex')) {
       for (const [pid] of stale) process.platform === 'win32' ? run('taskkill', ['/PID', String(pid), '/T', '/F']) : run('kill', [String(pid)]);
       say(`  ✔ Stopped ${stale.length} Codex session${stale.length === 1 ? '' : 's'} from an earlier run`);
     } else {
       say(`  ! ${stale.length} Codex session${stale.length === 1 ? '' : 's'} from an earlier run (PID ${stale.map(([p]) => p).join(', ')}). They stalled the reviewer's shell in live run 2.`);
-      say('      Run desk:up again with --stop-stale-codex to stop them.');
+      say('      Run desk:up again without --keep-stale-codex to stop them.');
     }
   }
 

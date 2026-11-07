@@ -109,7 +109,7 @@ if (codex.ok) {
       `${stale.length} Codex agent session${stale.length === 1 ? '' : 's'} older than 6 hours: PID ${pids.join(', ')}`,
       `Left over from an earlier run, they can stall the reviewer's sandboxed shell. Stop them before a run: ${
         process.platform === 'win32' ? `Stop-Process -Id ${pids.join(',')}` : `kill ${pids.join(' ')}`
-      } (or npm run desk:up -- --stop-stale-codex)`,
+      } (or npm run desk:up)`,
     );
   } else if (sessions.length) ok(`Codex agent sessions: ${sessions.length}, none older than 6 hours`);
 }

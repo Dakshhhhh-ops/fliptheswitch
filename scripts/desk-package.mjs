@@ -118,6 +118,17 @@ ${desk.rows.map((r) => `| ${r.id} ${esc(r.algorithm)} | ${r.state}${r.risk && r.
 
 ${people.length ? `| Time (UTC) | Who | Room | Message |\n|---|---|---|---|\n${people.map((p) => `| ${p.time} | ${p.who} | ${p.room} | ${esc(p.text.slice(0, 160))} |`).join('\n')}` : 'No desk:watch log was found for this run.'}
 
+## Screenshots to add
+
+Crop each to the Mattermost window, and link it where it fits above.
+
+- [ ] \`refusal-reviewer.png\`: the engineer asks the reviewer to approve; Switch refuses (owner-agents)
+- [ ] \`refusal-ship.png\`: the engineer orders a ship; Switch refuses (owner)
+- [ ] \`inventory-lock.png\`: the migrator edits the scout's inventory; Switch's \`403\`
+- [ ] \`role-lock.png\`: a second agent takes the reviewer role; Switch's \`400\`
+- [ ] \`changes-requested.png\`: a reviewer verdict of CHANGES REQUESTED, if there was one
+- [ ] \`final-board.png\`: the scout's last board line in the intake room
+
 ## Check it yourself
 
 \`\`\`sh
