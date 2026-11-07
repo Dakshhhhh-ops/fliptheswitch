@@ -25,7 +25,7 @@ ship, and Switch, which runs the agents, turns everyone else away.
 
 ### Quick look: only Node 24.7+ and git, about 2 minutes
 
-Or [open a Codespace](https://codespaces.new/Dakshhhhh-ops/fliptheswitch?quickstart=1) and run `npm run judge`.
+Or [open a Codespace](https://codespaces.new/Dakshhhhh-ops/fliptheswitch?quickstart=1) and run `npm run judge` (a few minutes there).
 
 ```sh
 git clone https://github.com/Dakshhhhh-ops/fliptheswitch && cd fliptheswitch
@@ -58,7 +58,7 @@ on a set we labelled ourselves ([details](docs/SCANNER.md#how-accurate-it-is)).
 | **F2** | partner session keys (ECDH) | **F5** | webhook signatures (ECDSA) |
 | **F3** | TLS | **F6** | stored customer records (AES-128) |
 
-Arjun is the engineer; `desk4` names are live run 3's agents and rooms.
+Arjun is the engineer; `desk4` names are run 3's.
 
 ### One finding, end to end: F5 in live run 3 (UTC)
 
