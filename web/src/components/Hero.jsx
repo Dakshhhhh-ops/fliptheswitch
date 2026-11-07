@@ -50,10 +50,13 @@ export default function Hero({ counts, total, started }) {
           <Lines lines={['Your', 'encryption', <>has an <em>expiry</em></>, <em key="d">date.</em>]} />
         </h1>
         <div className="hero-foot">
-          <p className="hero-lede">
-            The scanner knows what's broken. Only people know what's safe to change. A desk of agents works it out with them in
-            team chat, and Switch decides who may approve and who may ship.
-          </p>
+          <div className="hero-lede-box">
+            <p className="hero-lede">
+              The scanner knows what's broken. Only people know what's safe to change. A desk of agents works it out with them in
+              team chat, and Switch decides who may approve and who may ship.
+            </p>
+            <a className="hero-cta" href="#break">Try to forge a ship →</a>
+          </div>
           <div className="hero-score">
             <span className="hero-score-num">
               <Counter value={counts.shipped} pad={2} />

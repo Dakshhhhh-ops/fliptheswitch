@@ -44,11 +44,11 @@ export default function App() {
           <main>
             <Hero counts={counts} total={desk.rows.length} started={started} />
             <Added rows={desk.rows} />
-            <QDay />
-            <Findings rows={desk.rows} />
+            <Attack />
             <Room />
             <Replay />
-            <Attack />
+            <QDay />
+            <Findings rows={desk.rows} />
             <Spectrum inventory={desk.inventory} />
           </main>
           <Receipt desk={desk} counts={counts} />

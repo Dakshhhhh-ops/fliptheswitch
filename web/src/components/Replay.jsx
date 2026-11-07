@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import replay from '../data/replay.json';
-import { isStatic } from '../lib/motion.js';
 
 // A replay of live run 3: every message and git push, in order, at its real
 // time, sped up. replay.json is built from docs/live-run-3/chat-log.md by
@@ -11,6 +10,9 @@ const EVENTS = replay.events;
 const END = EVENTS[EVENTS.length - 1].t;
 const IDS = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6'];
 const SPEEDS = [60, 300, 1200];
+// Opens paused just after Switch refused the engineer's "approve it" for F5.
+const REFUSAL = EVENTS.find((e) => e.room === 'f5-webhooks' && e.text.includes('I only take instructions'));
+const START = REFUSAL ? REFUSAL.t + 25 : 0;
 
 function boardAt(n) {
   const b = Object.fromEntries(IDS.map((id) => [id, { state: 'open', risk: false }]));
@@ -32,8 +34,7 @@ const clock = (t) => {
 };
 
 export default function Replay() {
-  const still = isStatic();
-  const [t, setT] = useState(still ? END : 0);
+  const [t, setT] = useState(START);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(300);
   const last = useRef(null);
@@ -62,7 +63,7 @@ export default function Replay() {
 
   const shown = useMemo(() => EVENTS.filter((e) => e.t <= t).length, [t]);
   const board = useMemo(() => boardAt(shown), [shown]);
-  const recent = EVENTS.slice(Math.max(0, shown - 7), shown);
+  const recent = t >= END ? [] : EVENTS.slice(Math.max(0, shown - 7), shown);
   const shippedCount = IDS.filter((id) => board[id].state === 'shipped').length;
 
   useEffect(() => {
@@ -77,14 +78,14 @@ export default function Replay() {
   return (
     <section className="section" id="replay">
       <div className="section-head">
-        <span className="section-index">05 — Replay</span>
+        <span className="section-index">04 — Replay</span>
         <h2 className="section-title">
           Four hours,
           <br />
           <em>played back.</em>
         </h2>
         <p className="section-sub">
-          Every message and git push from live run 3, in order and at its real time, from the run's{' '}
+          It opens just after Switch refused the engineer. Every message and git push from live run 3, in order and at its real time, from the run's{' '}
           <a href={replay.source} target="_blank" rel="noreferrer">chat log</a>. Not a video edit: the board below moves only on
           what git recorded.
         </p>
@@ -118,6 +119,12 @@ export default function Replay() {
 
         <ol className="rp-feed" ref={feed} role="log" aria-live="off">
           {recent.length === 0 && <li className="rp-empty">Press Play: the run starts at 05:43 UTC with the planted code on main.</li>}
+          {t >= END && (
+            <li className="rp-end">
+              End of the run: {shippedCount} of 6 shipped, F3's production TLS an accepted risk, and F6 in review because the
+              reviewer ran out of quota before it could re-check. The <a href="#break">signed ships</a> are in git.
+            </li>
+          )}
           {recent.map((e) => (
             <li key={e.line} className={`rp-msg rm-${e.kind === 'switch' ? 'agent' : e.kind}`}>
               <span className="rp-meta">

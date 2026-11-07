@@ -46,6 +46,12 @@ on a set we labelled ourselves ([details](docs/SCANNER.md#how-accurate-it-is)).
 
 ### What's new here
 
+- **People change the fix, not just approve it.** Support re-issuing old receipts let SHA-1 go ([log](docs/live-run-3/chat-log.md?plain=1#L217)).
+- **Ranked by how late you already are** (Mosca's rule): data that must stay secret longer than the years left before a quantum computer, minus the migration, is late today.
+- **Signed with the crypto it migrates to.** Every approval, ship and certificate carries an ML-DSA-65 signature, and git refuses one without it.
+
+### The six findings
+
 | | | | |
 |---|---|---|---|
 | **F1** | card vault encryption (RSA) | **F4** | receipt checksums (SHA-1) |
@@ -53,10 +59,6 @@ on a set we labelled ourselves ([details](docs/SCANNER.md#how-accurate-it-is)).
 | **F3** | TLS | **F6** | stored customer records (AES-128) |
 
 Arjun is the engineer; `desk4` names are live run 3's agents and rooms.
-
-- **People change the fix, not just approve it.** Support re-issuing old receipts let SHA-1 go from F4 ([log](docs/live-run-3/chat-log.md?plain=1#L217)); F5 below.
-- **Ranked by how late you already are** (Mosca's rule): data that must stay secret longer than the years left before a quantum computer, minus the migration, is late today.
-- **Signed with the crypto it migrates to.** Every approval, ship and certificate carries an ML-DSA-65 signature, and git refuses one without it.
 
 ### One finding, end to end: F5 in live run 3 (UTC)
 

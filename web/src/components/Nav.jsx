@@ -20,11 +20,11 @@ export default function Nav({ desk, live }) {
       </a>
       <nav className="nav-links" ref={links} aria-label="Sections">
         <a href="#added">People</a>
-        <a href="#qday">Q-Day</a>
-        <a href="#findings">Findings</a>
+        <a href="#break">Break it</a>
         <a href="#room">In the room</a>
         <a href="#replay">Replay</a>
-        <a href="#break">Break it</a>
+        <a href="#qday">Q-Day</a>
+        <a href="#findings">Findings</a>
         <a href="#spectrum">Inventory</a>
         <a href="#receipt">Receipt</a>
       </nav>

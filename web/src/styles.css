@@ -416,3 +416,8 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px s
 .ak-result.ok { border-color: var(--shipped); color: var(--shipped); }
 .ak-result.no { border-color: var(--hot); color: var(--hot); }
 @media (max-width: 640px) { .ak { padding: 18px 16px; } }
+.rp-end { border: 1px solid var(--shipped); border-radius: 10px; padding: 14px 16px; color: var(--ink); font: 14px/1.5 var(--mono); }
+.rp-end a { color: var(--shipped); }
+.hero-lede-box { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; pointer-events: auto; }
+.hero-cta { font: 500 13px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: #0a0a0b; background: var(--shipped); border-radius: 999px; padding: 10px 18px; text-decoration: none; }
+.hero-cta:hover, .hero-cta:focus-visible { background: var(--ink); }
