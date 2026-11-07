@@ -73,10 +73,19 @@ desk4-f3-tls, after the reviewer's signed APPROVED:
 Both refusals are Switch's own reply for an addressing policy
 (`ADDRESSING_UNCLAIMED_MESSAGE` in Switch's
 [addressing.py](https://github.com/sandbox-quantum/switch/blob/main/core/switch_core/delivery/addressing.py)):
-`owner-agents` on the reviewer, `owner` on the shipper. Arjun's account
-wasn't linked to any Switch user, so it matched nobody. A linked engineer who
-isn't the owner gets Switch's other refusal, "You're not permitted to direct
-messages to me"; the [run sheet](docs/RUN-SHEET.md) shows how to set that up.
+`owner-agents` on the reviewer, `owner` on the shipper.
+
+**"Isn't linked" is a refusal, not a failure to recognise him.** Arjun's chat
+account isn't linked to any Switch user, so it matches nobody, and the policy
+admits only the owner. Linking it wouldn't let him in: Switch would refuse
+him with different words, "You're not permitted to direct messages to me in
+this room". Switch's own tests pin both cases for an owner-only policy:
+`test_unclaimed_sender_gets_link_your_account_wording` and
+`test_other_user_denied_with_generic_wording`, both `allowed is False`
+([test_addressing_enforcement.py](https://github.com/sandbox-quantum/switch/blob/main/core/tests/switch_core/delivery/test_addressing_enforcement.py)).
+Not shown live: the second wording needs a second Switch user linked to
+Arjun's account, which is done in Switch Console by that user; the
+[run sheet](docs/RUN-SHEET.md) has the steps.
 
 ![Switch refusing the engineer's request that the reviewer approve](docs/live-run-3/refusal-reviewer.png)
 
