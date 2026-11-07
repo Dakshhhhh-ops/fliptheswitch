@@ -4,9 +4,12 @@
 
 **The scanner knows what's broken. Only people know what's safe to change. A desk of agents works it out with them in team chat, and [Switch](https://github.com/sandbox-quantum/switch) decides who may approve and who may ship.**
 
-Your encryption has an expiry date, and some of it is already past it: data
+It's a change desk, and post-quantum migration is its hardest first job: data
 sent today can be recorded now and decrypted once a large quantum computer
-exists.
+exists. Scan-and-auto-fix is unsafe here, because no scanner sees who still
+depends on the old crypto. In live run 3, the engineer's answers made the
+migrator change its plan on **4 of the 6 fixes** (F5, F2, F4, F6;
+[log](docs/live-run-3/chat-log.md)).
 
 **[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) and scroll to Q-Day:** real ciphertext sealed at export, the RSA copy opening as a quantum computer would allow, and the hybrid copy staying sealed.
 
@@ -23,7 +26,7 @@ npm run board   # board.html: each finding's state, read from git (all open on a
 npm test        # 96 tests, plus demo-payments' 8: scanner, gate, signatures, certificates, board, templates, live-run replays
 ```
 
-**Full run on real Switch:** [run it yourself](#run-it-yourself), about an hour, most of it watching the agents.
+**Full run on real Switch:** [run it yourself](#run-it-yourself), about an hour.
 
 ### What's new here
 
