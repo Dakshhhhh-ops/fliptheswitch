@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:e76e05e7-895e-46d0-b651-13bf6dfd2e0f",
+  "serialNumber": "urn:uuid:92c33276-5ba4-40c5-9b21-489fba86c29b",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-07T16:15:03.291Z",
+    "timestamp": "2026-11-07T16:56:07.213Z",
     "tools": {
       "components": [
         {
@@ -33,6 +33,7 @@
           "implementationPlatform": "generic",
           "cryptoFunctions": [
             "keygen",
+            "keyderive",
             "other"
           ],
           "nistQuantumSecurityLevel": 0
@@ -53,8 +54,18 @@
           },
           {
             "location": "src/envelope.js",
+            "line": 82,
+            "additionalContext": "const x25519Secret = diffieHellman({ privateKey: ephemeral.privateKey, publicKey: vaultX25519Pub });"
+          },
+          {
+            "location": "src/envelope.js",
             "line": 118,
             "additionalContext": "if (ephemeralKey.asymmetricKeyType !== 'x25519') {"
+          },
+          {
+            "location": "src/envelope.js",
+            "line": 122,
+            "additionalContext": "const x25519Secret = diffieHellman({ privateKey: vaultPrivateKey.x25519, publicKey: ephemeralKey });"
           },
           {
             "location": "src/session.js",
@@ -73,8 +84,18 @@
           },
           {
             "location": "src/session.js",
+            "line": 106,
+            "additionalContext": "const x25519Secret = diffieHellman({ privateKey: ephemeral.privateKey, publicKey: peerX25519.key });"
+          },
+          {
+            "location": "src/session.js",
             "line": 138,
             "additionalContext": "const peerX25519 = importPublic(reply.x25519, 'x25519', 'x25519');"
+          },
+          {
+            "location": "src/session.js",
+            "line": 145,
+            "additionalContext": "const x25519Secret = diffieHellman({ privateKey: secrets.x25519, publicKey: peerX25519.key });"
           }
         ]
       },
@@ -446,6 +467,42 @@
         {
           "name": "crypto-desk:status",
           "value": "ok"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/keytype-unknown",
+      "name": "Key type chosen at runtime",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "cryptoFunctions": [
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "src/webhooks.js",
+            "line": 54,
+            "additionalContext": "return verify(algorithm, bytes, publicKey, Buffer.from(encoded, 'base64'));"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "crypto-desk:status",
+          "value": "review"
+        },
+        {
+          "name": "crypto-desk:priority",
+          "value": "P3"
         }
       ]
     }
