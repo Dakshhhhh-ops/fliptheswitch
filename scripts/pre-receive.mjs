@@ -16,14 +16,34 @@
 //                             ACCEPTED-RISKS.md
 //   anything else           refused.
 //
-// What it can't do: this origin is a folder, with no accounts, so git can't
-// tell which agent pushed. Who may order a ship is enforced by Switch (the
-// shipper's addressing is `owner`). What a ship may contain is enforced here.
+// Signed mode: when the origin has the desk's agent keys registered
+// (desk-keys/, made by setup-origin.mjs), every approval must be an annotated
+// tag signed by the reviewer's key, and every ship and accepted risk must
+// carry the shipper's signature (tools/desk-signature.mjs). Then git checks
+// which key made each step, not just its shape. An origin with no keys keeps
+// the unsigned rules, as live runs 1 and 2 did, so their history still replays.
+//
+// Who may order a ship is enforced by Switch (the shipper's addressing is
+// `owner`). What a ship may contain, and which agent's key signed it, is
+// enforced here. On one machine every agent can read every key file, so the
+// signature proves the key, and separate machines make it the agent.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { parseSigned, registeredKeys, verifySigned } from '../tools/desk-signature.mjs';
 
 const ZERO = /^0{40}$/;
+let KEYS; // registered agent keys for this origin, or null (unsigned rules)
+const keys = () => (KEYS === undefined ? (KEYS = registeredKeys(process.cwd())) : KEYS);
+export const useKeys = (k) => (KEYS = k); // for tests
+
+// The signed block in a commit or tag message, checked against a role's key.
+function signedBy(role, kind, message) {
+  const parsed = parseSigned(message);
+  if (!parsed || parsed.kind !== kind) return { ok: false, why: `has no signed "desk ${kind}" block` };
+  if (!verifySigned(parsed, keys()[role])) return { ok: false, why: `isn't signed by the ${role}'s key` };
+  return { ok: true, fields: parsed.fields };
+}
 
 function git(...args) {
   return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -80,6 +100,13 @@ export function checkMain(oldSha, newSha) {
       else if (merged.out.split('\n')[0] !== tree) problems.push(`${short}: the merge adds changes that were not reviewed.`);
       if (shipped.has(id)) problems.push(`${short}: ${id} is already shipped.`);
       shipped.add(id);
+      if (keys()) {
+        const s = signedBy('shipper', 'ship', git('log', '-1', '--format=%B', sha));
+        if (!s.ok) problems.push(`${short} "${subject}" ${s.why}. Ships are made with tools/desk-sign.mjs ship.`);
+        else if (s.fields.finding !== id || s.fields.base !== base || s.fields.fix !== fix) {
+          problems.push(`${short}: the shipper's signature is for ${s.fields.finding} ${s.fields.fix?.slice(0, 7)} onto ${s.fields.base?.slice(0, 7)}, not this merge.`);
+        }
+      }
     } else if (accept) {
       if (parents.length !== 1) {
         problems.push(`${short} "${subject}": an accepted risk is a single commit, not a merge.`);
@@ -88,6 +115,13 @@ export function checkMain(oldSha, newSha) {
       const changed = git('diff', '--name-only', parents[0], sha).split('\n').filter(Boolean);
       if (changed.length !== 1 || changed[0] !== 'ACCEPTED-RISKS.md') {
         problems.push(`${short} "${subject}": an accepted risk may change only ACCEPTED-RISKS.md (it changes ${changed.join(', ') || 'nothing'}).`);
+      }
+      if (keys()) {
+        const s = signedBy('shipper', 'accept', git('log', '-1', '--format=%B', sha));
+        if (!s.ok) problems.push(`${short} "${subject}" ${s.why}. Accepted risks are made with tools/desk-sign.mjs accept.`);
+        else if (s.fields.finding !== accept[1] || s.fields.parent !== parents[0]) {
+          problems.push(`${short}: the shipper's signature is for ${s.fields.finding} on ${s.fields.parent?.slice(0, 7)}, not this commit.`);
+        }
       }
     } else {
       problems.push(`${short} "${subject}": main only takes "Ship F<n>: ..." merges and "Accept risk F<n>: ..." commits. Push fixes to a pqc/ branch.`);
@@ -99,6 +133,16 @@ export function checkMain(oldSha, newSha) {
 export function checkApproval(ref, oldSha, newSha) {
   const named = ref.slice('refs/approved/'.length);
   if (!ZERO.test(oldSha)) return [`${ref} already exists. An approval is never moved or removed; approve the new commit instead.`];
+  if (keys()) {
+    // Signed mode: an annotated tag on that commit, signed by the reviewer.
+    if (tryGit('cat-file', '-t', newSha).out !== 'tag') return [`${ref}: an approval must be signed by the reviewer (tools/desk-sign.mjs approve), not a plain ref.`];
+    const target = tryGit('rev-parse', '--verify', '--quiet', `${newSha}^{commit}`).out;
+    if (target !== named) return [`${ref} must be on the commit it names (${named}), with the full 40-character sha.`];
+    const s = signedBy('reviewer', 'approve', git('cat-file', 'tag', newSha));
+    if (!s.ok) return [`${ref}: the approval ${s.why}.`];
+    if (s.fields.commit !== named) return [`${ref}: the reviewer's signature approves ${s.fields.commit?.slice(0, 7)}, not ${named.slice(0, 7)}.`];
+    return [];
+  }
   if (named !== newSha) return [`${ref} must point at the commit it names (${named}), with the full 40-character sha.`];
   if (tryGit('cat-file', '-t', newSha).out !== 'commit') return [`${ref}: ${newSha} is not a commit.`];
   return [];
