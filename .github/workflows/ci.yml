@@ -28,6 +28,20 @@ jobs:
           node tools/certificate.mjs verify docs/live-run/F1.cert.json --tests
           node tools/certificate.mjs verify docs/live-run/F5.cert.json --tests
 
+  old-node:
+    name: Older Node stops early with the fix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm run judge on Node 22 refuses, naming Node 24.7
+        run: |
+          if npm run -s judge 2> err.txt; then echo "judge ran on Node 22"; exit 1; fi
+          cat err.txt
+          grep -q "needs Node 24.7 or later" err.txt
+
   web:
     name: Desk app builds and exports
     runs-on: ubuntu-latest
