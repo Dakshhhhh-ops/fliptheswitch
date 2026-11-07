@@ -4,6 +4,8 @@ import Hero from './components/Hero.jsx';
 import QDay from './components/QDay.jsx';
 import Findings from './components/Findings.jsx';
 import Added from './components/Added.jsx';
+import Attack from './components/Attack.jsx';
+import Replay from './components/Replay.jsx';
 import Room from './components/Room.jsx';
 import Spectrum from './components/Spectrum.jsx';
 import Receipt from './components/Receipt.jsx';
@@ -45,6 +47,8 @@ export default function App() {
             <QDay />
             <Findings rows={desk.rows} />
             <Room />
+            <Replay />
+            <Attack />
             <Spectrum inventory={desk.inventory} />
           </main>
           <Receipt desk={desk} counts={counts} />

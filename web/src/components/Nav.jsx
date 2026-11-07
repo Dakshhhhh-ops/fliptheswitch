@@ -23,6 +23,8 @@ export default function Nav({ desk, live }) {
         <a href="#qday">Q-Day</a>
         <a href="#findings">Findings</a>
         <a href="#room">In the room</a>
+        <a href="#replay">Replay</a>
+        <a href="#break">Break it</a>
         <a href="#spectrum">Inventory</a>
         <a href="#receipt">Receipt</a>
       </nav>

@@ -21,19 +21,19 @@ changed four of the six ([log](docs/live-run-3/chat-log.md)). A second agent,
 on a different model, checks the work. Only the security lead can make it
 ship, and Switch, which runs the agents, turns everyone else away.
 
-**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/):** each scanner suggestion beside what people said and what shipped, and a Q-Day dial where the RSA copy opens and the hybrid stays sealed.
+**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/):** what people added to each fix, a replay of live run 3, and **Try to break it**, where you edit run 3's real signed ship and ML-DSA-65 refuses it in your browser.
 
 ### Quick look: only Node 24.7+ and git, about 2 minutes
 
-Nothing installed? [Open it in a Codespace](https://codespaces.new/Dakshhhhh-ops/fliptheswitch?quickstart=1) and run `npm run judge`.
+Or [open a Codespace](https://codespaces.new/Dakshhhhh-ops/fliptheswitch?quickstart=1) and run `npm run judge`.
 
 ```sh
 git clone https://github.com/Dakshhhhh-ops/fliptheswitch && cd fliptheswitch
-npm install     # nothing to fetch: the desk has no dependencies
+npm install     # nothing to fetch
 npm run scan    # the six planted problems in demo-payments/, ranked by Mosca's rule, and a CycloneDX CBOM
 npm run judge   # verify every claim in this README in about a minute: 34 checks against the git gate and all three live runs
 npm run board   # board.html: each finding's state, read from git (all open on a fresh clone)
-npm test        # 97 tests, plus demo-payments' 8
+npm test        # 103 tests, plus demo-payments' 8
 ```
 
 `demo-payments/` is planted on purpose, so every run starts from the same six
