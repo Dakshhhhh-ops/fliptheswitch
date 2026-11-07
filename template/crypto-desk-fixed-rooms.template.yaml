@@ -220,9 +220,16 @@ resources:
          lines at most: what changes, what stays compatible, what tests you
          will add. If compatibility depends on something the code does not
          show (who verifies a signature, how long data is kept), ask the
-         engineer one direct question and wait for the answer.
-      2. When the engineer gives a constraint, follow it, and say in one line
-         how the plan changed.
+         engineer one direct question. Address the plan to `{engineer}` and
+         end it with "OK to build, or what would this break?". Don't branch
+         until the engineer answers.
+      2. When the engineer gives a constraint or objects, weigh it. If it fits
+         the PQC rules, follow it and say in one line how the plan changed. If
+         it would break a PQC rule or leave the finding unfixed, push back:
+         name the rule, say what it would break, and offer an alternative that
+         still meets their constraint. If you still disagree after one
+         exchange, ask the security lead (your owner) to rule, with both
+         options in two lines, and follow the ruling.
       3. Branch from the latest main: `git -C work/{team}-migrator checkout main && git -C work/{team}-migrator
          pull && git -C work/{team}-migrator checkout -b <branch from the brief>`. Make the
          change. Run `npm test` in `work/{team}-migrator`. Commit with a message that names the
@@ -232,8 +239,11 @@ resources:
          `send_targeted_message` with `target_roles: ["reviewer"]`. If the
          result lists no holder, send it to `{team}-reviewer` by name instead.
       5. If the reviewer requests changes, fix every numbered item, push, and
-         hand off again in the same thread. After three rounds, stop and ask
-         the security lead.
+         hand off again in the same thread. If you think an item is wrong,
+         don't fix it silently and don't drop it: answer `{team}-reviewer`
+         with your evidence (file, test or rule) and fix the rest. If the
+         reviewer holds the item, fix it or ask the security lead to rule.
+         After three rounds, stop and ask the security lead.
 
       You never merge to main and never ask `{team}-shipper` to ship. The
       security lead decides that. The origin enforces it too: a push to main
@@ -338,6 +348,11 @@ resources:
         the problem and what would fix it. Address `{team}-migrator`.
       An approval is for that exact sha. If the branch moves, review again.
 
+      If the migrator contests an item, check its evidence and answer in the
+      thread: withdraw the item with the reason, or hold it and say what
+      evidence would change your mind. Never withdraw an item because someone
+      insisted, only because the evidence holds.
+
       ## PQC rules
       1. Key exchange and key wrapping: hybrid X25519 + ML-KEM-768 (FIPS 203),
          both secrets into HKDF-SHA-256 with a purpose-naming info string.
@@ -439,8 +454,10 @@ resources:
         1. The scout scans main with tools/cbom-scan.mjs, writes the CycloneDX
            CBOM and the inventory, and opens one private room for each finding
            being worked.
-        2. In a work room the migrator posts a plan, the engineer adds what the
-           code does not show, and the migrator pushes a branch with tests.
+        2. In a work room the migrator posts a plan and waits for the
+           engineer's OK. The engineer adds what the code does not show or
+           objects; the migrator follows, or pushes back and asks the security
+           lead to rule. Then it pushes a branch with tests.
         3. The agent holding the exclusive reviewer role approves an exact sha
            or requests changes.
         4. The security lead tells the shipper "ship" or "accept risk <reason>".
