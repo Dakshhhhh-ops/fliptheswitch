@@ -1,0 +1,15 @@
+* 695ea59 desk4-shipper 2026-11-07 12:31:18 +0530 Accept risk F3: F3: production TLS terminates at the acquirer's edge gateway, outside our repo; change request sent
+*   525a4a3 desk4-shipper 2026-11-07 12:23:57 +0530 Ship F3: F3: local/staging TLS 1.3 only with hybrid X25519MLKEM768 key exchange, X25519 fallback, P-256 removed (approved by reviewer at ac797966c8bafcc30a4fad5456db01699ff90ea5, shipped by the security lead)
+|\  
+| * ac79796 desk4-migrator 2026-11-07 12:07:10 +0530 F3: offer hybrid X25519MLKEM768 key exchange in local/staging TLS, TLS 1.3 only
+|/  
+*   a0f015b desk4-shipper 2026-11-07 12:03:39 +0530 Ship F1: F1: card vault envelopes wrapped with hybrid X25519 + ML-KEM-768, RSA-OAEP read-only for v1 until resealed (approved by reviewer at cd3084ab2e68a9c4572fba2c238ee564d74aebe3, shipped by the security lead)
+|\  
+| * cd3084a desk4-migrator 2026-11-07 11:51:14 +0530 F1: hybrid X25519 + ML-KEM-768 key wrap for card vault envelopes (v2)
+|/  
+*   4769ce0 desk4-shipper 2026-11-07 11:46:38 +0530 Ship F5: F5: dual-sign merchant webhooks with ECDSA P-256 and ML-DSA-65, signed_at replay window (approved by reviewer at 56d574dc60aa86d514900c390495565227ffbc0c, shipped by the security lead)
+|\  
+| * 56d574d desk4-migrator 2026-11-07 11:42:44 +0530 F5: sign a timestamp and enforce the 5-minute replay window
+| * c78bd94 desk4-migrator 2026-11-07 11:34:17 +0530 F5: dual-sign webhooks with ECDSA P-256 and ML-DSA-65
+|/  
+* 0ecdc2f crypto-desk setup 2026-11-07 11:13:44 +0530 demo-payments before migration

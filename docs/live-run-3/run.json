@@ -1,0 +1,18 @@
+{
+  "name": "Live run 3",
+  "team": "desk4",
+  "dates": "2026-11-07",
+  "signed": true,
+  "certificates": [
+    "F1",
+    "F3",
+    "F5"
+  ],
+  "board": {
+    "shipped": 3,
+    "accepted risk": 0,
+    "in review": 0,
+    "open": 3,
+    "risks on record": 1
+  }
+}
