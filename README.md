@@ -39,7 +39,7 @@ git clone https://github.com/Dakshhhhh-ops/fliptheswitch && cd fliptheswitch
 npm install     # nothing to fetch
 npm run scan    # the six planted problems in demo-payments/, ranked by Mosca's rule, and a CycloneDX CBOM
 npm run judge   # verify every claim in this README in about a minute: 34 checks against the git gate and all three live runs
-npm run board   # board.html: each finding's state, read from git (all open on a fresh clone)
+node tools/board.mjs --origin docs/live-run-3/origin.bundle   # board.html: live run 3's real board, read from the agents' git
 npm test        # 103 tests, plus demo-payments' 8
 ```
 
