@@ -57,7 +57,11 @@ function tryGit(...args) {
   }
 }
 
-const approved = (sha) => tryGit('rev-parse', '--verify', '--quiet', `refs/approved/${sha}`).ok;
+// Where approvals live: refs/approved/<sha> on the desk's own origin. GitHub
+// takes only branches and tags, so the GitHub check (scripts/github/gate.mjs)
+// reads the same signed tags from refs/tags/approved/<sha>.
+const APPROVED = process.env.DESK_APPROVED_REFS || 'refs/approved/';
+const approved = (sha) => tryGit('rev-parse', '--verify', '--quiet', `${APPROVED}${sha}`).ok;
 
 // The shipped finding ids on main up to `tip`.
 function shippedIds(tip) {
