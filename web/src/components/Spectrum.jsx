@@ -17,7 +17,7 @@ const STATUS = { ok: 'meets policy', vulnerable: 'quantum-vulnerable', broken: '
 // Every crypto asset on a scale of NIST quantum security levels. Switching
 // between the first commit and main moves each asset to where it now sits.
 export default function Spectrum({ inventory }) {
-  const [view, setView] = useState('before');
+  const [view, setView] = useState('now');
   const root = useRef(null);
   const flip = useRef(null);
   const assets = inventory[view];
