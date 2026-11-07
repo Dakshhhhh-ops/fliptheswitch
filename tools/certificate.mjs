@@ -26,6 +26,7 @@ import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { findings, scan } from './cbom-scan.mjs';
 import { withMosca } from './mosca.mjs';
+import { parseSigned } from './desk-signature.mjs';
 
 const git = (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 
@@ -81,6 +82,22 @@ function runTests(work) {
   return { passed: t.status === 0, pass: Number(summary?.[1] ?? summary?.[3] ?? 0), fail: Number(summary?.[2] ?? summary?.[4] ?? 0) };
 }
 
+// The Switch facts a signed approval or ship recorded (tools/desk-signature.mjs):
+// the room, role and agent of an approval; the room, who ordered a ship, when
+// and in what words. Empty for unsigned runs.
+function signedFacts(work, rev, kind) {
+  let message;
+  try {
+    message = git(['cat-file', '-t', rev], work) === 'tag' ? git(['cat-file', 'tag', rev], work) : git(['log', '-1', '--format=%B', rev], work);
+  } catch {
+    return {};
+  }
+  const parsed = parseSigned(message);
+  if (!parsed || parsed.kind !== kind || !parsed.signature) return {};
+  const { commit, finding, base, fix, parent, ...facts } = parsed.fields;
+  return Object.keys(facts).length ? { switch: facts } : {};
+}
+
 export function issue({ origin, id, key }) {
   const work = mkdtempSync(join(tmpdir(), 'crypto-desk-cert-'));
   try {
@@ -113,8 +130,8 @@ export function issue({ origin, id, key }) {
       finding: { id, file: finding.file, lines: finding.lines, algorithm: finding.algorithm, status: finding.status, priority: finding.priority, mosca: finding.mosca.label },
       before: { commit: base, crypto: before },
       after: { commit: merge, crypto: after, stillFlagged: after.some((a) => a.key === finding.key) },
-      review: { approvedCommit: fix, approvalRef },
-      ship: { merge, subject, author, at },
+      review: { approvedCommit: fix, approvalRef, ...signedFacts(work, approvalRef, 'approve') },
+      ship: { merge, subject, author, at, ...signedFacts(work, merge, 'ship') },
       tests: { command: 'node --test', at: merge, passed, pass, fail },
       issuedAt: new Date().toISOString(),
     };
@@ -176,10 +193,19 @@ export function audit(cert, origin, { tests = false } = {}) {
       `${parents.map((p) => p.slice(0, 7)).join(' + ') || 'no parents'} (certificate: ${base.slice(0, 7)} + ${fix.slice(0, 7)})`,
     );
 
-    const mark = tryGit(['rev-parse', '--verify', '--quiet', cert.review.approvalRef]);
+    const mark = tryGit(['rev-parse', '--verify', '--quiet', `${cert.review.approvalRef}^{commit}`]);
     add('The approval mark points at the approved commit', cert.review.approvalRef === `refs/approved/${fix}` && mark === fix, cert.review.approvalRef);
 
     add('The certificate\'s "after" is the merge', cert.after.commit === merge);
+
+    // What the signatures recorded from Switch must be what the certificate says.
+    for (const [part, rev, kind] of [['review', cert.review.approvalRef, 'approve'], ['ship', merge, 'ship']]) {
+      if (!cert[part].switch) continue;
+      const got = signedFacts(work, rev, kind).switch;
+      const who = kind === 'approve' ? "reviewer's" : "shipper's";
+      const said = Object.entries(cert[part].switch).map(([k, v]) => `${k}=${v}`).join(' ');
+      add(`The ${who} signed Switch facts match git`, canonical(got) === canonical(cert[part].switch), said);
+    }
 
     if (parents.length === 2) {
       const same = (a, b) => canonical(a) === canonical(b);
@@ -224,6 +250,10 @@ export function verifyFile(file, { key, origin, tests = false, log = console.log
   else log("- Signer not checked: no --key, and no desk-key.pub.pem beside the certificate.\n    The signature proves the certificate wasn't changed, not who signed it.");
   if (originRepo) for (const c of audit(cert, originRepo, { tests })) line(c.ok, c.name, c.detail);
   else log('- Not checked against git: no --origin, and no origin.bundle beside the certificate.');
+  const rv = cert.review.switch;
+  const sh = cert.ship.switch;
+  if (rv) log(`- Approved in Switch room ${rv.room ?? '?'} by ${rv.agent ?? 'the reviewer'}, holding the ${rv.role ?? 'reviewer'} role`);
+  if (sh) log(`- Ship ordered in Switch room ${sh.room ?? '?'} by ${sh['ordered-by'] ?? '?'} at ${sh['order-at'] ?? '?'}: "${sh['order-text'] ?? ''}"`);
   log(ok ? `\n${cert.finding.id}: certificate valid.` : `\n${cert.finding.id}: certificate INVALID.`);
   return ok;
 }

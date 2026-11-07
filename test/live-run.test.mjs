@@ -35,7 +35,7 @@ for (const run of runs) {
   }
 
   test(`${run.name}: the agents' pushes, replayed in order, all pass the gate, and a shortcut does not`, () => {
-    const { steps, sameMain } = replay(bundle);
+    const { steps, sameMain } = replay(bundle, { keys: run.dir });
     for (const s of steps) assert.ok(s.ok, `${s.what}: expected ${s.expect === 'refuse' ? 'a refusal' : 'it to pass'}, got ${s.detail}`);
     assert.ok(steps.some((s) => s.expect === 'refuse'), 'a shortcut was tried');
     assert.ok(sameMain, "the replayed main is the run's main");

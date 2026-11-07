@@ -12,7 +12,7 @@
 // the run's main. A shortcut (the first fix straight onto main) is also
 // tried, and should be refused.
 import { spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -40,8 +40,10 @@ export function liveRuns() {
     .map((d) => ({ dir: join(docs, d), folder: `docs/${d}`, ...JSON.parse(readFileSync(join(docs, d, 'run.json'), 'utf8')) }));
 }
 
-// Returns { steps: [{ what, ok, expect, detail }], sameMain }.
-export function replay(bundlePath, { keep = false } = {}) {
+// Returns { steps: [{ what, ok, expect, detail }], sameMain, signed }.
+// `keys`: a folder with the run's reviewer.pub.pem and shipper.pub.pem. They
+// are registered in the fresh origin, so the gate checks every signature too.
+export function replay(bundlePath, { keep = false, keys } = {}) {
   const bundle = resolve(bundlePath);
   const root = mkdtempSync(join(tmpdir(), 'crypto-desk-replay-'));
   try {
@@ -57,6 +59,11 @@ export function replay(bundlePath, { keep = false } = {}) {
     const hook = join(origin, 'hooks', 'pre-receive');
     writeFileSync(hook, `#!/bin/sh\nexec node "${gate}"\n`);
     chmodSync(hook, 0o755);
+    const signed = Boolean(keys && existsSync(join(keys, 'reviewer.pub.pem')) && existsSync(join(keys, 'shipper.pub.pem')));
+    if (signed) {
+      mkdirSync(join(origin, 'desk-keys'));
+      for (const role of ['reviewer', 'shipper']) copyFileSync(join(keys, `${role}.pub.pem`), join(origin, 'desk-keys', `${role}.pub.pem`));
+    }
 
     const steps = [];
     const push = (what, src, ref, expect = 'pass') => {
@@ -80,7 +87,8 @@ export function replay(bundlePath, { keep = false } = {}) {
         }
         push(`${id}: migrator's fix ${fix.slice(0, 7)} to its branch`, fix, `refs/heads/pqc/${id.toLowerCase()}-replay`);
         const marked = git(live, 'rev-parse', '--verify', '--quiet', `refs/approved/${fix}`).ok;
-        if (marked) push(`${id}: reviewer's approval mark for ${fix.slice(0, 7)}`, fix, `refs/approved/${fix}`);
+        // Push the mark as the run made it: the commit itself, or a signed tag.
+        if (marked) push(`${id}: reviewer's approval mark for ${fix.slice(0, 7)}${signed ? ', signature checked' : ''}`, `refs/approved/${fix}`, `refs/approved/${fix}`);
         else steps.push({ what: `${id}: reviewer's approval mark for ${fix.slice(0, 7)}`, ok: false, expect: 'pass', detail: 'not in the bundle' });
         push(`${id}: shipper's merge ${sha.slice(0, 7)}`, sha, 'refs/heads/main');
       } else if (accept) {
@@ -90,7 +98,7 @@ export function replay(bundlePath, { keep = false } = {}) {
       }
     }
     const replayedMain = must(origin, 'rev-parse', 'main');
-    return { steps, sameMain: replayedMain === liveMain, root };
+    return { steps, sameMain: replayedMain === liveMain, signed, root };
   } finally {
     if (!keep) rmSync(root, { recursive: true, force: true });
   }
@@ -102,7 +110,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.error('usage: node tools/replay.mjs <origin.bundle>');
     process.exit(2);
   }
-  const { steps, sameMain } = replay(bundle);
+  const { steps, sameMain, signed } = replay(bundle, { keys: dirname(resolve(bundle)) });
+  console.log(signed ? 'Signed run: the replay origin has its keys, so every signature is checked again.\n' : 'Unsigned run: replayed under the unsigned rules it ran with.\n');
   for (const s of steps) console.log(`${s.ok ? '✔' : '✘'} ${s.what}\n    ${s.expect === 'refuse' ? 'refused, as it should be' : s.detail}${s.expect === 'refuse' && !s.ok ? ' (EXPECTED a refusal)' : ''}${s.expect === 'refuse' && s.ok ? `: ${s.detail}` : ''}`);
   console.log(sameMain ? "✔ The replayed main is the run's main" : "✘ The replayed main differs from the run's main");
   process.exitCode = steps.every((s) => s.ok) && sameMain ? 0 : 1;

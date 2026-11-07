@@ -41,6 +41,10 @@ export function packageRun({ origin, certs, out, log, team = 'desk', name, dates
   writeFileSync(join(out, 'main-log.txt'), `${git('--git-dir', origin, 'log', '--graph', '--all', '--date=iso', '--format=%h %an %ad %s')}\n`);
   writeFileSync(join(out, 'refs.txt'), `${git('--git-dir', origin, 'for-each-ref', '--format=%(refname) %(objectname)')}\n`);
   copyFileSync(key, join(out, 'desk-key.pub.pem'));
+  // A signed run: keep the agents' public keys, so its replay checks every signature.
+  const registry = join(origin, 'desk-keys');
+  const signed = ['reviewer', 'shipper'].every((r) => existsSync(join(registry, `${r}.pub.pem`)));
+  if (signed) for (const r of ['reviewer', 'shipper']) copyFileSync(join(registry, `${r}.pub.pem`), join(out, `${r}.pub.pem`));
   const deskKey = publicKeyFrom(key);
 
   // The board, and the scan of main.
@@ -88,7 +92,7 @@ export function packageRun({ origin, certs, out, log, team = 'desk', name, dates
   }
 
   const runName = name ?? `Live run ${nextRunDir().n - (existsSync(out) ? 1 : 0)}`;
-  const run = { name: runName, team, dates, certificates, board };
+  const run = { name: runName, team, dates, signed, certificates, board };
   writeFileSync(join(out, 'run.json'), `${JSON.stringify(run, null, 2)}\n`);
 
   // Verify what was written.
@@ -96,7 +100,7 @@ export function packageRun({ origin, certs, out, log, team = 'desk', name, dates
     const c = JSON.parse(readFileSync(join(out, `${id}.cert.json`), 'utf8'));
     return { id, ok: check(c, { publicKey: deskKey }) && audit(c, bundle).every((x) => x.ok) };
   });
-  const { steps, sameMain } = replay(bundle);
+  const { steps, sameMain } = replay(bundle, { keys: out });
   const folder = slash(relative(DESK, out));
 
   const esc = (s) => s.replace(/\|/g, '\\|');

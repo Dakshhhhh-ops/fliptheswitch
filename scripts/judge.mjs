@@ -19,6 +19,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findings, scan } from '../tools/cbom-scan.mjs';
 import { moscaLine, withMosca } from '../tools/mosca.mjs';
 import { boardLine, counts, readDesk } from '../tools/board.mjs';
+import { ensureKeys } from '../tools/desk-signature.mjs';
+import { accept, approve, ship } from '../tools/desk-sign.mjs';
 import { liveRuns, replay } from '../tools/replay.mjs';
 import { createPublicKey, sign } from 'node:crypto';
 import { audit, canonical, check, deskKey, issue, pubFileFor, publicKeyFrom } from '../tools/certificate.mjs';
@@ -116,6 +118,21 @@ export function judge({ log = console.log, keep = true } = {}) {
     chmodSync(join(origin, 'hooks', 'pre-receive'), 0o755);
     const work = join(root, 'work');
     must(root, 'clone', '-q', origin, work);
+    // Signed mode, as npm run setup makes it: the reviewer's and shipper's
+    // keys, with their public halves registered in the origin.
+    const keysDir = join(root, 'keys');
+    ensureKeys(keysDir, origin);
+    const REVIEWER = join(keysDir, 'reviewer.pem');
+    const SHIPPER = join(keysDir, 'shipper.pem');
+    const ORDER = { room: 'desk-f5-webhooks', 'ordered-by': 'user', 'order-at': '2026-11-07T10:00:00Z', 'order-text': '@desk-shipper ship F5' };
+    const tryIt = (fn) => {
+      try {
+        fn();
+        return { ok: true, out: 'accepted' };
+      } catch (e) {
+        return { ok: false, out: e.message };
+      }
+    };
 
     log('\n1. The scout scans main');
     const found = withMosca(findings(scan(work)), work);
@@ -145,56 +162,63 @@ export function judge({ log = console.log, keep = true } = {}) {
     step('Pushing a fix straight to main', 'refused', !r.ok, reason(r.out));
     must(work, 'reset', '-q', '--hard', 'origin/main');
 
-    must(work, 'merge', '-q', '--no-ff', 'pqc/f5-webhooks', '-m', 'Ship F5: dual-signed webhooks');
+    ship('F5', 'pqc/f5-webhooks', { repo: work, key: SHIPPER, m: 'dual-signed webhooks', ...ORDER });
     r = git(work, 'push', 'origin', 'main');
-    step('Shipping before the reviewer approved', 'refused', !r.ok, reason(r.out));
+    step('Shipping before the reviewer approved, even signed by the shipper', 'refused', !r.ok, reason(r.out));
     must(work, 'reset', '-q', '--hard', 'origin/main');
 
-    log('\n4. The reviewer approves the exact commit it checked');
+    log("\n4. The reviewer approves the exact commit it checked, signed with its key");
     r = git(work, 'push', 'origin', `${fix}:refs/approved/${fix}`);
-    step(`Approval mark refs/approved/${fix.slice(0, 7)}`, 'accepted', r.ok);
+    step('An approval mark with no signature', 'refused', !r.ok, reason(r.out));
+    r = tryIt(() => approve(fix, { repo: work, key: SHIPPER, agent: 'desk-migrator' }));
+    step("An approval signed with another agent's key", 'refused', !r.ok, reason(r.out));
+    r = tryIt(() => approve(fix, { repo: work, key: REVIEWER, room: 'desk-f5-webhooks', role: 'reviewer', agent: 'desk-reviewer' }));
+    step(`The reviewer's signed approval of ${fix.slice(0, 7)}`, 'accepted', r.ok, r.ok ? 'an annotated tag, signed with ML-DSA-65, naming the Switch room and role' : reason(r.out));
 
     must(work, 'checkout', '-q', 'pqc/f5-webhooks');
     writeFileSync(join(work, 'src', 'webhooks.js'), `${F5_FIX}\n// one more thing, after the review\n`);
     must(work, 'commit', '-q', '-am', 'F5: tweak after review');
     must(work, 'push', '-q', 'origin', 'pqc/f5-webhooks');
     must(work, 'checkout', '-q', 'main');
-    must(work, 'merge', '-q', '--no-ff', 'pqc/f5-webhooks', '-m', 'Ship F5: dual-signed webhooks');
+    ship('F5', 'pqc/f5-webhooks', { repo: work, key: SHIPPER, m: 'dual-signed webhooks', ...ORDER });
     r = git(work, 'push', 'origin', 'main');
     step('Shipping a branch that changed after the approval', 'refused', !r.ok, reason(r.out));
     must(work, 'reset', '-q', '--hard', 'origin/main');
 
-    log('\n5. The security lead says "ship": the shipper merges the approved commit');
+    log('\n5. The security lead says "ship": the shipper merges the approved commit, signed with its key');
     must(work, 'merge', '-q', '--no-ff', fix, '-m', `Ship F5: dual-signed webhooks (approved by reviewer at ${fix.slice(0, 7)}, shipped by the security lead)`);
     r = git(work, 'push', 'origin', 'main');
-    step('Shipping the approved commit', 'accepted', r.ok, r.ok ? `main is now ${must(work, 'rev-parse', '--short', 'HEAD')}` : reason(r.out));
+    step('The approved commit, merged without the shipper\'s signature', 'refused', !r.ok, reason(r.out));
+    must(work, 'reset', '-q', '--hard', 'origin/main');
+    ship('F5', fix, { repo: work, key: SHIPPER, m: 'dual-signed webhooks', ...ORDER });
+    r = git(work, 'push', 'origin', 'main');
+    step("Shipping the approved commit, signed by the shipper", 'accepted', r.ok, r.ok ? `main is now ${must(work, 'rev-parse', '--short', 'HEAD')}, ordered by ${ORDER['ordered-by']}` : reason(r.out));
     // A second, separately approved F5 change: approved, but F5 already shipped.
     must(work, 'checkout', '-q', '-b', 'pqc/f5-again');
     writeFileSync(join(work, 'src', 'webhooks.js'), `${F5_FIX}// a second F5 change\n`);
     must(work, 'commit', '-q', '-am', 'F5: second change');
     must(work, 'push', '-q', 'origin', 'pqc/f5-again');
     const again = must(work, 'rev-parse', 'HEAD');
-    must(work, 'push', '-q', 'origin', `${again}:refs/approved/${again}`);
+    approve(again, { repo: work, key: REVIEWER });
     must(work, 'checkout', '-q', 'main');
-    must(work, 'merge', '-q', '--no-ff', 'pqc/f5-again', '-m', 'Ship F5: again');
+    ship('F5', 'pqc/f5-again', { repo: work, key: SHIPPER, m: 'again', ...ORDER });
     r = git(work, 'push', 'origin', 'main');
-    step('Shipping F5 a second time, even with an approval', 'refused', !r.ok, reason(r.out));
+    step('Shipping F5 a second time, even approved and signed', 'refused', !r.ok, reason(r.out));
     must(work, 'reset', '-q', '--hard', 'origin/main');
 
     log('\n6. F3 is outside the team: the security lead accepts the risk');
-    writeFileSync(join(work, 'ACCEPTED-RISKS.md'), '# Accepted risks\n\n- F3: production TLS terminates at the acquirer\'s edge gateway; change request sent (owner: priya, review by: 2027-02-03)\n');
+    const RISK = '# Accepted risks\n\n- F3: production TLS terminates at the acquirer\'s edge gateway; change request sent (owner: priya, review by: 2027-02-03)\n';
+    writeFileSync(join(work, 'ACCEPTED-RISKS.md'), RISK);
     writeFileSync(join(work, 'src', 'tls.js'), `${readFileSync(join(work, 'src', 'tls.js'), 'utf8')}// sneaked in with the risk\n`);
     must(work, 'add', '-A');
-    must(work, 'commit', '-q', '-m', 'Accept risk F3: TLS on the acquirer gateway');
+    accept('F3', { repo: work, key: SHIPPER, m: 'TLS on the acquirer gateway', ...ORDER, 'order-text': '@desk-shipper accept risk F3' });
     r = git(work, 'push', 'origin', 'main');
-    step('An accepted risk that also edits code', 'refused', !r.ok, reason(r.out));
-    must(work, 'reset', '-q', '--hard', 'HEAD~1');
-    must(work, 'checkout', '-q', 'origin/main', '--', 'src/tls.js');
-    writeFileSync(join(work, 'ACCEPTED-RISKS.md'), '# Accepted risks\n\n- F3: production TLS terminates at the acquirer\'s edge gateway; change request sent (owner: priya, review by: 2027-02-03)\n');
-    must(work, 'add', 'ACCEPTED-RISKS.md');
-    must(work, 'commit', '-q', '-m', 'Accept risk F3: TLS on the acquirer gateway');
+    step('An accepted risk that also edits code, even signed', 'refused', !r.ok, reason(r.out));
+    must(work, 'reset', '-q', '--hard', 'origin/main');
+    writeFileSync(join(work, 'ACCEPTED-RISKS.md'), RISK);
+    accept('F3', { repo: work, key: SHIPPER, m: 'TLS on the acquirer gateway', ...ORDER, 'order-text': '@desk-shipper accept risk F3' });
     r = git(work, 'push', 'origin', 'main');
-    step('The accepted risk on its own', 'accepted', r.ok);
+    step('The accepted risk on its own, signed by the shipper', 'accepted', r.ok, r.ok ? '' : reason(r.out));
 
     log('\n7. The board, read from git');
     const desk = readDesk(origin);
@@ -244,7 +268,7 @@ export function judge({ log = console.log, keep = true } = {}) {
           `approved ${live.review.approvedCommit.slice(0, 7)} by the reviewer, shipped ${live.ship.merge.slice(0, 7)} by the shipper, ${live.tests.pass} tests`,
         );
       }
-      const { steps: pushes, sameMain } = replay(bundle);
+      const { steps: pushes, sameMain } = replay(bundle, { keys: run.dir });
       step(
         "The agents' pushes, replayed into a fresh origin, all pass the gate",
         'every push accepted, the shortcut refused, same main',
