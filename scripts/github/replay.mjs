@@ -166,12 +166,13 @@ async function gate(label) {
     id = latest();
     if (id === before) id = undefined;
   }
-  try {
-    sh('gh', ['run', 'watch', String(id), '--repo', repo, '--exit-status'], { stdio: ['ignore', 'ignore', 'ignore'] });
-    say(`${label}: desk-gate run ${id} passed`);
-  } catch {
-    say(`${label}: desk-gate run ${id} FAILED`);
+  let run;
+  for (let i = 0; i < 60; i++) {
+    run = JSON.parse(gh('run', 'view', String(id), '--repo', repo, '--json', 'status,conclusion,url'));
+    if (run.status === 'completed') break;
+    await sleep(3000);
   }
+  say(`${label}: desk-gate ${run.conclusion} (${run.url})`);
 }
 
 await gate('4. pull requests checked');
