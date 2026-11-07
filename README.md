@@ -19,7 +19,7 @@ npm install     # nothing to fetch: the desk has no dependencies
 npm run scan    # the six planted problems in demo-payments/, ranked by Mosca's rule, and a CycloneDX CBOM
 npm run judge   # 32 checks in about a minute: every shortcut to main refused by the git gate, then all three live Switch runs re-verified from the agents' git
 npm run board   # board.html: each finding's state, read from git (all open on a fresh clone)
-npm test        # 88 tests, plus demo-payments' 8: scanner, gate, signatures, certificates, board, templates, live-run replays
+npm test        # 90 tests, plus demo-payments' 8: scanner, gate, signatures, certificates, board, templates, live-run replays
 ```
 
 **Full run on real Switch:** [run it yourself](#run-it-yourself), about an hour, most of it watching the agents.
