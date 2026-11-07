@@ -45,7 +45,7 @@ export default function Spectrum({ inventory }) {
   return (
     <section className="section" id="spectrum" ref={root}>
       <div className="section-head">
-        <span className="section-index">08 — Inventory</span>
+        <span className="section-index">09 — Inventory</span>
         <h2 className="section-title">
           Where every key
           <br />

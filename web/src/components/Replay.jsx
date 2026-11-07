@@ -78,7 +78,7 @@ export default function Replay() {
   return (
     <section className="section" id="replay">
       <div className="section-head">
-        <span className="section-index">05 — Replay</span>
+        <span className="section-index">06 — Replay</span>
         <h2 className="section-title">
           Four hours,
           <br />

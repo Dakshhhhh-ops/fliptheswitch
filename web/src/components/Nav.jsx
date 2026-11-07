@@ -20,14 +20,15 @@ export default function Nav({ desk, live }) {
       </a>
       <nav className="nav-links" ref={links} aria-label="Sections">
         <a href="#flip">Flip</a>
+        <a href="#scan">Scan</a>
         <a href="#added">People</a>
         <a href="#break">Break it</a>
-        <a href="#room">In the room</a>
+        <a className="nav-more" href="#room">In the room</a>
         <a href="#replay">Replay</a>
-        <a href="#qday">Q-Day</a>
+        <a className="nav-more" href="#qday">Q-Day</a>
         <a href="#findings">Findings</a>
-        <a href="#spectrum">Inventory</a>
-        <a href="#receipt">Receipt</a>
+        <a className="nav-more" href="#spectrum">Inventory</a>
+        <a className="nav-more" href="#receipt">Receipt</a>
       </nav>
       <div className={`live ${live ? 'on' : ''}`} role="status">
         <span className="live-dot" aria-hidden="true" />

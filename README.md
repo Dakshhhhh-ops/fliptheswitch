@@ -21,7 +21,7 @@ changed four of the six ([log](docs/live-run-3/chat-log.md)). A second agent,
 on a different model, checks the work. Only the security lead can make it
 ship, and Switch, which runs the agents, turns everyone else away.
 
-**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/):** **Flip the switch**, where you turn Switch off and watch five real moments from the runs go wrong, what people added to each fix, a replay of live run 3, and **Try to break it**, where you edit run 3's real signed ship and ML-DSA-65 refuses it in your browser.
+**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/):** **Flip the switch**, where you turn Switch off and watch five real moments from the runs go wrong, **Scan your code**, where the real scanner runs on code you paste, in your browser, what people added to each fix, a replay of live run 3, and **Try to break it**, where you edit run 3's real signed ship and ML-DSA-65 refuses it in your browser.
 
 ### Quick look: only Node 24.7+ and git, about 2 minutes
 

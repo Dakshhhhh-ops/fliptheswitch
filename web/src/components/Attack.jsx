@@ -48,7 +48,7 @@ export default function Attack() {
   return (
     <section className="section" id="break">
       <div className="section-head">
-        <span className="section-index">03 — Try to break it</span>
+        <span className="section-index">04 — Try to break it</span>
         <h2 className="section-title">
           Forge a ship.
           <br />

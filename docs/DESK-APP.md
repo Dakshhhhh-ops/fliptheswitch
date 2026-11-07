@@ -19,7 +19,7 @@ It's a React front end on a small Node API (`web/server/index.mjs`) that
 reads the agents' git origin, and it updates live when the agents push or
 merge. A finding is **shipped** when a `Ship F<n>:` merge is on main, an
 **accepted risk** when `ACCEPTED-RISKS.md` on main names it, and **in review**
-when a `pqc/f<n>-…` branch exists. It opens on **Flip the switch**: five moments from live runs 1 and 3 (the engineer asking for an approval and a ship, a second agent claiming the reviewer role, the migrator editing the board, the lead's ship). With Switch on, each outcome is Switch's recorded reply, linked to the log; switched off, the same message meets no rules, shown as a labelled what-if. It also has the CBOM inventory before and
+when a `pqc/f<n>-…` branch exists. It opens on **Flip the switch**: five moments from live runs 1 and 3 (the engineer asking for an approval and a ship, a second agent claiming the reviewer role, the migrator editing the board, the lead's ship). With Switch on, each outcome is Switch's recorded reply, linked to the log; switched off, the same message meets no rules, shown as a labelled what-if. Next is **Scan your code**: `tools/cbom-scan.mjs` and `tools/mosca.mjs` bundled into the page (their Node-only CLI imports are shimmed in `web/vite.config.js`), run on whatever the visitor pastes, with nothing uploaded. It also has the CBOM inventory before and
 after, with each asset's NIST quantum security level, and the timeline of
 everything merged to main.
 
