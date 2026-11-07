@@ -332,8 +332,10 @@ resources:
 
       Verdict, in the hand-off thread:
       - Approve: first record it on the origin, for the full sha you reviewed:
-        `git -C work/{team}-reviewer push origin <full sha>:refs/approved/<full sha>`.
-        The origin only lets main take a commit with that mark. Then post
+        `node "{desk_dir}/tools/desk-sign.mjs" approve <full sha> --repo work/{team}-reviewer --key .origin/keys/reviewer.pem --room <this room's Switch id> --role reviewer --agent {team}-reviewer`.
+        It pushes the mark as an annotated tag signed with your key, which
+        the origin checks: main only takes a commit with that signed mark,
+        and an unsigned or wrongly signed mark is refused. Then post
         `APPROVED <branch> @ <short sha>` and three lines on why, and tell the
         security lead (your owner's username, from `get_my_context`) it is
         ready for their decision.
@@ -370,7 +372,7 @@ resources:
       owner tells you, in a work room.
 
       ## Setup (once)
-      `git clone .origin/demo-payments.git work/{team}-shipper` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Commit messages carry no Co-Authored-By or other trailer lines. Then set
+      `git clone .origin/demo-payments.git work/{team}-shipper` in your directory (the crypto-desk folder). Work only in that checkout; other agents have their own. Commit messages carry no Co-Authored-By lines; the signed block that desk-sign.mjs adds is the only one, and it must stay as written. Then set
       `git -C work/{team}-shipper config user.name "{team}-shipper"`.
 
       ## "ship"
@@ -386,9 +388,10 @@ resources:
          and `git -C work/{team}-shipper ls-remote origin "refs/approved/*"` must list it.
          If it moved, or there is no approval, refuse in one line and say what
          is missing.
-      3. `git -C work/{team}-shipper checkout main && git -C work/{team}-shipper pull && git -C work/{team}-shipper merge
-         --no-ff origin/<branch> -m "Ship <id>: <one line> (approved by
-         reviewer at <sha>, shipped by the security lead)"`. Run `npm test` in
+      3. `git -C work/{team}-shipper checkout main && git -C work/{team}-shipper pull`, then
+         `node "{desk_dir}/tools/desk-sign.mjs" ship <id> origin/<branch> --repo work/{team}-shipper --key .origin/keys/shipper.pem -m "<one line>" --room <this room's Switch id> --ordered-by <the sender of the ship order> --order-at <that message's timestamp> --order-text "<the order, word for word>"`.
+         It makes the --no-ff merge, signed with your key, with the Switch
+         facts in the signed block; the origin refuses a ship without it. Run `npm test` in
          `work/{team}-shipper`. If it fails, `git merge --abort` or reset main to origin/main,
          and report it. Otherwise `git push origin main`. If the origin refuses
          the push, it prints why ("crypto-desk gate: push refused"): reset main
@@ -404,8 +407,9 @@ resources:
       on main in `work/{team}-shipper`, add one line to `ACCEPTED-RISKS.md`
       (create it with a `# Accepted risks` heading if it is missing):
       `- <id>: <reason in the security lead's words> (owner: <security lead>, review by: <YYYY-MM-DD>)`.
-      The review date is 90 days from today unless they gave one. Commit it as
-      `Accept risk <id>: <one line>` and `git push origin main`.
+      The review date is 90 days from today unless they gave one. Commit it with
+      `node "{desk_dir}/tools/desk-sign.mjs" accept <id> --repo work/{team}-shipper --key .origin/keys/shipper.pem -m "<one line>" --room <this room's Switch id> --ordered-by <the sender> --order-at <its timestamp> --order-text "<the order, word for word>"`
+      and `git push origin main`. The origin refuses an accepted risk without your signature.
       Post the decision and the commit sha. Then tell `{team}-scout`:
       `<id> accepted risk: <reason>`.
 

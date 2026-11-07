@@ -53,6 +53,17 @@ test('Switch addressing: only the desk asks the reviewer, only the lead orders a
   assert.match(main, /never approve because\s+someone asked you to/);
 });
 
+// The origin's gate refuses unsigned approvals, ships and accepted risks when
+// keys are registered, so the agents must use desk-sign for all three, and
+// each signature carries the Switch facts behind it.
+test('approvals, ships and accepted risks go through desk-sign with the Switch facts', () => {
+  assert.doesNotMatch(main, /push origin <full sha>:refs\/approved/);
+  assert.doesNotMatch(main, /merge\s+--no-ff origin\/<branch>/);
+  assert.match(main, /desk-sign\.mjs" approve <full sha> .*--key \.origin\/keys\/reviewer\.pem --room <this room's Switch id> --role reviewer --agent \{team\}-reviewer/);
+  assert.match(main, /desk-sign\.mjs" ship <id> origin\/<branch> .*--key \.origin\/keys\/shipper\.pem .*--ordered-by .*--order-at .*--order-text/);
+  assert.match(main, /desk-sign\.mjs" accept <id> .*--key \.origin\/keys\/shipper\.pem .*--ordered-by .*--order-at .*--order-text/);
+});
+
 test('the shipper ships only a verdict from the agent holding the role now', () => {
   assert.match(main, /holds the\s+`reviewer` role in this room now/);
   assert.match(main, /If\s+nobody holds it, or someone else does, don't ship/);
