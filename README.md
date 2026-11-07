@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/Dakshhhhh-ops/fliptheswitch/actions/workflows/ci.yml/badge.svg)](https://github.com/Dakshhhhh-ops/fliptheswitch/actions/workflows/ci.yml)
 
+> **Verified end to end:** 3 live runs on real Switch, nothing scripted. Live run 3 shipped 5 of 6 findings. Switch refused the engineer's approve and ship requests live. Re-check everything from git with one command: `npm run judge`.
+
 **The scanner knows what's broken. Only people know what's safe to change. A desk of agents works it out with them in team chat, and [Switch](https://github.com/sandbox-quantum/switch) decides who may approve and who may ship.**
 
 ### Why this isn't another scanner
@@ -19,11 +21,9 @@ changed four of the six ([log](docs/live-run-3/chat-log.md)). A second agent,
 on a different model, checks the work. Only the security lead can make it
 ship, and Switch, which runs the agents, turns everyone else away.
 
-**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/):** "What people added" puts each scanner suggestion beside what people said and what shipped; scroll to Q-Day to see recorded ciphertext open as a quantum computer would allow, while the hybrid copy stays sealed.
+**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/):** each scanner suggestion beside what people said and what shipped, and a Q-Day dial where the RSA copy opens and the hybrid stays sealed.
 
-### Quick look: no Switch, no Docker, about 2 minutes
-
-Needs only Node 24.7+ and git.
+### Quick look: only Node 24.7+ and git, about 2 minutes
 
 ```sh
 git clone https://github.com/Dakshhhhh-ops/fliptheswitch && cd fliptheswitch
@@ -44,25 +44,38 @@ on a set we labelled ourselves ([details](docs/SCANNER.md#how-accurate-it-is)).
 
 ### What's new here
 
-**Names below:** F1–F6 are the six problems in the demo app: F1 card keys
-(RSA), F2 partner session keys (ECDH), F3 TLS, F4 receipt checksums (SHA-1),
-F5 webhook signatures (ECDSA), F6 stored customer records (AES-128). Arjun is
-the engineer; `desk4` is live run 3's name for its agents and rooms.
+| | | | |
+|---|---|---|---|
+| **F1** | card vault encryption (RSA) | **F4** | receipt checksums (SHA-1) |
+| **F2** | partner session keys (ECDH) | **F5** | webhook signatures (ECDSA) |
+| **F3** | TLS | **F6** | stored customer records (AES-128) |
 
-- **People change the fix, not just approve it.** "About 40 merchants still verify ECDSA" turned F5 into dual-signing ([log](docs/live-run-3/chat-log.md?plain=1#L31)); support re-issuing old receipts let SHA-1 go from F4 ([log](docs/live-run-3/chat-log.md?plain=1#L217)).
-- **Ranked by how late you already are.** Mosca's rule: if the data must stay secret longer than the years left before a quantum computer, minus the migration, the finding is late today.
+Arjun is the engineer; names starting `desk4` are live run 3's agents and rooms.
+
+- **People change the fix, not just approve it.** Support re-issuing old receipts let SHA-1 go from F4 ([log](docs/live-run-3/chat-log.md?plain=1#L217)); F5 below.
+- **Ranked by how late you already are** (Mosca's rule): data that must stay secret longer than the years left before a quantum computer, minus the migration, is late today.
 - **Signed with the crypto it migrates to.** Every approval, ship and certificate carries an ML-DSA-65 signature, and git refuses one without it.
+
+### One finding, end to end: F5 in live run 3 (UTC)
+
+| | |
+|---|---|
+| [05:51](docs/live-run-3/chat-log.md?plain=1#L27) | The scout opens F5's own room with the engineer and asks what the code doesn't show |
+| [05:53](docs/live-run-3/chat-log.md?plain=1#L31) | Arjun: "About 40 merchants still verify ECDSA on old SDKs, so we can't drop it yet." |
+| [06:01](docs/live-run-3/chat-log.md?plain=1#L33) | The migrator: "Plan change": keep ECDSA beside ML-DSA-65 until 30 June 2027 |
+| [06:10](docs/live-run-3/chat-log.md?plain=1#L44) | Codex requests changes (nothing signs a time for the 5-minute replay window); [approves](docs/live-run-3/chat-log.md?plain=1#L52) the fix at 06:14 |
+| [06:16](docs/live-run-3/chat-log.md?plain=1#L54) | The security lead: "ship F5"; the [signed merge](docs/live-run-3/chat-log.md?plain=1#L56) lands on main |
+| [06:18](docs/live-run-3/chat-log.md?plain=1#L60) | The scout moves the board: Shipped 1/6 |
 
 ## What breaks if you remove Switch
 
-The scanner and the git gate run without Switch. The desk doesn't: every
-rule about **who** may do what lives in Switch, and runs on a real Switch
-server in [three live runs](#the-live-runs).
+Every rule about **who** may do what lives in Switch, on a real Switch server
+in [three live runs](#the-live-runs).
 
 | Remove this Switch feature | And this breaks | Seen in a live run |
 |---|---|---|
-| Shipper obeys only its owner (`owner`) | Anyone in the room can order a merge | Arjun's "ship F3" refused by Switch ([screenshot](docs/live-run-3/refusal-ship.png)) |
-| Reviewer takes requests only from the owner and the desk's agents (`owner-agents`) | The engineer can ask for an approval | Arjun's "approve it" refused; the migrator's hand-off got through ([screenshot](docs/live-run-3/refusal-reviewer.png)) |
+| Shipper obeys only its owner | Anyone in the room can order a merge | Arjun's "ship F3" refused by Switch ([screenshot](docs/live-run-3/refusal-ship.png)) |
+| Reviewer takes requests only from the owner and their agents | The engineer can ask for an approval | Arjun's "approve it" refused; the migrator's hand-off got through ([screenshot](docs/live-run-3/refusal-reviewer.png)) |
 | Exclusive `reviewer` room role | Any agent can claim it reviewed | Switch's `400` to a second claimant ([screenshot](docs/live-run/role-lock.png)); F6 couldn't ship on a reviewer without the role |
 | Room documents | Any agent can rewrite the board | Switch's `403` to the migrator ([screenshot](docs/live-run-2/inventory-lock-and-board.png)) |
 | Agents creating rooms (`create_room`, `link_rooms`) | One channel for every finding | The scout opened all six rooms itself |
@@ -70,11 +83,9 @@ server in [three live runs](#the-live-runs).
 | Different providers in one room | The author marks its own work | Codex requested changes on F1, F2, F4, F5 and F6 ([screenshot](docs/live-run-3/changes-requested.png)) |
 | [Template](template/crypto-desk.template.yaml) | Four agents set up by hand | Started from one chat message to Switch's buddy agent |
 
-Switch decides **who** may order a ship or ask for a verdict. Git decides
-**what** a ship may contain: the origin's gate only lets main take a merge of
-an approved commit, or an accepted risk that changes no code, each signed
-with the reviewer's or shipper's key. Every rule, what enforces it and what
-proves it: [docs/ENFORCEMENT.md](docs/ENFORCEMENT.md).
+Switch decides **who**; git decides **what**: main only takes a signed merge of
+an approved commit, or a signed accepted risk that changes no code
+([every rule and its proof](docs/ENFORCEMENT.md)).
 
 ## The moment that needs Switch
 
@@ -105,28 +116,25 @@ instead; Switch's own tests pin both as `allowed is False`
 
 <p>
 <img src="docs/live-run-3/refusal-reviewer.png" width="49%" alt="Switch refusing the engineer's request that the reviewer approve">
-<img src="docs/live-run-3/reviewer-addressing-console.png" width="49%" alt="Switch Console: the reviewer's 'Who can talk to your agent' is 'Me and my agents', owner-agents">
+<img src="docs/live-run-3/reviewer-addressing-console.png" width="49%" alt="Switch Console: who can talk to the reviewer">
 </p>
+
 ## The live runs
 
-Run end to end in Switch three times, nothing scripted. The latest:
-**[live run 3](docs/live-run-3/README.md)** (`desk4`, 7 November 2026), the
-first where only the desk may ask the reviewer and every approval and ship is
-signed, with a timestamped log of every message and push. **Shipped 5 of 6**, plus
-F3's production TLS as an accepted risk; F6 is written and in review.
-[Run 2](docs/live-run-2/README.md) and [run 1](docs/live-run/README.md) are
-there too.
+**[Live run 3](docs/live-run-3/README.md)**, with a timestamped log of every
+message and push: **shipped 5 of 6**, plus F3's production TLS as an accepted
+risk. [Run 2](docs/live-run-2/README.md) and [run 1](docs/live-run/README.md) too.
 
 ![Live run 3's board, read from the agents' git](docs/img/board-live-run-3.png)
 
 | Finding | What happened |
 |---|---|
-| **F5** webhooks, ECDSA | Dual-signed ECDSA + ML-DSA-65 ("40 merchants still verify ECDSA"). Codex **requested changes**: nothing signed a time for the 5-minute replay window. Shipped `4769ce0` |
-| **F1** card keys, RSA-OAEP | Hybrid X25519 + ML-KEM-768, RSA read-only for old envelopes. Codex **requested changes**: no end date for RSA. Shipped `a0f015b` |
-| **F3** TLS | Staging on TLS 1.3 with hybrid key exchange (`525a4a3`). Production is the acquirer's: a signed accepted risk (`695ea59`) |
-| **F2** session keys, ECDH | Hybrid on both sides. Codex **requested changes**: a reusable responder state. Made single-use, shipped `77492d6` |
-| **F4** receipts, SHA-1 | Keyed HMAC-SHA-256. Codex **requested changes** while SHA-1 stayed for old receipts; it went. Shipped `b1fedca` |
-| **F6** records, AES-128 | AES-256-GCM with a tested deploy gate (`b8180e4`). **Not shipped**: Codex hit its usage limit, and the stand-in reviewer couldn't take the role Codex still held, so nothing signed it. Next: when Codex's limit resets (17 November) it re-reviews `b8180e4` and the lead orders the ship |
+| **F5** webhooks, ECDSA | Dual-signed; ECDSA kept for 40 merchants. Codex asked for a replay window. `4769ce0` |
+| **F1** card keys, RSA | Hybrid KEM, RSA read-only for old envelopes. Codex asked for RSA's end date. `a0f015b` |
+| **F3** TLS | Staging on hybrid TLS 1.3 (`525a4a3`); production is the acquirer's, an accepted risk (`695ea59`) |
+| **F2** session keys, ECDH | Hybrid on both sides. Codex caught a reusable key state. `77492d6` |
+| **F4** receipts, SHA-1 | Keyed HMAC-SHA-256; SHA-1 removed after Codex and Arjun. `b1fedca` |
+| **F6** records, AES-128 | AES-256-GCM with a tested deploy gate (`b8180e4`). **Not shipped**: Codex hit its usage limit while holding the reviewer role. Next: it re-reviews when the limit resets (17 November), then the lead ships |
 
 The run wasn't smooth: four messages were sent again because Switch started
 no agent for them, the server crashed once under low memory, and the Codex
@@ -143,9 +151,9 @@ flowchart TB
   subgraph work["one private room per finding: desk-f5-webhooks · desk-f1-envelope · desk-f3-tls"]
     mig["@desk-migrator (Claude Code)<br/>plan → branch → tests"]
     eng(["Engineer<br/>adds what the code doesn't show"])
-    rev["reviewer role → @desk-reviewer (Codex)<br/>addressing: owner-agents"]
+    rev["reviewer role → @desk-reviewer (Codex)<br/>takes requests only from the owner and their agents"]
     lead(["Security lead"])
-    ship["@desk-shipper<br/>addressing: owner"]
+    ship["@desk-shipper<br/>obeys only the owner"]
   end
   scout -- "create_room + link_rooms" --> work
   eng <--> mig
@@ -190,5 +198,3 @@ More: [the scanner and its CI gate](docs/SCANNER.md).
   agent's key in its own KMS or HSM.
 - On Windows, Switch Console can't grant a GitHub connection, so the agents
   push to a local origin instead of opening pull requests.
-- Switch has no scheduled messages yet, so accepted-risk review dates are
-  recorded, not reminded.
