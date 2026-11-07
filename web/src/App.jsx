@@ -3,6 +3,7 @@ import Nav from './components/Nav.jsx';
 import Hero from './components/Hero.jsx';
 import QDay from './components/QDay.jsx';
 import Findings from './components/Findings.jsx';
+import Flip from './components/Flip.jsx';
 import Added from './components/Added.jsx';
 import Attack from './components/Attack.jsx';
 import Replay from './components/Replay.jsx';
@@ -43,6 +44,7 @@ export default function App() {
         <>
           <main>
             <Hero counts={counts} total={desk.rows.length} started={started} />
+            <Flip />
             <Added rows={desk.rows} />
             <Attack />
             <Room />

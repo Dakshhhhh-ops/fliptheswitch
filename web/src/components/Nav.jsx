@@ -19,6 +19,7 @@ export default function Nav({ desk, live }) {
         <span className="brand-name">Crypto Migration Desk</span>
       </a>
       <nav className="nav-links" ref={links} aria-label="Sections">
+        <a href="#flip">Flip</a>
         <a href="#added">People</a>
         <a href="#break">Break it</a>
         <a href="#room">In the room</a>

@@ -55,7 +55,10 @@ export default function Hero({ counts, total, started }) {
               The scanner knows what's broken. Only people know what's safe to change. A desk of agents works it out with them in
               team chat, and Switch decides who may approve and who may ship.
             </p>
-            <a className="hero-cta" href="#break">Try to forge a ship →</a>
+            <div className="hero-ctas">
+              <a className="hero-cta" href="#flip">Flip the switch →</a>
+              <a className="hero-cta-2" href="#break">or try to forge a ship</a>
+            </div>
           </div>
           <div className="hero-score">
             <span className="hero-score-num">
@@ -67,7 +70,7 @@ export default function Hero({ counts, total, started }) {
               {STATES.map((s) => (counts[s] ? <span key={s} className={`seg s-${slug(s)}`} style={{ flexGrow: counts[s] }} /> : null))}
             </div>
           </div>
-          <a className="scroll-cue" href="#added" data-cursor="Scroll">
+          <a className="scroll-cue" href="#flip" data-cursor="Scroll">
             <span>Scroll</span>
             <i aria-hidden="true" />
           </a>
