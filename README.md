@@ -4,7 +4,7 @@
 
 **A business workflow, built on [Switch](https://github.com/sandbox-quantum/switch), for migrating a company's cryptography to post-quantum, one finding at a time, with the people who own the code in the loop and the security lead in control of what ships.**
 
-[Desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) · [Live run 3, every message](docs/live-run-3/chat-log.md) · [Run it yourself](#run-the-full-workflow-on-switch-about-an-hour) · [How enforcement works](docs/ENFORCEMENT.md)
+**[▶ Demo video (2:28)](https://youtu.be/ek7ZocUh9q8)** · [Desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) · [Live run 3, every message](docs/live-run-3/chat-log.md) · [Run it yourself](#run-the-full-workflow-on-switch-about-an-hour) · [How enforcement works](docs/ENFORCEMENT.md)
 
 > **Results:** 3 live runs on a real Switch server, no agent message scripted. In live run 3 the desk shipped **5 of 6** findings and recorded one signed accepted risk. Switch refused the engineer's attempts to approve and to ship. Every claim here is re-checked from git by `npm run judge` (34 checks).
 
@@ -62,7 +62,7 @@ migrates you to, so its audit trail survives Q-Day too.
 
 ## Why Switch is central
 
-Switch in live run 3, cut from the demo video:
+Switch in live run 3, cut from the [demo video](https://youtu.be/ek7ZocUh9q8):
 
 | Arjun asks the reviewer to approve; Switch refuses him | One message to switch-buddy-admin starts the desk; the agents open their own rooms |
 |---|---|
