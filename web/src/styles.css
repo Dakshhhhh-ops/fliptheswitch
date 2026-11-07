@@ -28,7 +28,7 @@
 * { box-sizing: border-box; }
 html { background: var(--bg); }
 html.lenis, html.lenis body { height: auto; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
 a { color: inherit; }
 code { font: 0.86em var(--mono); color: var(--ink-2); }
 button { font: inherit; color: inherit; }
@@ -160,7 +160,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px s
 .qd-track { position: absolute; left: 0; right: 0; top: 34px; height: 1px; background: repeating-linear-gradient(90deg, var(--line-2) 0 1px, transparent 1px 14px); }
 .qd-track::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--review), var(--hot)); transform-origin: left; transform: scaleX(var(--p)); height: 2px; top: -0.5px; }
 .qd-knob { position: absolute; top: 26px; left: calc(var(--p) * 100%); width: 17px; height: 17px; margin-left: -8px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 6px rgba(242,239,232,.08); }
-.qd-year { position: absolute; top: 0; left: calc(var(--p) * 100%); transform: translateX(-50%); font: 500 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+.qd-year { position: absolute; top: 0; left: calc(var(--p) * 100%); transform: translateX(calc(var(--p) * -100%)); font: 500 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
 .qd-mark { position: absolute; top: 50px; font: 500 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .qd-mark-now { left: 0; }
 .qd-mark-q { left: 62%; transform: translateX(-50%); color: var(--hot); }

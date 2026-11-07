@@ -51,8 +51,8 @@ export default function Hero({ counts, total, started }) {
         </h1>
         <div className="hero-foot">
           <p className="hero-lede">
-            Agents find every quantum-vulnerable use of crypto, open a room for each with the engineer who owns the code, and fix
-            it with them. Only the security lead can ship.
+            The scanner knows what's broken. Only people know what's safe to change. A desk of agents works it out with them in
+            team chat, and Switch decides who may approve and who may ship.
           </p>
           <div className="hero-score">
             <span className="hero-score-num">
