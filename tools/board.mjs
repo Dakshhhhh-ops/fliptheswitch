@@ -224,6 +224,15 @@ function main(argv) {
   const args = argv.slice(2);
   const opt = (name, fallback) => (args.includes(name) ? args[args.indexOf(name) + 1] : fallback);
   const origin = resolve(opt('--origin', join(DESK, '.origin', 'demo-payments.git')));
+  if (!existsSync(origin)) {
+    if (args.includes('--origin')) {
+      console.error(`No git origin at ${origin}.`);
+      process.exit(1);
+    }
+    // A fresh clone has no local origin yet: make it from the planted code, as npm run setup does.
+    console.log('No local origin yet: creating it from the planted code (npm run setup).');
+    execFileSync(process.execPath, [join(DESK, 'scripts', 'setup-origin.mjs')], { stdio: 'inherit' });
+  }
   const desk = readDesk(origin);
   if (args.includes('--json')) return console.log(JSON.stringify(desk, null, 2));
   const out = resolve(opt('--out', join(DESK, 'board.html')));
