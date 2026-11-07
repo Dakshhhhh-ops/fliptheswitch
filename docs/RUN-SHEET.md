@@ -33,7 +33,7 @@ a *known* person who simply isn't the owner:
 ## Start: 2 minutes
 
 ```sh
-npm run desk:up        # origin, team prefix, the engineer's account, templates, Codex check
+npm run desk:up        # origin, team prefix, the engineer's account, templates, stops old agents
 npm run desk:watch     # in a second terminal: logs every message and push, and says when it's your turn
 ```
 
@@ -87,7 +87,7 @@ a shell on Windows. Then look at what `desk:watch` logged last.
 
 | What you see | What to do |
 |---|---|
-| The reviewer says its shell is stalled, even `pwd` | Codex sessions from an earlier run, as in live run 2. `npm run doctor` lists them and prints the command that stops them. Then ask the reviewer once to review again, and count that message in the write-up. (`desk:up` does this before a run) |
+| The reviewer says its shell is stalled, even `pwd`, or that it "displaced another live session" | An older Codex session is still running: from an earlier run (live run 2) or from the reviewer's previous room (live run 3). `npm run desk:tidy` stops every Codex session but the newest, and Claude agents of earlier teams; `desk:watch` suggests it when it sees two. Then ask the reviewer once to review again, and count that message in the write-up. (`desk:up` stops them all before a run) |
 | The shipper says nobody holds the reviewer role | The reviewer let go too early. Ask it once to take the role in that room and confirm its verdict, then say "ship" again |
 | The scout can't open rooms | Start again with `template/crypto-desk-fixed-rooms.template.yaml`: the template opens the three rooms itself |
 | Switch refuses *you* the ship | Your Mattermost account isn't linked to your Switch user (step 3 above) |

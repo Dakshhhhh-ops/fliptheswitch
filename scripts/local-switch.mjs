@@ -66,22 +66,66 @@ export function mmctl(container, ...args) {
   return run('docker', ['exec', container, 'mmctl', '--local', ...args]);
 }
 
-// Codex agent sessions (codex app-server) and how long each has run, in minutes.
-export function codexSessions() {
+// Every process that might be a Switch agent: { pid, ppid, minutes, cmd }.
+export function processes() {
   if (process.platform === 'win32') {
     const ps = run('powershell', [
       '-NoProfile',
       '-Command',
-      "Get-CimInstance Win32_Process -Filter \"Name='codex.exe'\" | Where-Object { $_.CommandLine -match 'app-server' -and $_.CommandLine -notmatch '\\.vscode' } | ForEach-Object { '{0} {1}' -f $_.ProcessId, [int]((Get-Date) - $_.CreationDate).TotalMinutes }",
+      "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'claude|codex' } | ForEach-Object { '{0}|~|{1}|~|{2}|~|{3}' -f $_.ProcessId, $_.ParentProcessId, [int]((Get-Date) - $_.CreationDate).TotalMinutes, $_.CommandLine }",
     ]);
-    return ps.stdout.split(/\r?\n/).map((l) => l.trim().split(/\s+/).map(Number)).filter((p) => p.length === 2 && p.every(Number.isFinite));
+    return ps.stdout
+      .split(/\r?\n/)
+      .map((l) => l.split('|~|'))
+      .filter((p) => p.length >= 4)
+      .map(([pid, ppid, minutes, ...cmd]) => ({ pid: Number(pid), ppid: Number(ppid), minutes: Number(minutes), cmd: cmd.join('|~|') }));
   }
-  const ps = run('ps', ['-eo', 'pid=,etimes=,args=']);
+  const ps = run('ps', ['-eo', 'pid=,ppid=,etimes=,args=']);
   return ps.stdout
     .split('\n')
-    .filter((l) => /codex.*app-server/.test(l))
-    .map((l) => l.trim().split(/\s+/).slice(0, 2).map(Number))
-    .map(([pid, secs]) => [pid, Math.round(secs / 60)]);
+    .map((l) => /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/.exec(l))
+    .filter((m) => m && /claude|codex/.test(m[4]))
+    .map((m) => ({ pid: Number(m[1]), ppid: Number(m[2]), minutes: Math.round(Number(m[3]) / 60), cmd: m[4] }));
 }
 
-export const STALE_CODEX_MINUTES = 6 * 60;
+// The Switch agents among those processes. Switch starts each Claude agent
+// with `--agent <name>` and each Codex agent as an app-server wired to
+// Switch's MCP. Interactive sessions (an editor's Claude or Codex) have
+// neither, so they're never listed here.
+//   claude: [{ pid, minutes, agent, team }]   team: the deskN prefix, or null
+//   codex:  [{ pid, minutes }]                newest first, one per session
+export function switchAgents(procs) {
+  const claude = procs
+    .map((p) => ({ ...p, agent: /--agent"?\s+"?([\w.-]+)/.exec(p.cmd)?.[1] }))
+    .filter((p) => p.agent && /claude/i.test(p.cmd) && !p.agent.startsWith('switch-'))
+    .map(({ pid, minutes, agent }) => ({ pid, minutes, agent, team: /^(desk\d*)-/.exec(agent)?.[1] ?? null }));
+  const app = procs.filter((p) => /codex/i.test(p.cmd) && /app-server/.test(p.cmd) && /mcp_servers\.switch\./.test(p.cmd));
+  // A session is a launcher (node codex.js) and its codex.exe; keep the top one.
+  const pids = new Set(app.map((p) => p.pid));
+  const codex = app
+    .filter((p) => !pids.has(p.ppid))
+    .map(({ pid, minutes }) => ({ pid, minutes }))
+    .sort((a, b) => a.minutes - b.minutes);
+  return { claude, codex };
+}
+
+export const STALE_MINUTES = 6 * 60;
+
+// The agents a run doesn't need. `team` is the run's team (null if unknown).
+//   - Claude agents of another desk team, or (no team known) older than 6 h
+//   - Codex sessions but the newest: the reviewer starts a new session per
+//     room, and in live run 3 the F5 session still running stalled the F1
+//     review. With `fresh` (a new run is starting) every Codex session goes.
+export function leftovers({ claude, codex }, { team = null, fresh = false } = {}) {
+  return {
+    claude: claude.filter((a) => (team ? a.team && a.team !== team : a.minutes > STALE_MINUTES)),
+    codex: fresh ? codex : codex.slice(1),
+  };
+}
+
+export function stop(pid) {
+  return process.platform === 'win32' ? run('taskkill', ['/PID', String(pid), '/T', '/F']).ok : run('kill', [String(pid)]).ok;
+}
+
+export const describe = (list) => list.map((a) => (a.agent ? `${a.agent} (PID ${a.pid}, ${hours(a.minutes)})` : `PID ${a.pid} (${hours(a.minutes)})`)).join(', ');
+const hours = (m) => (m >= 90 ? `${Math.round(m / 60)} h` : `${m} min`);

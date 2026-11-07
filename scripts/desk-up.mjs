@@ -2,7 +2,7 @@
 // npm run desk:up: get this machine ready for a live run in Switch.
 //
 //   npm run desk:up [-- --team desk4] [--engineer arjun] [--claude-only]
-//                   [--keep-stale-codex] [--force]
+//                   [--keep-stale] [--force]
 //
 // It does every step of a run that doesn't need a person:
 //   1. checks Switch, Mattermost, Docker, git and Node (npm run doctor)
@@ -12,16 +12,18 @@
 //   4. creates the engineer's Mattermost account if it's missing
 //   5. puts the desk's templates in the Switch buddy agent's folder, so one
 //      chat message starts the desk
-//   6. stops Codex agent sessions left over from an earlier run (older than six
-//      hours): in live run 2 they stalled the reviewer's shell. --keep-stale-codex
-//      lists them instead
+//   6. stops Switch agents left over from earlier runs (npm run desk:tidy):
+//      Claude agents of older teams, and every Codex session. Old Codex
+//      sessions stalled the reviewer's shell in live runs 2 and 3.
+//      --keep-stale lists them instead
 //   7. writes .desk-run.json for desk:watch and desk:package
 // Then it prints the one message to send, and what's left for you.
 import { randomBytes } from 'node:crypto';
 import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { buddyDirs, codexSessions, mattermost, mmctl, run, STALE_CODEX_MINUTES, switchUp } from './local-switch.mjs';
+import { tidy } from './desk-tidy.mjs';
+import { buddyDirs, mattermost, mmctl, run, switchUp } from './local-switch.mjs';
 
 const DESK = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ORIGIN = join(DESK, '.origin', 'demo-payments.git');
@@ -124,21 +126,13 @@ async function main(argv) {
   if (buddies.length) say(`  ✔ Copied to ${buddies.length} buddy agent folder${buddies.length === 1 ? '' : 's'}`);
   else say('  ! No buddy agent folder found. Import template/crypto-desk.template.yaml in Switch Console → Templates instead.');
 
-  // 6. Codex.
-  say('\n6. Codex');
+  // 6. Agents left over from earlier runs.
+  say('\n6. Agents left over from earlier runs');
   const codex = !has('--claude-only') && run('codex', ['--version']).ok;
-  if (!codex) say('  - Not used: both agents run on Claude');
-  else {
-    const stale = codexSessions().filter(([, minutes]) => minutes > STALE_CODEX_MINUTES);
-    if (!stale.length) say('  ✔ No Codex sessions left over from an earlier run');
-    else if (!has('--keep-stale-codex')) {
-      for (const [pid] of stale) process.platform === 'win32' ? run('taskkill', ['/PID', String(pid), '/T', '/F']) : run('kill', [String(pid)]);
-      say(`  ✔ Stopped ${stale.length} Codex session${stale.length === 1 ? '' : 's'} from an earlier run`);
-    } else {
-      say(`  ! ${stale.length} Codex session${stale.length === 1 ? '' : 's'} from an earlier run (PID ${stale.map(([p]) => p).join(', ')}). They stalled the reviewer's shell in live run 2.`);
-      say('      Run desk:up again without --keep-stale-codex to stop them.');
-    }
-  }
+  if (has('--keep-stale')) {
+    tidy({ team: teamPrefix, fresh: true, dryRun: true, say });
+    say('      --keep-stale: left running. npm run desk:tidy stops them.');
+  } else tidy({ team: teamPrefix, fresh: true, say });
 
   // 7. The run file.
   const provider = 'claude';

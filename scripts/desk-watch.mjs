@@ -6,12 +6,13 @@
 //   - every change to a ref on the origin (branches, approval marks, main)
 // Messages from people are numbered HUMAN#n, so the log shows exactly what
 // people sent. When an agent mentions a person, it prints "→ your turn".
+// When two Codex sessions are alive, it suggests npm run desk:tidy.
 // desk:package turns the log into the run's chat-log.md. Ctrl-C stops it.
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { mattermost, mmctl } from './local-switch.mjs';
+import { mattermost, mmctl, processes, switchAgents } from './local-switch.mjs';
 
 const DESK = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ORIGIN = join(DESK, '.origin', 'demo-payments.git');
@@ -55,6 +56,7 @@ async function main() {
   const seen = new Set();
   let refs = '';
   let people = 0;
+  let warnedCodex = false;
   log(`watching ${team}; log in ${logFile}`);
   for (;;) {
     let now = '';
@@ -84,6 +86,11 @@ async function main() {
         }
       }
     }
+    // Two Codex sessions: the reviewer's last room is still running, which
+    // stalled the F1 review in live run 3.
+    const codex = switchAgents(processes()).codex.length;
+    if (codex > 1 && !warnedCodex) console.log(`   ! ${codex} Codex sessions alive: if the reviewer stalls, run npm run desk:tidy (keeps the newest)`);
+    warnedCodex = codex > 1;
     await new Promise((r) => setTimeout(r, 15000));
   }
 }

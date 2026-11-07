@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { nextTeam, packaged, teamsIn } from '../scripts/desk-up.mjs';
 import { isPerson, parsePosts } from '../scripts/desk-watch.mjs';
 import { nextRunDir, packageRun } from '../scripts/desk-package.mjs';
+import { leftovers, switchAgents } from '../scripts/local-switch.mjs';
 import { judge } from '../scripts/judge.mjs';
 
 test('desk:up picks the first team prefix no earlier run used', () => {
@@ -74,4 +75,38 @@ test('desk:package keeps a run as evidence, and skips a certificate from another
   const r2 = packageRun({ origin: join(root, 'origin.git'), certs, out: out2, log, team: 'desk9', name: 'Test run' });
   assert.deepEqual(r2.run.certificates, []);
   assert.match(r2.skipped[0], /^F5: /);
+});
+
+// Process lines as Switch and an editor start them (from live run 3's machine).
+const NPM = '"C:\Users\d\AppData\Roaming\npm\node_modules\@anthropic-ai\claude-code\bin\claude.exe"';
+const agentCmd = (name) => `${NPM}    "--output-format" "stream-json" "--verbose" "--input-format" "stream-json" "--agent" "${name}" "--permission-prompt-tool"`;
+const codexApp = (port) => `app-server --enable multi_agent_v2 -c "mcp_servers.switch.url=\\"http://127.0.0.1:${port}/mcp\\""`;
+const PROCS = [
+  { pid: 1, ppid: 0, minutes: 1200, cmd: 'c:\Users\d\.vscode\extensions\anthropic.claude-code\claude.exe --output-format stream-json --verbose --input-format stream-json' },
+  { pid: 2, ppid: 0, minutes: 1200, cmd: 'c:\Users\d\.vscode\extensions\openai.chatgpt\codex.exe app-server --analytics-default-enabled' },
+  { pid: 3, ppid: 0, minutes: 1167, cmd: agentCmd('desk3-scout') },
+  { pid: 4, ppid: 0, minutes: 1149, cmd: agentCmd('desk3-shipper') },
+  { pid: 5, ppid: 0, minutes: 77, cmd: agentCmd('desk4-scout') },
+  { pid: 6, ppid: 0, minutes: 30, cmd: agentCmd('switch-buddy-admin') },
+  { pid: 7, ppid: 0, minutes: 80, cmd: `"node" "C:\npm\node_modules\@openai\codex\bin\codex.js" ${codexApp(55200)}` },
+  { pid: 8, ppid: 7, minutes: 80, cmd: `C:\npm\node_modules\@openai\codex\vendor\codex.exe ${codexApp(55200)}` },
+  { pid: 9, ppid: 0, minutes: 28, cmd: `"node" "C:\npm\node_modules\@openai\codex\bin\codex.js" ${codexApp(51271)}` },
+  { pid: 10, ppid: 9, minutes: 28, cmd: `C:\npm\node_modules\@openai\codex\vendor\codex.exe ${codexApp(51271)}` },
+];
+
+test('switchAgents lists only Switch agents, one entry per Codex session', () => {
+  const { claude, codex } = switchAgents(PROCS);
+  assert.deepEqual(claude.map((a) => [a.pid, a.agent, a.team]), [[3, 'desk3-scout', 'desk3'], [4, 'desk3-shipper', 'desk3'], [5, 'desk4-scout', 'desk4']]);
+  assert.deepEqual(codex.map((a) => a.pid), [9, 7]);
+});
+
+test('leftovers: other teams, and every Codex session but the newest', () => {
+  const agents = switchAgents(PROCS);
+  const mid = leftovers(agents, { team: 'desk4' });
+  assert.deepEqual(mid.claude.map((a) => a.pid), [3, 4]);
+  assert.deepEqual(mid.codex.map((a) => a.pid), [7]);
+  const fresh = leftovers(agents, { team: 'desk5', fresh: true });
+  assert.deepEqual(fresh.claude.map((a) => a.pid), [3, 4, 5]);
+  assert.deepEqual(fresh.codex.map((a) => a.pid), [9, 7]);
+  assert.deepEqual(leftovers(agents).claude.map((a) => a.pid), [3, 4], 'no team known: older than 6 hours');
 });

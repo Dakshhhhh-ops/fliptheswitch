@@ -12,7 +12,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { codexSessions, STALE_CODEX_MINUTES } from './local-switch.mjs';
+import { currentTeam } from './desk-tidy.mjs';
+import { describe, leftovers as leftoverAgents, processes, switchAgents } from './local-switch.mjs';
 
 const DESK = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ORIGIN = join(DESK, '.origin', 'demo-payments.git');
@@ -97,21 +98,19 @@ const codex = run('codex', ['--version']);
 if (codex.ok) ok('Codex', codex.out.split('\n').pop());
 else warn('Codex not found', 'Optional. Set both providers in the form to `claude`; the reviewer is then its own agent on the same model.');
 
-// Codex agent sessions left over from an earlier run. In the live run, four
-// stale ones (from the day before) were running when the reviewer's shell
-// stalled; once they were stopped, the sandbox worked again.
-if (codex.ok) {
-  const sessions = codexSessions();
-  const stale = sessions.filter(([, minutes]) => minutes > STALE_CODEX_MINUTES);
-  const pids = stale.map(([pid]) => pid);
-  if (stale.length) {
-    warn(
-      `${stale.length} Codex agent session${stale.length === 1 ? '' : 's'} older than 6 hours: PID ${pids.join(', ')}`,
-      `Left over from an earlier run, they can stall the reviewer's sandboxed shell. Stop them before a run: ${
-        process.platform === 'win32' ? `Stop-Process -Id ${pids.join(',')}` : `kill ${pids.join(' ')}`
-      } (or npm run desk:up)`,
-    );
-  } else if (sessions.length) ok(`Codex agent sessions: ${sessions.length}, none older than 6 hours`);
+// Switch agents left over from an earlier run. Stale Codex sessions stalled
+// the reviewer's shell in live run 2, and the reviewer's previous-room session
+// stalled it again in run 3. After run 2, fourteen Claude agents were still
+// running a day later.
+{
+  const team = currentTeam();
+  const agents = switchAgents(processes());
+  const extra = leftoverAgents(agents, { team });
+  const fix = 'npm run desk:tidy (desk:up does it too)';
+  if (extra.claude.length) warn(`${extra.claude.length} Claude agent${extra.claude.length === 1 ? '' : 's'} from an earlier run still running`, `${describe(extra.claude)}. They hold memory the next run needs: ${fix}`);
+  else if (agents.claude.length) ok(`Switch Claude agents: ${agents.claude.length}, all from ${team ?? 'the last 6 hours'}`);
+  if (extra.codex.length) warn(`${agents.codex.length} Codex agent sessions alive`, `The reviewer's older session can stall its new room's shell. Stop all but the newest: ${fix}`);
+  else if (agents.codex.length) ok('One Codex agent session');
 }
 
 const docker = run('docker', ['info', '--format', '{{.ServerVersion}}']);
