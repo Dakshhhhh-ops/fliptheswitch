@@ -2,12 +2,13 @@
 
 [![CI](https://github.com/Dakshhhhh-ops/fliptheswitch/actions/workflows/ci.yml/badge.svg)](https://github.com/Dakshhhhh-ops/fliptheswitch/actions/workflows/ci.yml)
 
-**A team of agents and two people migrate a codebase off quantum-vulnerable crypto, in team chat, with [Switch](https://github.com/sandbox-quantum/switch) deciding who may approve and who may ship.**
+**The scanner knows what's broken. Only people know what's safe to change. A desk of agents works it out with them in team chat, and [Switch](https://github.com/sandbox-quantum/switch) decides who may approve and who may ship.**
 
 Your encryption has an expiry date, and some of it is already past it: data
 sent today can be recorded now and decrypted once a large quantum computer
-exists. The desk finds that crypto, fixes it with the engineer who owns it,
-and ships only what a second model approved and the security lead ordered.
+exists.
+
+**[Open the desk app](https://dakshhhhh-ops.github.io/fliptheswitch/) and scroll to Q-Day:** real ciphertext sealed at export, the RSA copy opening as a quantum computer would allow, and the hybrid copy staying sealed.
 
 ### Quick look: no Switch, no Docker, about 2 minutes
 
@@ -23,6 +24,12 @@ npm test        # 93 tests, plus demo-payments' 8: scanner, gate, signatures, ce
 ```
 
 **Full run on real Switch:** [run it yourself](#run-it-yourself), about an hour, most of it watching the agents.
+
+### What's new here
+
+- **People change the fix, not just approve it.** "About 40 merchants still verify ECDSA" turned F5 into dual-signing ([log](docs/live-run-3/chat-log.md?plain=1#L31)); support re-issuing old receipts let SHA-1 go from F4 ([log](docs/live-run-3/chat-log.md?plain=1#L217)).
+- **Ranked by how late you already are.** Mosca's rule: if the data must stay secret longer than the years left before a quantum computer, minus the migration, the finding is late today.
+- **Signed with the crypto it migrates to.** Every approval, ship and certificate carries an ML-DSA-65 signature, and git refuses one without it.
 
 ## What breaks if you remove Switch
 
@@ -149,8 +156,7 @@ certificate, and the scout moves the board.
 - [ ] Claude Code, signed in. Codex signed in, optional: without it, set both providers to `claude`
 - [ ] Your Mattermost account linked to your Switch user (Home → Messaging apps), so the shipper knows it's you
 
-`npm run doctor` checks each of these on your machine and prints ✔ or ✘ with
-the fix. Every step that doesn't need a person is a command; every message to
+`npm run doctor` checks each with a fix for what's missing. Every message to
 send, and what to do if it gets stuck: [docs/RUN-SHEET.md](docs/RUN-SHEET.md).
 
 ```sh
