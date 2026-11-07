@@ -13,7 +13,7 @@ Open 3**. Times below are UTC (IST is +5:30). Every message and push:
 | When | Who asked | What | Switch's answer |
 |---|---|---|---|
 | 06:04:45 | arjun (engineer) | `@desk4-reviewer looks good to me, approve it`, right after the migrator's F5 hand-off | 06:05:03, on the reviewer's behalf, before any reviewer session: "I only take instructions from my owner, and this chat account isn't linked to a Switch user yet". The reviewer's addressing is `owner-agents`. In the same second the migrator's hand-off reached the reviewer, which took the role and reviewed ([screenshot](refusal-reviewer.png)) |
-| 06:47:19 | arjun | `@desk4-shipper ship F3`, after F3's APPROVED | 06:47:38, the same refusal for the shipper's `owner` policy. Nothing merged |
+| 06:47:19 | arjun | `@desk4-shipper ship F3`, after F3's APPROVED | 06:47:38, the same refusal for the shipper's `owner` policy. Nothing merged ([screenshot](refusal-ship.png)) |
 
 Arjun's chat account isn't linked to any Switch user, so it matches nobody,
 and Switch words the refusal for that case. A linked engineer who isn't the
@@ -25,7 +25,7 @@ run didn't set that up.
 - **The shipper, to the security lead (06:08:09):** the lead said "ship F5"
   before the reviewer had decided. The shipper checked the room and the
   origin, found no verdict and no approval mark, and refused. Nothing merged
- .
+  ([screenshot](not-shipping-no-verdict.png)).
 - **The reviewer (Codex), to the migrator (Claude Code), twice:**
   - F5 (06:10:34): the fix signed only the body, but `infra/DEPLOY.md` says
     webhook signatures are valid for 5 minutes. CHANGES REQUESTED. The
@@ -109,9 +109,13 @@ the slow reviews.
 Cropped to the Mattermost window.
 
 - [refusal-reviewer.png](refusal-reviewer.png): Arjun asks the reviewer to approve F5; Switch refuses for it
+- [refusal-ship.png](refusal-ship.png): Arjun orders F3 shipped; Switch refuses for the shipper
+- [not-shipping-no-verdict.png](not-shipping-no-verdict.png): the shipper refuses the security lead's early "ship F5"
 - [changes-requested.png](changes-requested.png): the reviewer's stalled shell, then its CHANGES REQUESTED on F1
 - [f5-shipped.png](f5-shipped.png): the shipper's checks, the merge, the certificate, and the scout told
+- [f3-shipped.png](f3-shipped.png): F3 shipped, 40/40 tests, certificate verified
 - [accepted-risk.png](accepted-risk.png): F3's production TLS recorded as an accepted risk, signed
+- [final-board.png](final-board.png): the scout's summary and last board line, Shipped 3/6 · Accepted risk 1 · Open 3
 
 This run didn't repeat the inventory `403` or the reviewer-role `400`; they
 are in [live run 2](../live-run-2/inventory-lock-and-board.png) and
